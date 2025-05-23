@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "nearai_registry_download_logs"
+version = "0.0.1"
+description = "Download and convert category=logs entries from nearai registry"
+authors = []
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12"
+nearai = "^0.1.13"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
