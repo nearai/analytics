@@ -59,24 +59,30 @@ Example:
 
 ```json
 "metadata": {
-  "start_time_utc": "2024-05-08T14:30:00Z",
-  "end_time_utc": "2024-05-08T14:35:12Z",
+  "agent_name": "example_agent",
+  "agent_version": "0.0.1",
+  "author": "developer@near.ai",
+  "debug_mode": true,
+  "files": [
+    {
+      "description": "Raw agent output log",
+      "filename": "agent_log.txt"
+    },
+    {
+      "description": "Detailed timing information", 
+      "filename": "timing_data.json"
+    }
+  ],
+  "framework": "langchain",
   "model": "claude-3-opus-20240229",
   "model_provider": "anthropic",
   "model_temperature": 0.7,
   "runner": "nearai-hub",
-  "framework": "langchain",
-  "author": "developer@near.ai",
-  "files": [
-    {
-      "filename": "agent_log.txt",
-      "description": "Raw agent output log"
-    },
-    {
-      "filename": "timing_data.json",
-      "description": "Detailed timing information"
-    }
-  ]
+  "time_begin_utc": "2025-05-23T05:04:49.351140+00:00",
+  "time_begin_local": "2025-05-23T05:04:49.351145",
+  "time_end_utc": "2025-05-23T05:04:59.790817+00:00",
+  "time_end_local": "2025-05-23T05:04:59.790822",
+  "user": "developer@near.ai"
 }
 ```
 
@@ -113,4 +119,24 @@ Example:
     "description": "Number of completion tokens generated"
   }
 }
+```
+
+## Installation
+
+```bash
+python3.11 -m venv .venv
+. .venv/bin/activate
+pip install poetry
+poetry install
+```
+
+## Run
+
+```bash
+metrics-cli --help
+metrics-cli -v rename /Users/me/.nearai/logs  /Users/me/.nearai/clean_logs
+metrics-cli -v ms_to_s /Users/me/.nearai/clean_logs  /Users/me/.nearai/clean_logs
+metrics-cli round /Users/me/.nearai/clean_logs  /Users/me/.nearai/clean_logs
+metrics-cli determine-pruning /Users/me/.nearai/clean_logs  /Users/me/.nearai/clean_logs
+metrics-cli -v aggregate /Users/me/.nearai/clean_logs  /Users/me/.nearai/aggr_logs --filters "runner:not_in:local" --slices "debug_mode" --prune=true
 ```
