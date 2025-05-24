@@ -31,7 +31,7 @@ This view displays individual log entries in chronological order:
 - Custom metrics table.
 - Stream of log files.
 
-#### 2. Performance Dasboard
+#### 2. Performance Dashboard
 
 - Time granulation: 1 minute, 1 hour, 1 day, 1 week.
 - Metrics table with filtering, slicing, performance columns, and custom columns.
