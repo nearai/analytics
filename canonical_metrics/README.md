@@ -138,5 +138,5 @@ metrics-cli -v rename /Users/me/.nearai/logs  /Users/me/.nearai/clean_logs
 metrics-cli -v ms_to_s /Users/me/.nearai/clean_logs  /Users/me/.nearai/clean_logs
 metrics-cli round /Users/me/.nearai/clean_logs  /Users/me/.nearai/clean_logs
 metrics-cli determine-pruning /Users/me/.nearai/clean_logs  /Users/me/.nearai/clean_logs
-metrics-cli -v aggregate /Users/me/.nearai/clean_logs  /Users/me/.nearai/aggr_logs --filters "runner:not_in:local" --slices "debug_mode" --prune=true
+metrics-cli -v aggregate /Users/me/.nearai/clean_logs  /Users/me/.nearai/aggr_logs --filters "runner:not_in:local" --slices "agent_name;debug_mode" --nullify_absent_metrics=true --prune=true
 ```

@@ -8,7 +8,7 @@ from metrics_cli.models.condition import Condition, ConditionOperator
 class AggregateConversion(BaseConversion):  # noqa: F821
     """Aggregate entries."""
 
-    def __init__(self, slices: List[Condition], max_fields: Optional[Set[str]] = None):  # noqa: D107
+    def __init__(self, slices: List[Condition], max_fields: Optional[Set[str]] = None, nullify_absent_metrics=False):  # noqa: D107
         super().__init__()
         if max_fields is None:
             max_fields = set()
@@ -17,6 +17,7 @@ class AggregateConversion(BaseConversion):  # noqa: F821
         self.description = "Aggregate"
         self.slices = slices
         self.max_fields = max_fields
+        self.nullify_absent_metrics = nullify_absent_metrics
 
     def convert(self, data: List[CanonicalMetricsEntry]) -> List[CanonicalMetricsEntry]:
         """Aggregate entries grouping around `this.slices`.
@@ -116,12 +117,18 @@ class AggregateConversion(BaseConversion):  # noqa: F821
                         print(f"Error: comparisons fail for {new_field}: {v} against {another_value}")
                         # If comparison fails, keep the first value
                         pass
-            result_data[new_field] = v
+            original_entry = data_list[0].get(max_field)
+            if isinstance(original_entry, dict):
+                result_data[new_field] = {"value": v, "description": new_field}
+            else:
+                result_data[new_field] = v
         return result_data
 
     def _aggregate_metadata(self, data_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         metadata: Dict[str, Any] = {}
         for key, value in data_list[0].items():
+            if key == "files":
+                continue
             same = True
             for data in data_list[1:]:
                 if data.get(key) != value:
@@ -135,16 +142,27 @@ class AggregateConversion(BaseConversion):  # noqa: F821
         metrics: Dict[str, Any] = {}
         n = len(data_list)
         for key, aggr_metric in data_list[0].items():
+            v = aggr_metric.get("value")
+            if not isinstance(v, (float, int)):
+                continue
             num_value_present_in_all = True
             prune_in_all = True
             total = 0.0
+            min_value = v
+            max_value = v
             for data in data_list:
                 metric = data.get(key, {})
                 v = metric.get("value")
                 if not isinstance(v, (float, int)):
-                    num_value_present_in_all = False
-                    break
+                    if v is None and self.nullify_absent_metrics:
+                        print(f"WARNING: Setting absent metric {key} = 0")
+                        v = 0
+                    else:
+                        num_value_present_in_all = False
+                        break
                 total += v
+                min_value = min(min_value, v)
+                max_value = max(max_value, v)
                 if prune_in_all and not metric.get("prune", False):
                     prune_in_all = False
             if not num_value_present_in_all:
@@ -154,6 +172,9 @@ class AggregateConversion(BaseConversion):  # noqa: F821
             # Create a copy of the first metric as the base for aggregated metric
             aggr_metric = data_list[0][key].copy()
             aggr_metric["value"] = total / n
+            aggr_metric["min_value"] = min_value
+            aggr_metric["max_value"] = max_value
+            aggr_metric["n_samples"] = n
             if not prune_in_all:
                 aggr_metric.pop("prune", None)
             metrics[key] = aggr_metric

@@ -44,14 +44,14 @@ class DeterminePruningConversion(BaseConversion):  # noqa: F821
 
         for key, value in metrics.items():
             # Classify metrics into all_metrics and success_metrics
+            all_metrics[key] = value
             if key.endswith("_all"):
+                # Intentionally put this metric into `all_metrics` two times: once with suffix, once without suffix
                 base_key = key[:-4]  # Remove '_all'
                 all_metrics[base_key] = value
             elif key.endswith("_success"):
                 base_key = key[:-8]  # Remove '_success'
                 success_metrics[base_key] = value
-            else:
-                all_metrics[key] = value
 
         # Check for success metrics that equal their corresponding all metrics
         for base_key in success_metrics:

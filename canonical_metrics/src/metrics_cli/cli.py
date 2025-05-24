@@ -76,9 +76,14 @@ def determine_pruning(from_path: Path, to_path: Path):
 @click.argument("to_path", type=click.Path(path_type=Path))
 @click.option("--filters", "-f", type=str, default="", help="Filters")
 @click.option("--slices", "-s", type=str, default="", help="Slices")
+@click.option(
+    "--nullify_absent_metrics", "-n", type=bool, default=False, help="Treat absent metrics as 0, otherwise skip metric."
+)
 @click.option("--prune", "-p", type=bool, default=False, help="Prune metrics marked for pruning.")
 @click.pass_context
-def aggregate(ctx, from_path: Path, to_path: Path, filters: str, slices: str, prune: bool):
+def aggregate(
+    ctx, from_path: Path, to_path: Path, filters: str, slices: str, nullify_absent_metrics: bool, prune: bool
+):
     """Aggregate metrics."""
     verbose = ctx.obj.get("verbose", False)
 
@@ -90,7 +95,7 @@ def aggregate(ctx, from_path: Path, to_path: Path, filters: str, slices: str, pr
     if filter_conditions:
         conversions.append(FilterConversion(filter_conditions))
     conversions.append(SortByTimestampConversion())
-    conversions.append(AggregateConversion(slice_conditions))
+    conversions.append(AggregateConversion(slice_conditions, nullify_absent_metrics=nullify_absent_metrics))
     conversions.append(SortByTimestampConversion(sort_field_name="time_end_utc_max"))
     if prune:
         conversions.append(PruneConversion(verbose=verbose))
