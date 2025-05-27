@@ -1,21 +1,22 @@
 """Main CLI interface using Click."""
 
 from pathlib import Path
-from typing import List
 
 import click
 
-from metrics_cli.conversions.aggregate import AggregateConversion
-from metrics_cli.conversions.base import BaseConversion, ChainConversion
+from metrics_cli.conversions.base import BaseConversion
 from metrics_cli.conversions.determine_pruning import DeterminePruningConversion
-from metrics_cli.conversions.filter import FilterConversion
 from metrics_cli.conversions.ms_to_s import MsToSConversion
-from metrics_cli.conversions.prune import PruneConversion
 from metrics_cli.conversions.rename import RenameConversion
 from metrics_cli.conversions.round import RoundConversion
-from metrics_cli.conversions.sort_by_timestamp import SortByTimestampConversion
 from metrics_cli.local_files import load_logs_list_from_disk, save_logs_list_to_disk
-from metrics_cli.models.condition import parse_conditions
+from metrics_cli.transform_utils import (
+    AggregationParams,
+    MetricsTuneParams,
+    PruneMode,
+    create_aggregation,
+    create_metrics_tuning,
+)
 
 
 @click.group()
@@ -74,33 +75,77 @@ def determine_pruning(from_path: Path, to_path: Path):
 @cli.command()
 @click.argument("from_path", type=click.Path(exists=True, path_type=Path))
 @click.argument("to_path", type=click.Path(path_type=Path))
-@click.option("--filters", "-f", type=str, default="", help="Filters")
-@click.option("--slices", "-s", type=str, default="", help="Slices")
+@click.option("--rename", "-r", is_flag=True, default=False, help="Enable metric renaming")
+@click.option("--ms-to-s", "-m", is_flag=True, default=False, help="Convert milliseconds to seconds")
+@click.option("--round/--no-round", default=True, help="Enable/disable value rounding")
+@click.option("--round-precision", "-p", type=int, default=2, help="Number of decimal places for rounding")
 @click.option(
-    "--nullify_absent_metrics", "-n", type=bool, default=False, help="Treat absent metrics as 0, otherwise skip metric."
+    "--determine-pruning/--no-determine-pruning", default=True, help="Enable/disable assignment of prune fields"
 )
-@click.option("--prune", "-p", type=bool, default=False, help="Prune metrics marked for pruning.")
 @click.pass_context
-def aggregate(
-    ctx, from_path: Path, to_path: Path, filters: str, slices: str, nullify_absent_metrics: bool, prune: bool
+def tune(
+    ctx,
+    from_path: Path,
+    to_path: Path,
+    rename: bool,
+    ms_to_s: bool,
+    round: bool,
+    round_precision: int,
+    determine_pruning: bool,
 ):
-    """Aggregate metrics."""
+    """Apply common metrics tuning operations (rename, convert units, round, determine pruning)."""
     verbose = ctx.obj.get("verbose", False)
 
-    # Convert user input to conditions
-    filter_conditions = parse_conditions(filters) if filters else []
-    slice_conditions = parse_conditions(slices) if slices else []
+    params = MetricsTuneParams(
+        verbose=verbose,
+        rename=rename,
+        ms_to_s=ms_to_s,
+        round=round,
+        round_precision=round_precision,
+        determine_pruning=determine_pruning,
+    )
 
-    conversions: List[BaseConversion] = []
-    if filter_conditions:
-        conversions.append(FilterConversion(filter_conditions))
-    conversions.append(SortByTimestampConversion())
-    conversions.append(AggregateConversion(slice_conditions, nullify_absent_metrics=nullify_absent_metrics))
-    conversions.append(SortByTimestampConversion(sort_field_name="time_end_utc_max"))
-    if prune:
-        conversions.append(PruneConversion(verbose=verbose))
+    converter = create_metrics_tuning(params)
+    convert(from_path, to_path, converter)
 
-    convert(from_path, to_path, ChainConversion(conversions))
+
+@cli.command()
+@click.argument("from_path", type=click.Path(exists=True, path_type=Path))
+@click.argument("to_path", type=click.Path(path_type=Path))
+@click.option("--filters", "-f", type=str, default="", help="Filter conditions (field:operator:values)")
+@click.option(
+    "--slices", "-s", type=str, default="", help="Slice conditions for grouping (field or field:operator:values)"
+)
+@click.option(
+    "--nullify-absent-metrics/--no-nullify-absent-metrics",
+    default=False,
+    help="Treat absent metrics as 0, otherwise skip metric",
+)
+@click.option(
+    "--prune",
+    "-p",
+    type=click.Choice(["none", "all", "column"]),
+    default="none",
+    help="Pruning mode: none (no pruning), all (individual), column (global)",
+)
+@click.pass_context
+def aggregate(ctx, from_path: Path, to_path: Path, filters: str, slices: str, nullify_absent_metrics: bool, prune: str):
+    """Aggregate metrics by grouping and averaging values."""
+    verbose = ctx.obj.get("verbose", False)
+
+    # Convert string to enum
+    prune_mode_enum = PruneMode(prune)
+
+    params = AggregationParams(
+        verbose=verbose,
+        prune_mode=prune_mode_enum,
+        filters=filters,
+        slices=slices,
+        nullify_absent_metrics=nullify_absent_metrics,
+    )
+
+    converter = create_aggregation(params)
+    convert(from_path, to_path, converter)
 
 
 def main():

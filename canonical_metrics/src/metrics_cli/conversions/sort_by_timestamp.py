@@ -14,8 +14,8 @@ class SortByTimestampConversion(BaseConversion):  # noqa: F821
 
     def convert(self, data: List[CanonicalMetricsEntry]) -> List[CanonicalMetricsEntry]:  # noqa: D102
         # Sort. Most recent ones first, oldest last.
-        def get_sort_key(entry):
-            timestamp = entry.metadata.get(self.sort_field_name)
+        def get_sort_key(entry: CanonicalMetricsEntry):
+            timestamp = entry.fetch_value(self.sort_field_name)
             if timestamp:
                 return timestamp
             return ""  # Put entries without timestamps at the end (empty string sorts before valid timestamps)

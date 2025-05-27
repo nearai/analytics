@@ -1,22 +1,17 @@
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Set
 
 from metrics_cli.conversions.base import BaseConversion
-from metrics_cli.models.canonical_metrics_entry import CanonicalMetricsEntry, fetch_value
+from metrics_cli.models.canonical_metrics_entry import CanonicalMetricsEntry, MetadataFieldCategory, fetch_value
 from metrics_cli.models.condition import Condition, ConditionOperator
 
 
 class AggregateConversion(BaseConversion):  # noqa: F821
     """Aggregate entries."""
 
-    def __init__(self, slices: List[Condition], max_fields: Optional[Set[str]] = None, nullify_absent_metrics=False):  # noqa: D107
+    def __init__(self, slices: List[Condition], nullify_absent_metrics=False):  # noqa: D107
         super().__init__()
-        if max_fields is None:
-            max_fields = set()
-        max_fields.add("time_end_utc")
-        max_fields.add("time_end_local")
         self.description = "Aggregate"
         self.slices = slices
-        self.max_fields = max_fields
         self.nullify_absent_metrics = nullify_absent_metrics
 
     def convert(self, data: List[CanonicalMetricsEntry]) -> List[CanonicalMetricsEntry]:
@@ -51,7 +46,10 @@ class AggregateConversion(BaseConversion):  # noqa: F821
 
         aggregated_entries: List[CanonicalMetricsEntry] = []
         for key, entries in groups.items():
-            aggregated_entries.append(self._aggregate(key, entries))
+            new_entry = self._aggregate(key, entries)
+            new_entry.metadata = dict(sorted(new_entry.metadata.items()))
+            new_entry.metrics = dict(sorted(new_entry.metrics.items()))
+            aggregated_entries.append(new_entry)
 
         return aggregated_entries
 
@@ -66,9 +64,7 @@ class AggregateConversion(BaseConversion):  # noqa: F821
             metrics_list.append(entry.metrics)
 
         metadata = self._aggregate_metadata(metadata_list)
-        metadata = self._add_max_fields(metadata, metadata_list)
         metrics = self._aggregate_metrics(metrics_list)
-        metrics = self._add_max_fields(metrics, metrics_list)
 
         return CanonicalMetricsEntry(name, metadata, metrics)
 
@@ -92,51 +88,67 @@ class AggregateConversion(BaseConversion):  # noqa: F821
 
         return "_".join(name_parts) if name_parts else "aggregated"
 
-    def _add_max_fields(self, result_data: Dict[str, Any], data_list: List[Dict[str, Any]]) -> Dict[str, Any]:
-        for max_field in self.max_fields:
-            v = fetch_value(data_list[0], max_field)
-            new_field = f"{max_field}_max"
-            if not v:
-                # Only add it if it's present in the first entry.
-                continue
-            for entry in data_list[1:]:
-                another_value = fetch_value(entry, max_field)
-                if another_value:
-                    # Calculate max - handle both string and numeric comparisons
-                    try:
-                        if isinstance(v, str) and isinstance(another_value, str):
-                            # For timestamps and string values, use lexicographic comparison
-                            v = max(v, another_value)
-                        elif isinstance(v, (int, float)) and isinstance(another_value, (int, float)):
-                            # For numeric values
-                            v = max(v, another_value)
-                        else:
-                            # For mixed types, convert to string and compare
-                            v = max(str(v), str(another_value))
-                    except (TypeError, ValueError):
-                        print(f"Error: comparisons fail for {new_field}: {v} against {another_value}")
-                        # If comparison fails, keep the first value
-                        pass
-            original_entry = data_list[0].get(max_field)
-            if isinstance(original_entry, dict):
-                result_data[new_field] = {"value": v, "description": new_field}
-            else:
-                result_data[new_field] = v
-        return result_data
-
     def _aggregate_metadata(self, data_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         metadata: Dict[str, Any] = {}
-        for key, value in data_list[0].items():
-            if key == "files":
+
+        # Get all unique field names across all metadata entries
+        all_fields: Set[str] = set()
+        for data in data_list:
+            all_fields.update(data.keys())
+
+        for field_name in all_fields:
+            if field_name == "files":
                 continue
-            same = True
+
+            # Check if all entries have the same value for this field
+            first_value = data_list[0].get(field_name)
+            same_in_all = True
             for data in data_list[1:]:
-                if data.get(key) != value:
-                    same = False
+                if data.get(field_name) != first_value:
+                    same_in_all = False
                     break
-            if same:
-                metadata[key] = value
+            if same_in_all:
+                # If all values are the same, just store the value
+                metadata[field_name] = first_value
+                continue
+
+            # Check if this field has category information and is UNIQUE or TIMESTAMP
+            field_data = first_value
+            if not isinstance(field_data, dict):
+                continue
+            field_category = field_data.get("category")
+            field_value = field_data.get("value")
+            if field_category == MetadataFieldCategory.TIMESTAMP.value or (
+                field_category == MetadataFieldCategory.UNIQUE.value and isinstance(field_value, (int, float))
+            ):
+                aggregated_field = self._aggregate_metadata_field(field_name, data_list)
+                if aggregated_field is not None:
+                    metadata[field_name] = aggregated_field
+
         return metadata
+
+    def _aggregate_metadata_field(self, field_name: str, data_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Aggregate a metadata field by calculating min, max, and n_samples for numeric values."""
+        field_info = data_list[0].get(field_name)
+        assert isinstance(field_info, dict)
+        field_info = field_info.copy()
+        v = field_info.pop("value")
+        min_value = v
+        max_value = v
+        n_samples = 0
+
+        for data in data_list:
+            v = fetch_value(data, field_name)
+            if not v:
+                continue
+            n_samples += 1
+            min_value = min(min_value, v)
+            max_value = max(max_value, v)
+
+        field_info["min_value"] = min_value
+        field_info["max_value"] = max_value
+        field_info["n_samples"] = n_samples
+        return field_info
 
     def _aggregate_metrics(self, data_list: List[Dict[str, Dict[str, Any]]]) -> Dict[str, Dict[str, Any]]:
         metrics: Dict[str, Any] = {}
