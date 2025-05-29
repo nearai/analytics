@@ -292,12 +292,12 @@ def create_table(entries: List[CanonicalMetricsEntry], params: TableCreationPara
         for column in columns:
             column_value = TableCell()
             v = entry.metadata.get(column.name)
-            if not v:
+            if v is None:
                 v = entry.metrics.get(column.name)
-            if not v:
+            if v is None:
                 # subfield
                 v = entry.fetch_value(column.name)
-            if not v:
+            if v is None:
                 row.append(column_value)
                 continue
             if not isinstance(v, dict):
@@ -308,7 +308,7 @@ def create_table(entries: List[CanonicalMetricsEntry], params: TableCreationPara
             column_value.values["min_value"] = v.get("min_value")
             column_value.values["max_value"] = v.get("max_value")
             v["name"] = column.name
-            column_value.details = dict(sorted(v.items()))
+            column_value.details = v
             row.append(column_value)
         rows.append(row)
 
@@ -326,7 +326,7 @@ def create_table(entries: List[CanonicalMetricsEntry], params: TableCreationPara
         except Exception:
             pass
 
-    table.remove_keys({"prune", "category"})
+    table.remove_subfields(["prune", "category"])
     table.flatten_values()
     return table
 
@@ -385,7 +385,7 @@ def determine_possible_new_slices(entries: List[CanonicalMetricsEntry], slices: 
 
             new_slice_value = v.get("value")
             candidate_value = candidates.get((k, slice_values))
-            if not candidate_value:
+            if candidate_value is None:
                 candidates[(k, slice_values)] = new_slice_value
                 continue
             if candidate_value == new_slice_value:
@@ -428,7 +428,9 @@ def dedupe_slices(
 
         def get_sort_key(slice: str) -> int:
             """Calculate sort key as a length."""
-            return len(slice) + first_slice_value_lengths.get(slice, 0)
+            # Penalize "_version".
+            penalty = 10 if "_version" in slice else 0
+            return len(slice) + penalty + first_slice_value_lengths.get(slice, 0)
 
         slices = sorted(slices, key=get_sort_key)
 

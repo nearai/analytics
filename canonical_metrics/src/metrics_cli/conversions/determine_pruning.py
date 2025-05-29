@@ -94,7 +94,7 @@ class DeterminePruningConversion(BaseConversion):  # noqa: F821
         for base_key in avg_metrics:
             avg_value = avg_metrics[base_key]["value"]
 
-            if not isinstance(avg_value, (int, float)) or avg_value == 0:
+            if not isinstance(avg_value, (int, float)) or (avg_value == 0):
                 continue
 
             # Check min metric

@@ -79,7 +79,7 @@ class Condition:
 
     def _check_range(self, field_value: Any) -> bool:
         """Evaluate range condition."""
-        if self.values is None:
+        if not self.values:
             return True  # No range specified, always true
 
         min_val, max_val = self.values

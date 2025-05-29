@@ -26,7 +26,7 @@ class CanonicalMetricsEntry:
     def fetch_value(self, field_name: str) -> Any:
         """Fetch value for `field_name`."""
         v = fetch_value(self.metadata, field_name)
-        if not v:
+        if v is None:
             v = fetch_value(self.metrics, field_name)
         return v
 
@@ -34,7 +34,7 @@ class CanonicalMetricsEntry:
 def fetch_value(data: Dict[str, Any], field_name: str) -> Any:
     """Fetch value for `field_name` from `data`."""
     v = data.get(field_name)
-    if not v:
+    if v is None:
         # Split by field_name /, remove last part
         if "/" in field_name:
             splits = field_name.split("/")

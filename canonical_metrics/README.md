@@ -139,4 +139,5 @@ metrics-cli -v ms_to_s /Users/me/.nearai/clean_logs  /Users/me/.nearai/clean_log
 metrics-cli round /Users/me/.nearai/clean_logs  /Users/me/.nearai/clean_logs
 metrics-cli tune /Users/me/.nearai/logs  /Users/me/.nearai/tuned_logs --rename --ms-to-s
 metrics-cli aggregate /Users/me/.nearai/tuned_logs /Users/me/.nearai/aggr_logs --filters "runner:not_in:local" --slices "agent_name;debug_mode" --absent-metrics-strategy=nullify --prune=all
+metrics-cli table /Users/me/.nearai/tuned_logs /Users/me/.nearai/table --filters "runner:not_in:local" --absent-metrics-strategy=nullify
 ```

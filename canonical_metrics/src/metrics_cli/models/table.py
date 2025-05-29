@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from metrics_cli.models.column_selection import ColumnNode, TableColumn
 from metrics_cli.models.condition import Condition
@@ -33,6 +33,14 @@ def flatten_values(fields: Dict[str, Any]) -> Dict[str, Any]:
     return contracted_fields
 
 
+def remove_subfields(fields: Dict[str, Any], subfields_to_remove: List[str]) -> None:
+    """Remove `subfields_to_remove` from `fields`."""
+    for field_data in fields.values():
+        if isinstance(field_data, dict):
+            for subfield in subfields_to_remove:
+                field_data.pop(subfield, None)
+
+
 @dataclass
 class TableCell:
     """Represents a single cell in a table with values and details."""
@@ -52,11 +60,10 @@ class TableCell:
         self.values = flatten_values(self.values)
         self.details = flatten_values(self.details)
 
-    def remove_keys(self, keys_to_remove: Set[str]) -> None:
-        """Remove `keys_to_remove` from `self.values` and `self.details`."""
-        for key in keys_to_remove:
-            self.values.pop(key, None)
-            self.details.pop(key, None)
+    def remove_subfields(self, subfields_to_remove: List[str]) -> None:
+        """Remove `subfields_to_remove` from `self.values` and `self.details`."""
+        remove_subfields(self.values, subfields_to_remove)
+        remove_subfields(self.details, subfields_to_remove)
 
 
 @dataclass
@@ -81,7 +88,7 @@ class Table:
     def to_dict(self):
         """Convert table to dictionary representation."""
         sorted_by_dict = None
-        if self.sorted_by:
+        if self.sorted_by is not None:
             sorted_by_dict = {"column_id": self.sorted_by[0], "sort_order": self.sorted_by[1].value}
         return {
             "rows": [[cell.to_dict() for cell in row] for row in self.rows],
@@ -103,11 +110,11 @@ class Table:
             for cell in row:
                 cell.flatten_values()
 
-    def remove_keys(self, keys_to_remove: Set[str]) -> None:
-        """Remove `keys_to_remove` from `values` and `details` of each cell."""
+    def remove_subfields(self, subfields_to_remove: List[str]) -> None:
+        """Remove `subfields_to_remove` from `values` and `details` of each cell."""
         for row in self.rows:
             for cell in row:
-                cell.remove_keys(keys_to_remove)
+                cell.remove_subfields(subfields_to_remove)
 
     def get_table_values(self) -> List[List[Dict[str, Any]]]:
         """Return `values` of each cell. Includes headers and row names."""

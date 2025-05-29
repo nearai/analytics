@@ -1,6 +1,5 @@
 """Main CLI interface using Click."""
 
-import csv
 from pathlib import Path
 
 import click
@@ -11,9 +10,8 @@ from metrics_cli.conversions.determine_pruning import DeterminePruningConversion
 from metrics_cli.conversions.ms_to_s import MsToSConversion
 from metrics_cli.conversions.rename import RenameConversion
 from metrics_cli.conversions.round import RoundConversion
-from metrics_cli.local_files import load_logs_list_from_disk, save_logs_list_to_disk
+from metrics_cli.local_files import load_logs_list_from_disk, save_logs_list_to_disk, write_table_to_csv
 from metrics_cli.models.condition import parse_conditions
-from metrics_cli.models.table import Table, TableCell
 from metrics_cli.transform_utils import (
     AggregationParams,
     MetricsTuneParams,
@@ -158,51 +156,6 @@ def aggregate(ctx, from_path: Path, to_path: Path, filters: str, slices: str, ab
 
     converter = create_aggregation(params)
     convert(from_path, to_path, converter)
-
-
-def format_row_name(cell: TableCell) -> str:
-    """Format row name from cell values."""
-    items = []
-    for k, v in cell.values.items():
-        if v is not None and v != "":  # Skip empty/None values
-            items.append(f"{k}: {v}")
-    return "\n".join(items)
-
-
-def format_cell_values(cell: TableCell) -> str:
-    text = ""
-    v = cell.values.get("value")
-    if v is not None:
-        text = str(v)
-    min_v = cell.values.get("min_value")
-    max_v = cell.values.get("max_value")
-    if min_v is not None and max_v is not None:
-        range = f"[{min_v}, {max_v}]"
-        if not text:
-            text = range
-        else:
-            text = f"{text} {range}"
-    return text
-
-
-def write_table_to_csv(table: Table, file_path: Path) -> None:
-    """Write table rows to CSV file using the formatting functions."""
-    with open(file_path, "w", newline="", encoding="utf-8") as csvfile:
-        writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
-
-        # Process each row
-        for row in table.rows:
-            csv_row = []
-
-            for cell_idx, cell in enumerate(row):
-                if cell_idx == 0:
-                    # Row name (first column)
-                    csv_row.append(format_row_name(cell))
-                else:
-                    # Data cells
-                    csv_row.append(format_cell_values(cell))
-
-            writer.writerow(csv_row)
 
 
 @cli.command()

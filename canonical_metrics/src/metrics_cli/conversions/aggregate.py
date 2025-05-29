@@ -105,6 +105,7 @@ class AggregateConversion(BaseConversion):  # noqa: F821
                 value_str = "none" if (key_value is None) else str(key_value)
                 name_part = f"{field_name}_{value_str}"
             else:
+                # key_value is bool
                 name_part = "" if key_value else "not_"
                 name_part += str(slice_condition)
             name_part = name_part.replace("/", "_").replace(":", "_").replace(" ", "_")
@@ -115,10 +116,10 @@ class AggregateConversion(BaseConversion):  # noqa: F821
     def _aggregate_metadata(self, data_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         metadata: Dict[str, Any] = {}
 
-        # Get all unique field names across all metadata entries
-        all_fields: Set[str] = set()
-        for data in data_list:
-            all_fields.update(data.keys())
+        # Get all unique field names present in all metadata entries
+        all_fields: Set[str] = set(data_list[0].keys())
+        for data in data_list[1:]:
+            all_fields.intersection(data.keys())
 
         for field_name in all_fields:
             if field_name == "files":
@@ -164,7 +165,7 @@ class AggregateConversion(BaseConversion):  # noqa: F821
 
         for data in data_list:
             v = fetch_value(data, field_name)
-            if not v:
+            if v is None:
                 continue
             n_samples += 1
             min_value = min(min_value, v)
@@ -176,11 +177,24 @@ class AggregateConversion(BaseConversion):  # noqa: F821
         return field_info
 
     def _aggregate_metrics(self, data_list: List[Dict[str, Dict[str, Any]]]) -> Dict[str, Dict[str, Any]]:
+        # Get all unique field names across metadata entries
+        all_fields: Set[str] = set()
+        for data in data_list:
+            all_fields.update(data.keys())
+
         metrics: Dict[str, Any] = {}
-        for key, aggr_metric in data_list[0].items():
-            v = aggr_metric.get("value")
+        for key in all_fields:
+            first_metric = None
+            for data in data_list:
+                metric = data.get(key)
+                if metric:
+                    first_metric = metric
+                    break
+            assert isinstance(first_metric, dict)
+            v = first_metric.get("value")
             if not isinstance(v, (float, int)):
                 continue
+
             prune_in_all = True
             total = 0.0
             min_value = v
@@ -190,7 +204,8 @@ class AggregateConversion(BaseConversion):  # noqa: F821
             for data in data_list:
                 metric = data.get(key, {})
                 v = metric.get("value")
-                if not v:
+                value_is_absent = v is None
+                if value_is_absent:
                     if self.absent_metrics_strategy == AggregateAbsentMetricsStrategy.ALL_OR_NOTHING:
                         skip = True
                         print(f"WARNING: Skipping metric {key} because it's not present in all grouped entries")
@@ -199,6 +214,7 @@ class AggregateConversion(BaseConversion):  # noqa: F821
                         print(f"WARNING: Ignoring absent metric {key} and excluding it from samples")
                         continue
                     assert self.absent_metrics_strategy == AggregateAbsentMetricsStrategy.NULLIFY
+                    print(f"WARNING: Setting absent metric {key} = 0")
                     v = 0
                 if not isinstance(v, (float, int)):
                     if self.absent_metrics_strategy == AggregateAbsentMetricsStrategy.ACCEPT_SUBSET:
@@ -210,13 +226,13 @@ class AggregateConversion(BaseConversion):  # noqa: F821
                 n = n + 1
                 min_value = min(min_value, v)
                 max_value = max(max_value, v)
-                if prune_in_all and not metric.get("prune", False):
+                if prune_in_all and not value_is_absent and not metric.get("prune", False):
                     prune_in_all = False
             if skip or (n == 0):
                 continue
 
             # Create a copy of the first metric as the base for aggregated metric
-            aggr_metric = data_list[0][key].copy()
+            aggr_metric = first_metric.copy()
             aggr_metric["value"] = total / n
             aggr_metric["min_value"] = min_value
             aggr_metric["max_value"] = max_value

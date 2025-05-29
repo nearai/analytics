@@ -63,7 +63,9 @@ class PruneConversion(BaseConversion):  # noqa: F821
         for entry in data:
             keys_to_remove = set()
             for metric_key in metric_keys:
-                metric_value = entry.metrics.get(metric_key, {})
+                metric_value = entry.metrics.get(metric_key)
+                if metric_value is None:
+                    continue
                 if not metric_value.get("prune", False):
                     keys_to_remove.add(metric_key)
             metric_keys = metric_keys - keys_to_remove
