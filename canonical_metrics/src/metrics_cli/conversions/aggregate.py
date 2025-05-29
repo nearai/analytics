@@ -1,18 +1,50 @@
-from typing import Any, Dict, List, Set
+from enum import Enum
+from typing import Any, Dict, List, Set, Tuple
 
 from metrics_cli.conversions.base import BaseConversion
 from metrics_cli.models.canonical_metrics_entry import CanonicalMetricsEntry, MetadataFieldCategory, fetch_value
 from metrics_cli.models.condition import Condition, ConditionOperator
 
 
+class AggregateAbsentMetricsStrategy(Enum):
+    """Strategies on how to deal with absent metrics."""
+
+    # Assign absent metrics to 0.
+    # Use it for any metrics that are not recorded when 0.
+    NULLIFY = "nullify"
+    # Accept subset of samples.
+    # Use it if absence of metrics means 'no information', and not including such samples
+    # into subset does not make derived metrics biased.
+    ACCEPT_SUBSET = "accept_subset"
+    # The safest approach: calculate derived values if the metric is present in all the samples.
+    ALL_OR_NOTHING = "all_or_nothing"
+
+
+def get_slice_values(entry: CanonicalMetricsEntry, slices: List[Condition]) -> Tuple[Any]:
+    """Returns tuple of slice values, checking `entry` against `slices`."""
+    list_values: List[Any] = []
+
+    for slice_condition in slices:
+        v = entry.fetch_value(slice_condition.field_name)
+        if slice_condition.operator != ConditionOperator.SLICE:
+            v = slice_condition.check(entry)
+        list_values.append(v)
+
+    return tuple(list_values)
+
+
 class AggregateConversion(BaseConversion):  # noqa: F821
     """Aggregate entries."""
 
-    def __init__(self, slices: List[Condition], nullify_absent_metrics=False):  # noqa: D107
+    def __init__(  # noqa: D107
+        self,
+        slices: List[Condition],
+        absent_metrics_strategy=AggregateAbsentMetricsStrategy.ALL_OR_NOTHING,
+    ):
         super().__init__()
         self.description = "Aggregate"
         self.slices = slices
-        self.nullify_absent_metrics = nullify_absent_metrics
+        self.absent_metrics_strategy = absent_metrics_strategy
 
     def convert(self, data: List[CanonicalMetricsEntry]) -> List[CanonicalMetricsEntry]:
         """Aggregate entries grouping around `this.slices`.
@@ -29,15 +61,7 @@ class AggregateConversion(BaseConversion):  # noqa: F821
         groups: Dict[tuple, List[CanonicalMetricsEntry]] = {}
 
         for entry in data:
-            key_values: List[Any] = []
-
-            for slice_condition in self.slices:
-                v = entry.fetch_value(slice_condition.field_name)
-                if slice_condition.operator != ConditionOperator.SLICE:
-                    v = slice_condition.check(entry)
-                key_values.append(v)
-
-            key = tuple(key_values)
+            key = get_slice_values(entry, self.slices)
 
             if key not in groups:
                 groups[key] = [entry]
@@ -108,9 +132,8 @@ class AggregateConversion(BaseConversion):  # noqa: F821
                     same_in_all = False
                     break
             if same_in_all:
-                # If all values are the same, just store the value
+                # If all values are the same, store the value
                 metadata[field_name] = first_value
-                continue
 
             # Check if this field has category information and is UNIQUE or TIMESTAMP
             field_data = first_value
@@ -123,7 +146,8 @@ class AggregateConversion(BaseConversion):  # noqa: F821
             ):
                 aggregated_field = self._aggregate_metadata_field(field_name, data_list)
                 if aggregated_field is not None:
-                    metadata[field_name] = aggregated_field
+                    v: Dict[str, Any] = metadata.get(field_name, {})
+                    v.update(aggregated_field)
 
         return metadata
 
@@ -152,33 +176,42 @@ class AggregateConversion(BaseConversion):  # noqa: F821
 
     def _aggregate_metrics(self, data_list: List[Dict[str, Dict[str, Any]]]) -> Dict[str, Dict[str, Any]]:
         metrics: Dict[str, Any] = {}
-        n = len(data_list)
         for key, aggr_metric in data_list[0].items():
             v = aggr_metric.get("value")
             if not isinstance(v, (float, int)):
                 continue
-            num_value_present_in_all = True
             prune_in_all = True
             total = 0.0
             min_value = v
             max_value = v
+            n = 0
+            skip = False
             for data in data_list:
                 metric = data.get(key, {})
                 v = metric.get("value")
-                if not isinstance(v, (float, int)):
-                    if v is None and self.nullify_absent_metrics:
-                        print(f"WARNING: Setting absent metric {key} = 0")
-                        v = 0
-                    else:
-                        num_value_present_in_all = False
+                if not v:
+                    if self.absent_metrics_strategy == AggregateAbsentMetricsStrategy.ALL_OR_NOTHING:
+                        skip = True
+                        print(f"WARNING: Skipping metric {key} because it's not present in all grouped entries")
                         break
+                    if self.absent_metrics_strategy == AggregateAbsentMetricsStrategy.ACCEPT_SUBSET:
+                        print(f"WARNING: Ignoring absent metric {key} and excluding it from samples")
+                        continue
+                    assert self.absent_metrics_strategy == AggregateAbsentMetricsStrategy.NULLIFY
+                    v = 0
+                if not isinstance(v, (float, int)):
+                    if self.absent_metrics_strategy == AggregateAbsentMetricsStrategy.ACCEPT_SUBSET:
+                        print(f"WARNING: Ignoring non-numeric metric {key} and excluding it from samples")
+                        continue
+                    print(f"WARNING: Skipping metric {key} because it's non-numeric in some samples")
+                    break
                 total += v
+                n = n + 1
                 min_value = min(min_value, v)
                 max_value = max(max_value, v)
                 if prune_in_all and not metric.get("prune", False):
                     prune_in_all = False
-            if not num_value_present_in_all:
-                print(f"WARNING: Skipping metric {key} because it's not present in all grouped entries")
+            if skip:
                 continue
 
             # Create a copy of the first metric as the base for aggregated metric

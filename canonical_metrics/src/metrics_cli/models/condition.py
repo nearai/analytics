@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, List, Optional, Union
 
@@ -11,31 +12,21 @@ class ConditionOperator(Enum):
     RANGE = "range"
 
 
+@dataclass
 class Condition:
     """A condition for filtering or slicing data."""
 
-    def __init__(
-        self,
-        field_name: str,
-        operator: Union[ConditionOperator, str],
-        values: Optional[Union[List[Any], tuple]] = None,
-    ):
-        """Initialize a condition.
+    field_name: str
+    operator: Union[ConditionOperator, str]
+    values: Optional[Union[List[Any], tuple]] = None
 
-        Args:
-        ----
-            field_name: The name of the field to evaluate
-            operator: The operator to apply (slice, in, not_in, range)
-            values: The values for the operation:
-                - For 'slice': no values
-                - For 'in'/'not_in': list of values to check membership
-                - For 'range': tuple (min_val, max_val) where either can be None
+    def __post_init__(self):
+        """Post-initialization validation and conversion."""
+        # Convert string operator to enum
+        if isinstance(self.operator, str):
+            self.operator = ConditionOperator(self.operator)
 
-        """
-        self.field_name = field_name
-        self.operator = ConditionOperator(operator) if isinstance(operator, str) else operator
-        self.values = values
-
+        # Validate the condition
         self._validate()
 
     def _validate(self):
@@ -101,13 +92,41 @@ class Condition:
             # field_value is not comparable
             return False
 
-    def __str__(self) -> str:
-        """String representation of the condition."""
-        return f"Condition({self.field_name} {self.operator.value} {self.values})"
+    def operator_str(self) -> str:
+        """String representation of operator."""
+        return self.operator if isinstance(self.operator, str) else self.operator.value
 
-    def __repr__(self) -> str:
-        """Detailed string representation."""
-        return f"Condition(field_name='{self.field_name}', operator={self.operator}, values={self.values})"
+    def to_dict(self) -> dict:
+        """Convert to dictionary representation."""
+        return {"field_name": self.field_name, "operator": self.operator_str(), "values": self.values}
+
+    def __str__(self) -> str:
+        """String representation of the condition in parseable format."""
+        if self.operator == ConditionOperator.SLICE:
+            return f"{self.field_name}"
+
+        # Format values to match parse_conditions format
+        if self.operator in (ConditionOperator.IN, ConditionOperator.NOT_IN):
+            # Join values with commas
+            if self.values:
+                values_str = ",".join(str(v) for v in self.values)
+            else:
+                values_str = ""
+            return f"{self.field_name}:{self.operator_str()}:{values_str}"
+
+        elif self.operator == ConditionOperator.RANGE:
+            # Format range as min:max
+            if self.values:
+                min_val, max_val = self.values
+                min_str = str(min_val) if min_val is not None else ""
+                max_str = str(max_val) if max_val is not None else ""
+                values_str = f"{min_str}:{max_str}"
+            else:
+                values_str = ":"
+            return f"{self.field_name}:{self.operator.value}:{values_str}"
+
+        # Fallback for any other operators
+        return f"{self.field_name}:{self.operator_str()}:{self.values}"
 
 
 # Convenience factory functions
@@ -178,6 +197,17 @@ def parse_conditions(conditions_str: str) -> List[Condition]:
             print(f"ERROR: Failed to parse condition '{part}': {e}")
             continue
 
+    return conditions
+
+
+def parse_condition_list(condition_list: List[Union[Condition, str]]) -> List[Condition]:
+    """Parse a list of Condition objects and condition strings into Condition objects."""
+    conditions: List[Condition] = []
+    for condition in condition_list:
+        if isinstance(condition, Condition):
+            conditions.append(condition)
+            continue
+        conditions = conditions + parse_conditions(condition)
     return conditions
 
 
