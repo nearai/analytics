@@ -190,7 +190,7 @@ def create_column_tree(entries: List[CanonicalMetricsEntry]) -> ColumnNode:
             add_leaf("/metrics/" + k, v)
 
     for k, leaf_subfields in leaves_subfields.items():
-        leaves[k].children = sorted(leaf_subfields.values(), key=lambda node: node.column_node_id)
+        leaves[k].children = sorted(leaf_subfields.values(), key=lambda node: node.name)
 
     # Create a stack by reversing a sort (popping from the beginning of the list is slow).
     leaves_list = sorted(leaves.values(), key=lambda node: node.column_node_id, reverse=True)
@@ -295,6 +295,9 @@ def create_table(entries: List[CanonicalMetricsEntry], params: TableCreationPara
             if not v:
                 v = entry.metrics.get(column.name)
             if not v:
+                # subfield
+                v = entry.fetch_value(column.name)
+            if not v:
                 row.append(column_value)
                 continue
             if not isinstance(v, dict):
@@ -337,7 +340,7 @@ def determine_column_unit(key: str, entries: List[CanonicalMetricsEntry]) -> Tab
         ):
             return TableColumnUnit.TIMESTAMP
         v = entry.fetch_value(key)
-        if v:
+        if v is not None:
             if isinstance(v, (int, float)):
                 return TableColumnUnit.NUMERICAL
             else:
@@ -417,10 +420,10 @@ def dedupe_slices(
         first_slice_value_lengths: Dict[str, int] = dict()
         for entry in entries:
             for slice in slices:
-                if first_slice_value_lengths.get(slice):
+                if first_slice_value_lengths.get(slice) is not None:
                     continue
                 v = entry.fetch_value(slice)
-                if v:
+                if v is not None:
                     first_slice_value_lengths[slice] = len(str(v))
 
         def get_sort_key(slice: str) -> int:
@@ -438,7 +441,7 @@ def dedupe_slices(
         for entry in entries:
             key = get_slice_values(entry, new_slice_conditions)
             v = entry.fetch_value(slice)
-            if not new_slice_values:
+            if new_slice_values.get(key) is None:
                 new_slice_values[key] = v
                 continue
             if new_slice_values[key] == v:

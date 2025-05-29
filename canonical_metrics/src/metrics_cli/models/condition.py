@@ -16,8 +16,14 @@ class ConditionOperator(Enum):
 class Condition:
     """A condition for filtering or slicing data."""
 
+    # The name of the field to evaluate
     field_name: str
+    # The operator to apply (slice, in, not_in, range)
     operator: Union[ConditionOperator, str]
+    # values: The values for the operation:
+    # - For 'slice': no values
+    # - For 'in'/'not_in': list of values to check membership
+    # - For 'range': tuple (min_val, max_val) where either can be None
     values: Optional[Union[List[Any], tuple]] = None
 
     def __post_init__(self):

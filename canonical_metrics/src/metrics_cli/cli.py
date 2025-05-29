@@ -160,10 +160,6 @@ def aggregate(ctx, from_path: Path, to_path: Path, filters: str, slices: str, ab
     convert(from_path, to_path, converter)
 
 
-def format_column_name(cell: TableCell) -> str:
-    return str(cell.values["name"])
-
-
 def format_row_name(cell: TableCell) -> str:
     """Format row name from cell values."""
     items = []
@@ -195,24 +191,16 @@ def write_table_to_csv(table: Table, file_path: Path) -> None:
         writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
 
         # Process each row
-        for row_idx, row in enumerate(table.rows):
+        for row in table.rows:
             csv_row = []
 
             for cell_idx, cell in enumerate(row):
-                if row_idx == 0:  # Header row
-                    if cell_idx == 0:
-                        # First cell in header row (empty corner)
-                        csv_row.append("")
-                    else:
-                        # Column headers
-                        csv_row.append(format_column_name(cell))
-                else:  # Data rows
-                    if cell_idx == 0:
-                        # Row name (first column)
-                        csv_row.append(format_row_name(cell))
-                    else:
-                        # Data cells
-                        csv_row.append(format_cell_values(cell))
+                if cell_idx == 0:
+                    # Row name (first column)
+                    csv_row.append(format_row_name(cell))
+                else:
+                    # Data cells
+                    csv_row.append(format_cell_values(cell))
 
             writer.writerow(csv_row)
 

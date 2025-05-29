@@ -148,6 +148,7 @@ class AggregateConversion(BaseConversion):  # noqa: F821
                 if aggregated_field is not None:
                     v: Dict[str, Any] = metadata.get(field_name, {})
                     v.update(aggregated_field)
+                    metadata[field_name] = v
 
         return metadata
 
@@ -211,7 +212,7 @@ class AggregateConversion(BaseConversion):  # noqa: F821
                 max_value = max(max_value, v)
                 if prune_in_all and not metric.get("prune", False):
                     prune_in_all = False
-            if skip:
+            if skip or (n == 0):
                 continue
 
             # Create a copy of the first metric as the base for aggregated metric
