@@ -49,7 +49,7 @@ curl -X POST "http://localhost:8000/api/v1/table/create" \
 
 Execute popular and user-owned benchmarks to generate performance metrics. Run audit evaluations on agents.
 
-### 6. Run Evaluation Dashboard
+### 5. Run Evaluation Dashboard
 
 Visualize, analyze, and compare agent & model performances using the collected metrics.
 
