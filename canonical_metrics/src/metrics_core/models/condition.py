@@ -120,7 +120,7 @@ class Condition:
 
         # Format values to match parse_conditions format
         if self.operator in (ConditionOperator.IN, ConditionOperator.NOT_IN):
-            # Join values with commas, wrapping in brackets if they contain colons
+            # Join values with commas, wrapping in brackets if they contain separators
             if self.values:
                 values_str = ",".join(self._format_value(v) for v in self.values)
             else:
@@ -128,7 +128,7 @@ class Condition:
             return f"{self.field_name}:{self.operator_str()}:{values_str}"
 
         elif self.operator == ConditionOperator.RANGE:
-            # Format range as min:max, wrapping in brackets if they contain colons
+            # Format range as min:max, wrapping in brackets if they contain separators
             if self.values:
                 min_val, max_val = self.values
                 min_str = self._format_value(min_val) if min_val is not None else ""
