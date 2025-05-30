@@ -100,6 +100,8 @@ class AggregationParams:
         prune_mode: PruneMode = PruneMode.NONE,
         categorize_metadata: bool = True,
         absent_metrics_strategy=AggregateAbsentMetricsStrategy.ALL_OR_NOTHING,
+        round: bool = True,
+        round_precision: int = 2,
     ):
         """Initialize aggregation parameters.
 
@@ -111,6 +113,8 @@ class AggregationParams:
             prune_mode: How to prune metrics.
             categorize_metadata: Enable metadata categorization.
             absent_metrics_strategy: Strategy on how to deal with absent metrics.
+            round: Enable value rounding after aggregation.
+            round_precision: Number of decimal places for rounding.
 
         """
         self.filters = filters
@@ -119,6 +123,8 @@ class AggregationParams:
         self.prune_mode = prune_mode
         self.categorize_metadata = categorize_metadata
         self.absent_metrics_strategy = absent_metrics_strategy
+        self.round = round
+        self.round_precision = round_precision
 
 
 def create_aggregation(params: AggregationParams) -> BaseConversion:
@@ -156,6 +162,9 @@ def create_aggregation(params: AggregationParams) -> BaseConversion:
     elif params.prune_mode == PruneMode.COLUMN:
         conversions.append(PruneConversion(verbose=params.verbose, prune_all_entries=False))
     # PruneMode.NONE - no pruning conversion added
+
+    if params.round:
+        conversions.append(RoundConversion(precision=params.round_precision))
 
     return ChainConversion(conversions)
 
