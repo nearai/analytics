@@ -146,7 +146,7 @@ metrics-cli table /Users/me/.nearai/tuned_logs /Users/me/.nearai/table --filters
 
 ```bash
 metrics-service --help
-metrics-service --metrics-path /Users/me/.nearai/logs
+metrics-service --metrics-path /Users/me/.nearai/tuned_logs
 ```
 
 # Table API Usage Examples
@@ -155,10 +155,10 @@ metrics-service --metrics-path /Users/me/.nearai/logs
 
 ```bash
 # Run the service
-poetry run metrics-service --metrics-path /Users/me/.nearai/logs
+poetry run metrics-service --metrics-path /Users/me/.nearai/tuned_logs
 
 # Or with additional options
-poetry run metrics-service --metrics-path /Users/me/.nearai/logs --port 8080 --reload
+poetry run metrics-service --metrics-path /Users/me/.nearai/tuned_logs --port 8080 --reload
 ```
 
 ## API Endpoints
