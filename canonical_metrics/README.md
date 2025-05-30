@@ -389,8 +389,7 @@ Column selections use hierarchical paths:
 
 ### Prune Modes
 - `none` - No pruning
-- `all` - Individual pruning (prune metrics marked in each entry)
-- `column` - Global pruning (only prune if marked in all entries)
+- `column` - Global pruning (prune if marked in all entries)
 
 ### Absent Metrics Strategies
 - `all_or_nothing` - Include metric only if present in all entries (safest)

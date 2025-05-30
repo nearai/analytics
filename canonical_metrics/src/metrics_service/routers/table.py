@@ -24,7 +24,7 @@ class TableCreationRequest(BaseModel):
     column_selections: List[str] = []
     sort_by_column: Optional[str] = None
     sort_order: Optional[str] = "desc"  # "asc" or "desc"
-    prune_mode: str = "column"  # "none", "all", or "column"
+    prune_mode: str = "column"  # "none" or "column"
     absent_metrics_strategy: str = "all_or_nothing"  # "all_or_nothing", "nullify", or "accept_subset"
     slices_recommendation_strategy: str = "concise"  # "none", "first_alphabetical", or "concise"
 

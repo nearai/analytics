@@ -15,7 +15,7 @@ A collection of tools for benchmarking, evaluating, and analyzing agent performa
 
 ### 1. Collect Metrics from Agent Runs
 
-Collect stats from agent runs and convert to canonical metrics format using the metrics CLI:
+Collect stats from agent runs and convert to canonical metrics format.
 
 ```bash
 # Transform and aggregate metrics
@@ -42,7 +42,7 @@ curl -X POST "http://localhost:8000/api/v1/table/create" \
 
 ### 3. Run Benchmarks and Evaluations
 
-Execute popular and user-owned benchmarks to generate performance metrics.
+Execute popular and user-owned benchmarks to generate performance metrics. Run audit evaluations on agents.
 
 ### 4. Run Evaluation Dashboard
 
