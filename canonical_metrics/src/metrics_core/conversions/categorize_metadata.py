@@ -2,8 +2,8 @@ import re
 from datetime import datetime
 from typing import Any, Dict, List
 
-from metrics_cli.conversions.base import BaseConversion
-from metrics_cli.models.canonical_metrics_entry import CanonicalMetricsEntry, MetadataFieldCategory, fetch_value
+from metrics_core.conversions.base import BaseConversion
+from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry, MetadataFieldCategory, fetch_value
 
 
 class CategorizeMetadataConversion(BaseConversion):  # noqa: F821

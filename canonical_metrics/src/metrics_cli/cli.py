@@ -3,16 +3,15 @@
 from pathlib import Path
 
 import click
-
-from metrics_cli.conversions.aggregate import AggregateAbsentMetricsStrategy
-from metrics_cli.conversions.base import BaseConversion
-from metrics_cli.conversions.determine_pruning import DeterminePruningConversion
-from metrics_cli.conversions.ms_to_s import MsToSConversion
-from metrics_cli.conversions.rename import RenameConversion
-from metrics_cli.conversions.round import RoundConversion
-from metrics_cli.local_files import load_logs_list_from_disk, save_logs_list_to_disk, write_table_to_csv
-from metrics_cli.models.condition import parse_conditions
-from metrics_cli.transform_utils import (
+from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy
+from metrics_core.conversions.base import BaseConversion
+from metrics_core.conversions.determine_pruning import DeterminePruningConversion
+from metrics_core.conversions.ms_to_s import MsToSConversion
+from metrics_core.conversions.rename import RenameConversion
+from metrics_core.conversions.round import RoundConversion
+from metrics_core.local_files import load_logs_list_from_disk, save_logs_list_to_disk, write_table_to_csv
+from metrics_core.models.condition import parse_conditions
+from metrics_core.transform_utils import (
     AggregationParams,
     MetricsTuneParams,
     PruneMode,

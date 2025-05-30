@@ -1,0 +1,65 @@
+import logging
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from .config import settings
+from .routers import table
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+logger = logging.getLogger(__name__)
+
+
+def create_app() -> FastAPI:
+    """Create and configure the FastAPI application."""
+    app = FastAPI(
+        title="Metrics Service",
+        description="Service for processing and analyzing metrics data",
+        version=settings.service_version,
+        docs_url=f"{settings.api_prefix}/docs",
+        redoc_url=f"{settings.api_prefix}/redoc",
+    )
+
+    # Configure CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Include routers
+    app.include_router(table.router, prefix=settings.api_prefix)
+
+    @app.on_event("startup")
+    async def startup_event():
+        """Initialize the service on startup."""
+        logger.info(f"Starting {settings.service_name} v{settings.service_version}")
+        logger.info(f"Metrics path: {settings.metrics_base_path}")
+
+        # Verify metrics path exists
+        if not settings.metrics_base_path or not settings.metrics_base_path.exists():
+            logger.error(f"Metrics path does not exist: {settings.metrics_base_path}")
+            raise RuntimeError("Metrics path not found")
+
+    @app.get("/")
+    async def root():
+        """Root endpoint."""
+        return {
+            "service": settings.service_name,
+            "version": settings.service_version,
+            "api_docs": f"{settings.api_prefix}/docs",
+        }
+
+    @app.get("/health")
+    async def health_check():
+        """Health check endpoint."""
+        return {"status": "healthy", "service": settings.service_name}
+
+    return app
+
+
+app = create_app()

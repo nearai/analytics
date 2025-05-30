@@ -4,12 +4,24 @@ version = "0.0.1"
 description = "NEAR AI analytics metrics utilities"
 authors = ["Support <support@near.ai>"]
 readme = "README.md"
-packages = [{include = "metrics_cli", from = "src"}]
+packages = [
+    {include = "metrics_cli", from = "src"},
+    {include = "metrics_service", from = "src"}
+]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
+# CLI dependencies
 click = "^8.1.7"
 rich = "^13.7.0"
+# Service dependencies
+fastapi = "^0.109.0"
+uvicorn = {extras = ["standard"], version = "^0.27.0"}
+pydantic = "^2.5.0"
+pydantic-settings = "^2.1.0"
+python-multipart = "^0.0.6"
+# Shared dependencies
+python-dateutil = "^2.8.2"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.11.0"
@@ -18,6 +30,7 @@ commitizen = "^3.29.0"
 
 [tool.poetry.scripts]
 metrics-cli = "metrics_cli.cli:main"
+metrics-service = "metrics_service.__main__:main"
 
 [tool.commitizen]
 name = "cz_conventional_commits"

@@ -206,13 +206,10 @@ def parse_conditions(conditions_str: str) -> List[Condition]:
     return conditions
 
 
-def parse_condition_list(condition_list: List[Union[Condition, str]]) -> List[Condition]:
+def parse_condition_list(condition_list: List[str]) -> List[Condition]:
     """Parse a list of Condition objects and condition strings into Condition objects."""
     conditions: List[Condition] = []
     for condition in condition_list:
-        if isinstance(condition, Condition):
-            conditions.append(condition)
-            continue
         conditions = conditions + parse_conditions(condition)
     return conditions
 

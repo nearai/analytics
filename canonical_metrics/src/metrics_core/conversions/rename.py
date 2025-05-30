@@ -1,8 +1,8 @@
 import re
 from typing import Any, Dict, List
 
-from metrics_cli.conversions.base import BaseConversion, substitute_with_boundary
-from metrics_cli.models.canonical_metrics_entry import CanonicalMetricsEntry
+from metrics_core.conversions.base import BaseConversion, substitute_with_boundary
+from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 
 
 class RenameConversion(BaseConversion):
