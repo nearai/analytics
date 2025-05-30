@@ -15,21 +15,26 @@ A collection of tools for benchmarking, evaluating, and analyzing agent performa
 
 ### 1. Collect Metrics from Agent Runs
 
-Collect stats from agent runs and convert to canonical metrics format.
+[How to collect logs from NEAR AI Hub](./integrations/nearai_registry/download_logs/)
+
+### 2. [Process Metrics](./canonical_metrics/README.md#run-metrics-cli)
+
+Transform, tune, aggregate, create csv table.
 
 ```bash
 # Transform and aggregate metrics
 metrics-cli tune /path/to/logs /path/to/tuned_logs --rename --ms-to-s
 metrics-cli aggregate /path/to/tuned_logs /path/to/aggr_logs --filters "runner:not_in:local" --slices "agent_name"
+metrics-cli table /Users/me/.nearai/tuned_logs /Users/me/.nearai/table --filters "runner:not_in:local" --absent-metrics-strategy=nullify
 ```
 
-### 2. Query Metrics via API
+### 3. [Query Metrics via API](./canonical_metrics/README.md#api-endpoints)
 
 Run the metrics service to query and analyze metrics data:
 
 ```bash
 # Start the metrics service
-metrics-service --metrics-path /path/to/logs
+metrics-service --metrics-path /path/to/tuned_logs
 
 # Query metrics via API
 curl -X POST "http://localhost:8000/api/v1/table/create" \
@@ -40,15 +45,15 @@ curl -X POST "http://localhost:8000/api/v1/table/create" \
   }'
 ```
 
-### 3. Run Benchmarks and Evaluations
+### 4. Run Benchmarks and Evaluations
 
 Execute popular and user-owned benchmarks to generate performance metrics. Run audit evaluations on agents.
 
-### 4. Run Evaluation Dashboard
+### 6. Run Evaluation Dashboard
 
 Visualize, analyze, and compare agent & model performances using the collected metrics.
 
-### 5. Run Historic Performance Dashboard
+### 6. Run Historic Performance Dashboard
 
 Track agent performance over time to identify trends and regressions.
 
