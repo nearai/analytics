@@ -107,9 +107,9 @@ class Condition:
         return {"field_name": self.field_name, "operator": self.operator_str(), "values": self.values}
 
     def _format_value(self, value: Any) -> str:
-        """Format a single value, wrapping in brackets if it contains colons or commas."""
+        """Format a single value, wrapping in brackets if it contains separators used by conditions."""
         value_str = str(value)
-        if ":" in value_str or "," in value_str:
+        if ":" in value_str or "," in value_str or ";" in value_str:
             return f"({value_str})"
         return value_str
 
