@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-from metrics_cli.models.column_selection import ColumnNode, TableColumn
-from metrics_cli.models.condition import Condition
+from metrics_core.models.column_selection import ColumnNode, TableColumn
+from metrics_core.models.condition import Condition
 
 
 class SortOrder(Enum):

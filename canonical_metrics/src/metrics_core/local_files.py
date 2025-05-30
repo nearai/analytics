@@ -6,8 +6,8 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List
 
-from metrics_cli.models.canonical_metrics_entry import CanonicalMetricsEntry
-from metrics_cli.models.table import Table, TableCell
+from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
+from metrics_core.models.table import Table, TableCell
 
 
 def load_canonical_metrics_from_disk(logs_entry_path: Path) -> CanonicalMetricsEntry:

@@ -4,7 +4,7 @@ import re
 from abc import ABC, abstractmethod
 from typing import List
 
-from metrics_cli.models.canonical_metrics_entry import CanonicalMetricsEntry
+from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 
 
 def substitute_with_boundary(text: str, old_word: str, new_word: str) -> str:

@@ -1,9 +1,9 @@
 from enum import Enum
 from typing import Any, Dict, List, Set, Tuple
 
-from metrics_cli.conversions.base import BaseConversion
-from metrics_cli.models.canonical_metrics_entry import CanonicalMetricsEntry, MetadataFieldCategory, fetch_value
-from metrics_cli.models.condition import Condition, ConditionOperator
+from metrics_core.conversions.base import BaseConversion
+from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry, MetadataFieldCategory, fetch_value
+from metrics_core.models.condition import Condition, ConditionOperator
 
 
 class AggregateAbsentMetricsStrategy(Enum):

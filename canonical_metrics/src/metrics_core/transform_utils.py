@@ -2,22 +2,22 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from metrics_cli.conversions.aggregate import AggregateAbsentMetricsStrategy, AggregateConversion, get_slice_values
-from metrics_cli.conversions.base import BaseConversion, ChainConversion
-from metrics_cli.conversions.categorize_metadata import CategorizeMetadataConversion
-from metrics_cli.conversions.determine_pruning import DeterminePruningConversion
-from metrics_cli.conversions.filter import FilterConversion
-from metrics_cli.conversions.ms_to_s import MsToSConversion
-from metrics_cli.conversions.prune import PruneConversion
-from metrics_cli.conversions.rename import RenameConversion
-from metrics_cli.conversions.round import RoundConversion
-from metrics_cli.conversions.sort_by_timestamp import SortByTimestampConversion
-from metrics_cli.models.canonical_metrics_entry import CanonicalMetricsEntry, MetadataFieldCategory
-from metrics_cli.models.column_selection import ColumnNode, TableColumnUnit
-from metrics_cli.models.condition import Condition, parse_condition_list, slice_condition
-from metrics_cli.models.table import SortOrder, Table, TableCell
+from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy, AggregateConversion, get_slice_values
+from metrics_core.conversions.base import BaseConversion, ChainConversion
+from metrics_core.conversions.categorize_metadata import CategorizeMetadataConversion
+from metrics_core.conversions.determine_pruning import DeterminePruningConversion
+from metrics_core.conversions.filter import FilterConversion
+from metrics_core.conversions.ms_to_s import MsToSConversion
+from metrics_core.conversions.prune import PruneConversion
+from metrics_core.conversions.rename import RenameConversion
+from metrics_core.conversions.round import RoundConversion
+from metrics_core.conversions.sort_by_timestamp import SortByTimestampConversion
+from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry, MetadataFieldCategory
+from metrics_core.models.column_selection import ColumnNode, TableColumnUnit
+from metrics_core.models.condition import Condition, parse_condition_list, slice_condition
+from metrics_core.models.table import SortOrder, Table, TableCell
 
 
 class MetricsTuneParams:
@@ -227,9 +227,9 @@ class TableCreationParams:
     """Parameters for table creation."""
 
     # List of filter conditions
-    filters: List[Union[Condition, str]] = field(default_factory=list)
+    filters: List[str] = field(default_factory=list)
     # List of slice conditions
-    slices: List[Union[Condition, str]] = field(default_factory=list)
+    slices: List[str] = field(default_factory=list)
     # Ids of columns or column groups to show
     column_selections: List[str] = field(default_factory=list)
     # Sorted by (column_id, sort_order)
@@ -243,7 +243,13 @@ class TableCreationParams:
     slices_recommendation_strategy: SlicesRecommendationStrategy = SlicesRecommendationStrategy.CONCISE
 
 
-def create_table(entries: List[CanonicalMetricsEntry], params: TableCreationParams, verbose: bool = False) -> Table:
+def create_table(
+    entries: List[CanonicalMetricsEntry],
+    params: TableCreationParams,
+    verbose: bool = False,
+    column_selections_to_add: Optional[List[str]] = None,
+    column_selections_to_remove: Optional[List[str]] = None,
+) -> Table:
     """Aggregates `entries` and creates Table."""
     filter_conditions = parse_condition_list(params.filters)
     slice_conditions = parse_condition_list(params.slices)
@@ -266,6 +272,11 @@ def create_table(entries: List[CanonicalMetricsEntry], params: TableCreationPara
 
     column_tree = create_column_tree(aggr_entries)
     column_tree.add_selection(params.column_selections)
+    if column_selections_to_add:
+        column_tree.add_selection(column_selections_to_add)
+    if column_selections_to_remove:
+        column_tree.remove_selection(column_selections_to_remove)
+
     columns = column_tree.get_selection()
     for column in columns:
         column.unit = determine_column_unit(column.name, aggr_entries)
@@ -429,7 +440,7 @@ def dedupe_slices(
         def get_sort_key(slice: str) -> int:
             """Calculate sort key as a length."""
             # Penalize "_version".
-            penalty = 10 if "_version" in slice else 0
+            penalty = 20 if "_version" in slice else 0
             return len(slice) + penalty + first_slice_value_lengths.get(slice, 0)
 
         slices = sorted(slices, key=get_sort_key)

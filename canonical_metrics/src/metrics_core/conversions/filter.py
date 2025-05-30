@@ -1,8 +1,8 @@
 from typing import List
 
-from metrics_cli.conversions.base import BaseConversion
-from metrics_cli.models.canonical_metrics_entry import CanonicalMetricsEntry
-from metrics_cli.models.condition import Condition
+from metrics_core.conversions.base import BaseConversion
+from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
+from metrics_core.models.condition import Condition
 
 
 class FilterConversion(BaseConversion):  # noqa: F821
