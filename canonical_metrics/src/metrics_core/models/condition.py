@@ -106,6 +106,13 @@ class Condition:
         """Convert to dictionary representation."""
         return {"field_name": self.field_name, "operator": self.operator_str(), "values": self.values}
 
+    def _format_value(self, value: Any) -> str:
+        """Format a single value, wrapping in brackets if it contains colons or commas."""
+        value_str = str(value)
+        if ":" in value_str or "," in value_str:
+            return f"({value_str})"
+        return value_str
+
     def __str__(self) -> str:
         """String representation of the condition in parseable format."""
         if self.operator == ConditionOperator.SLICE:
@@ -113,19 +120,19 @@ class Condition:
 
         # Format values to match parse_conditions format
         if self.operator in (ConditionOperator.IN, ConditionOperator.NOT_IN):
-            # Join values with commas
+            # Join values with commas, wrapping in brackets if they contain colons
             if self.values:
-                values_str = ",".join(str(v) for v in self.values)
+                values_str = ",".join(self._format_value(v) for v in self.values)
             else:
                 values_str = ""
             return f"{self.field_name}:{self.operator_str()}:{values_str}"
 
         elif self.operator == ConditionOperator.RANGE:
-            # Format range as min:max
+            # Format range as min:max, wrapping in brackets if they contain colons
             if self.values:
                 min_val, max_val = self.values
-                min_str = str(min_val) if min_val is not None else ""
-                max_str = str(max_val) if max_val is not None else ""
+                min_str = self._format_value(min_val) if min_val is not None else ""
+                max_str = self._format_value(max_val) if max_val is not None else ""
                 values_str = f"{min_str}:{max_str}"
             else:
                 values_str = ":"
@@ -156,6 +163,39 @@ def range_condition(field_name: str, min_val: Optional[Any] = None, max_val: Opt
     return Condition(field_name, ConditionOperator.RANGE, (min_val, max_val))
 
 
+def _parse_value(value_str: str) -> str:
+    """Parse a value string, removing brackets if present."""
+    value_str = value_str.strip()
+    if value_str.startswith("(") and value_str.endswith(")"):
+        return value_str[1:-1]  # Remove brackets
+    return value_str
+
+
+def _smart_split(text: str, delimiter: str) -> List[str]:
+    """Split text by delimiter, but ignore delimiters inside brackets."""
+    parts = []
+    current_part = ""
+    bracket_depth = 0
+
+    for char in text:
+        if char == "(":
+            bracket_depth += 1
+            current_part += char
+        elif char == ")":
+            bracket_depth -= 1
+            current_part += char
+        elif char == delimiter and bracket_depth == 0:
+            parts.append(current_part)
+            current_part = ""
+        else:
+            current_part += char
+
+    if current_part:  # Add the last part
+        parts.append(current_part)
+
+    return parts
+
+
 def parse_conditions(conditions_str: str) -> List[Condition]:
     """Parse condition strings into Condition objects.
 
@@ -169,6 +209,7 @@ def parse_conditions(conditions_str: str) -> List[Condition]:
         "value:range:10:100"
         "value:range:10:"  # min only
         "value:range::100"  # max only
+        "time_end_utc:range:(2025-05-23T11:48:26):"  # datetime with colons
 
     """
     conditions: List[Condition] = []
@@ -176,8 +217,8 @@ def parse_conditions(conditions_str: str) -> List[Condition]:
     if not conditions_str.strip():
         return conditions
 
-    # Split by semicolon for multiple conditions
-    condition_parts = conditions_str.split(";")
+    # Split by semicolon for multiple conditions, but ignore semicolons inside brackets
+    condition_parts = _smart_split(conditions_str, ";")
 
     for part in condition_parts:
         part = part.strip()
@@ -186,14 +227,17 @@ def parse_conditions(conditions_str: str) -> List[Condition]:
 
         try:
             # Parse each condition: field:operator:values
-            components = part.split(":", 2)  # Split into max 3 parts
+            # Use smart split to handle colons inside brackets
+            components = _smart_split(part, ":")
             if len(components) == 1:
                 conditions.append(slice_condition(components[0]))
                 continue
 
             field_name = components[0].strip()
             operator = components[1].strip()
-            values_str = components[2].strip() if len(components) > 2 else ""
+
+            # Join remaining components with colons for the values part
+            values_str = ":".join(components[2:]) if len(components) > 2 else ""
 
             condition = create_condition(field_name, operator, values_str)
             if condition:
@@ -221,33 +265,40 @@ def create_condition(field_name: str, operator: str, values_str: str) -> Optiona
             if not values_str:
                 print(f"ERROR: 'in' operator requires values for field '{field_name}'")
                 return None
-            values = [v.strip() for v in values_str.split(",") if v.strip()]
+            # Use smart split for comma separation, then parse each value
+            raw_values = _smart_split(values_str, ",")
+            values = [_parse_value(v) for v in raw_values if v.strip()]
             return in_condition(field_name, values)
 
         elif operator == "not_in":
             if not values_str:
                 print(f"ERROR: 'not_in' operator requires values for field '{field_name}'")
                 return None
-            values = [v.strip() for v in values_str.split(",") if v.strip()]
+            # Use smart split for comma separation, then parse each value
+            raw_values = _smart_split(values_str, ",")
+            values = [_parse_value(v) for v in raw_values if v.strip()]
             return not_in_condition(field_name, values)
 
         elif operator == "range":
             # Parse range parameters: min:max
-            range_parts = values_str.split(":") if values_str else ["", ""]
+            # Use smart split to handle colons inside brackets
+            range_parts = _smart_split(values_str, ":") if values_str else ["", ""]
             min_val: Any = None
             max_val: Any = None
 
             if len(range_parts) >= 1 and range_parts[0]:
+                min_str = _parse_value(range_parts[0])
                 try:
-                    min_val = float(range_parts[0])
+                    min_val = float(min_str)
                 except ValueError:
-                    min_val = range_parts[0]  # Keep as string for string comparisons
+                    min_val = min_str  # Keep as string for string comparisons
 
             if len(range_parts) >= 2 and range_parts[1]:
+                max_str = _parse_value(range_parts[1])
                 try:
-                    max_val = float(range_parts[1])
+                    max_val = float(max_str)
                 except ValueError:
-                    max_val = range_parts[1]  # Keep as string for string comparisons
+                    max_val = max_str  # Keep as string for string comparisons
 
             return range_condition(field_name, min_val, max_val)
 
