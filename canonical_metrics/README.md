@@ -373,6 +373,7 @@ Supported operators:
   - Example: `value:range:10:100` (between 10 and 100)
   - Example: `value:range:10:` (minimum 10)
   - Example: `value:range::100` (maximum 100)
+  - Example: `time_end_utc:range:(2025-05-23T11:48:26):` (time cutoff)
 
 ### Slice Format
 Slices support:
