@@ -27,7 +27,7 @@ def get_slice_values(entry: CanonicalMetricsEntry, slices: List[Condition]) -> T
     for slice_condition in slices:
         v = entry.fetch_value(slice_condition.field_name)
         if slice_condition.operator != ConditionOperator.SLICE:
-            v = slice_condition.check(entry)
+            v = slice_condition.check(v)
         list_values.append(v)
 
     return tuple(list_values)
@@ -109,7 +109,7 @@ class AggregateConversion(BaseConversion):  # noqa: F821
                 name_part = "" if key_value else "not_"
                 name_part += str(slice_condition)
             name_part = name_part.replace("/", "_").replace(":", "_").replace(" ", "_")
-            name_parts.append(f"{field_name}_{value_str}")
+            name_parts.append(name_part)
 
         return "_".join(name_parts) if name_parts else "aggregated"
 
