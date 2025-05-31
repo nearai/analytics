@@ -68,7 +68,7 @@ async def create_metrics_table(request: TableCreationRequest):
 
     """
     try:
-        print(f"Request: {request}")
+        logger.info(f"Request received: {request}")
         # Get metrics path from settings
         metrics_path = settings.get_metrics_path()
 
