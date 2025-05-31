@@ -79,7 +79,7 @@ class AggregateConversion(BaseConversion):  # noqa: F821
 
     def _aggregate(self, key: tuple, data: List[CanonicalMetricsEntry]) -> CanonicalMetricsEntry:  # noqa: D102
         name = self._create_new_entry_name(key)
-        print(f"New aggregated group name: {name}")
+        # print(f"New aggregated group name: {name}")
 
         metadata_list: List[Dict[str, Any]] = []
         metrics_list: List[Dict[str, Any]] = []
@@ -208,19 +208,19 @@ class AggregateConversion(BaseConversion):  # noqa: F821
                 if value_is_absent:
                     if self.absent_metrics_strategy == AggregateAbsentMetricsStrategy.ALL_OR_NOTHING:
                         skip = True
-                        print(f"WARNING: Skipping metric {key} because it's not present in all grouped entries")
+                        # print(f"WARNING: Skipping metric {key} because it's not present in all grouped entries")
                         break
                     if self.absent_metrics_strategy == AggregateAbsentMetricsStrategy.ACCEPT_SUBSET:
-                        print(f"WARNING: Ignoring absent metric {key} and excluding it from samples")
+                        # print(f"WARNING: Ignoring absent metric {key} and excluding it from samples")
                         continue
                     assert self.absent_metrics_strategy == AggregateAbsentMetricsStrategy.NULLIFY
-                    print(f"WARNING: Setting absent metric {key} = 0")
+                    # print(f"WARNING: Setting absent metric {key} = 0")
                     v = 0
                 if not isinstance(v, (float, int)):
                     if self.absent_metrics_strategy == AggregateAbsentMetricsStrategy.ACCEPT_SUBSET:
-                        print(f"WARNING: Ignoring non-numeric metric {key} and excluding it from samples")
+                        # print(f"WARNING: Ignoring non-numeric metric {key} and excluding it from samples")
                         continue
-                    print(f"WARNING: Skipping metric {key} because it's non-numeric in some samples")
+                    # print(f"WARNING: Skipping metric {key} because it's non-numeric in some samples")
                     break
                 total += v
                 n = n + 1

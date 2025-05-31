@@ -57,14 +57,14 @@ const formatTimestamp = (value: any): string => {
 
 const formatCellValue = (values: Record<string, any>, unit?: string): string => {
   const parts: string[] = [];
-  if (values.value !== undefined) {
+  if (values.value !== undefined && values.value !== null) {
     if (unit === 'timestamp') {
         parts.push(formatTimestamp(values.value));    
     } else {
         parts.push(String(values.value));
     }
   }
-  if (values.min_value !== undefined && values.max_value !== undefined) {
+  if (values.min_value !== undefined && values.min_value !== null && values.max_value !== undefined && values.max_value !== null) {
     if (unit === 'timestamp') {
         parts.push(`[${formatTimestamp(values.min_value)}, ${formatTimestamp(values.max_value)}]`);
     } else {
@@ -105,7 +105,7 @@ const CollapsibleSection: React.FC<{
         className="flex items-center justify-between w-full p-2 bg-gray-100 hover:bg-gray-200 rounded"
       >
         <span className="font-semibold">{title}</span>
-        {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
       </button>
       {isOpen && <div className="mt-2 p-2">{children}</div>}
     </div>
@@ -166,7 +166,12 @@ const ColumnTreeNode: React.FC<{
         >
           {getCheckboxIcon()}
           <div className="flex-1">
-            <span className="text-sm">{node.name}</span>
+            {level==0 && (
+                <span className="text-sm text-gray-500">&lt;root&gt;</span>    
+            )}
+            {level>0 && (
+                <span className="text-sm">{node.name}</span>    
+            )}
             {node.description && (
               <span className="text-xs text-gray-500 ml-2">{node.description}</span>
             )}
@@ -198,7 +203,7 @@ const DetailsPopup: React.FC<{
             <X size={20} />
           </button>
         </div>
-        <pre className="bg-gray-100 p-4 rounded overflow-auto">
+        <pre className="text-xs p-4 rounded overflow-auto">
           {JSON.stringify(details, null, 2)}
         </pre>
       </div>
@@ -252,10 +257,11 @@ const MetricsDashboard: React.FC = () => {
     setError(null);
     
     try {
+      setRequest(requestData)
       const res = await fetch('http://localhost:8000/api/v1/table/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request)
+        body: JSON.stringify(requestData)
       });
       
       if (!res.ok) {
@@ -266,14 +272,22 @@ const MetricsDashboard: React.FC = () => {
       setResponse(data);
       
       // Update request with response data
-      setRequest(prev => ({
-        ...prev,
-        filters: data.filters || [],
-        slices: data.slices || [],
-        column_selections: data.columns.map((col: Column) => col.column_id),
-        column_selections_to_add: [],
-        column_selections_to_remove: []
-      }));
+      if (requestData.column_selections_to_remove && requestData.column_selections_to_remove?.length > 0) {
+        setRequest(prev => ({
+            ...prev,
+            filters: data.filters || [],
+            slices: data.slices || [],
+            column_selections: data.columns.map((col: Column) => col.column_id),
+            column_selections_to_add: [],
+            column_selections_to_remove: []
+        }));
+      } else {
+        setRequest(prev => ({
+            ...prev,
+            filters: data.filters || [],
+            slices: data.slices || []
+        }));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -494,12 +508,15 @@ const MetricsDashboard: React.FC = () => {
               </button>
               {showFilterHelp && (
                 <div className="mt-2 p-3 bg-gray-100 rounded text-sm">
-                  <p className="font-medium mb-2">Filter Format: field:operator:value</p>
-                  <p className="mb-1">• in/not_in: agent_name:in:agent1,agent2</p>
-                  <p className="mb-1">• range: value:range:10:100 (between 10 and 100)</p>
-                  <p className="mb-1">• range: value:range:10: (minimum 10)</p>
-                  <p className="mb-1">• range: value:range::100 (maximum 100)</p>
-                  <p>• time: time_end_utc:range:(2025-05-23T11:48:26):</p>
+                  <p className="font-medium mb-2">Filter Format: <u>field:operator:value</u></p>
+                  <p className="mb-1">• <i>in/not_in</i>:</p>
+                  <p className="mb-1">agent_name:in:agent1,agent2</p>
+                  <p className="mb-1">• <i>range</i>:</p>
+                  <p className="text-xs">value:range:10:100<span className="text-xs text-gray-500 ml-2">(between 10 and 100)</span></p>
+                  <p className="text-xs">value:range:10:<span className="text-xs text-gray-500 ml-2">(minimum 10)</span></p>
+                  <p className="text-xs">value:range::100<span className="text-xs text-gray-500 ml-2">(maximum 100)</span></p>
+                  <p className="text-xs">time_end_utc:range:(2025-05-23T11:48):</p>
+                  <p className="text-xs text-gray-500 ml-2">(after specified date/time)</p>
                 </div>
               )}
             </div>
@@ -649,18 +666,18 @@ const MetricsDashboard: React.FC = () => {
                             </div>
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
-                                onClick={() => handleSort(column.name, 'desc')}
+                                onClick={() => handleSort(column.column_id, 'desc')}
                                 className="p-1 hover:bg-gray-200 rounded"
                                 title="Sort descending"
                               >
-                                <ChevronDown size={14} />
+                                <ChevronUp size={14} />
                               </button>
                               <button
-                                onClick={() => handleSort(column.name, 'asc')}
+                                onClick={() => handleSort(column.column_id, 'asc')}
                                 className="p-1 hover:bg-gray-200 rounded"
                                 title="Sort ascending"
                               >
-                                <ChevronUp size={14} />
+                                <ChevronDown size={14} />
                               </button>
                               <button
                                 onClick={() => handleRemoveColumn(column.column_id)}
