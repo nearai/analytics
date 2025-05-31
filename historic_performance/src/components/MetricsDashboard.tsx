@@ -242,7 +242,51 @@ const MetricsDashboard: React.FC = () => {
   // Add custom styles
   useEffect(() => {
     const style = document.createElement('style');
-    style.textContent = `.bg-gray-750 { background-color: #374151; }`;
+    style.textContent = `
+      .bg-gray-750 { background-color: #374151; }
+      
+      /* Custom scrollbar styles */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+      }
+      
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+      
+      .custom-scrollbar::-webkit-scrollbar-corner {
+        background: #f1f5f9;
+      }
+      
+      /* Dark theme scrollbar for control panel */
+      .dark-scrollbar::-webkit-scrollbar {
+        width: 8px;
+      }
+      
+      .dark-scrollbar::-webkit-scrollbar-track {
+        background: #1f2937;
+      }
+      
+      .dark-scrollbar::-webkit-scrollbar-thumb {
+        background: #4b5563;
+        border-radius: 4px;
+      }
+      
+      .dark-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+      }
+    `;
     document.head.appendChild(style);
     return () => {
       document.head.removeChild(style);
@@ -480,12 +524,8 @@ const MetricsDashboard: React.FC = () => {
     <div className="flex h-screen bg-gray-100">
       {/* Control Panel */}
       <div 
-        className="bg-gray-800 shadow-lg overflow-y-auto p-3 text-white relative" 
-        style={{
-          width: `${panelWidth}px`,
-          scrollbarWidth: 'thin',
-          scrollbarColor: '#4b5563 #1f2937'
-        }}
+        className="bg-gray-800 shadow-lg overflow-y-auto p-3 text-white relative dark-scrollbar" 
+        style={{ width: `${panelWidth}px` }}
       >
         <h2 className="text-lg font-bold mb-3">Controls</h2>
         
@@ -700,9 +740,9 @@ const MetricsDashboard: React.FC = () => {
       </div>
 
       {/* Main Window */}
-      <div className="flex-1 flex flex-col overflow-x-auto bg-gray-50">
+      <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
         {/* Column Tree */}
-        <div className="bg-white shadow-sm">
+        <div className="bg-white shadow-sm flex-shrink-0">
           <button
             onClick={() => setIsColumnTreeOpen(!isColumnTreeOpen)}
             className="w-full flex items-center justify-between p-2 hover:bg-gray-50"
@@ -711,27 +751,18 @@ const MetricsDashboard: React.FC = () => {
             {isColumnTreeOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {isColumnTreeOpen && response?.column_tree && (
-            <div className="max-h-48 overflow-y-auto p-2 border-t border-gray-200" style={{
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#d1d5db #f3f4f6'
-            }}>
+            <div className="max-h-48 overflow-y-auto p-2 border-t border-gray-200 custom-scrollbar">
               <ColumnTreeNode node={response.column_tree} onToggle={handleColumnToggle} />
             </div>
           )}
         </div>
 
         {/* Table */}
-        <div className="flex-1 overflow-auto p-2" style={{
-          scrollbarWidth: 'thin',
-          scrollbarColor: '#d1d5db #f3f4f6'
-        }}>
+        <div className="flex-1 overflow-auto p-2 custom-scrollbar">
           {error && <div className="text-red-600 text-center py-2 text-xs">Error: {error}</div>}
           
           {response && response.rows.length > 0 && (
-            <div className="bg-white rounded shadow overflow-x-auto" style={{
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#d1d5db #f3f4f6'
-            }}>
+            <div className="bg-white rounded shadow overflow-auto custom-scrollbar">
               <table className="min-w-full">
                 <thead>
                   <tr className="bg-gray-200">
@@ -752,38 +783,38 @@ const MetricsDashboard: React.FC = () => {
                       const hasDetails = Object.keys(cell.details).length > 0;
                       return (
                         <th key={idx} className="p-2 text-left border-b border-gray-300 relative group">
-                          <div className="flex items-start justify-between">
-                            <div 
-                              className={`flex-1 ${hasDetails ? 'cursor-pointer hover:bg-blue-100' : ''}`}
-                              onClick={() => hasDetails && setSelectedDetails(cell.details)}
+                          {/* Action buttons above column name */}
+                          <div className="flex justify-end gap-0.5 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleSort(column.column_id, 'desc')}
+                              className="p-0.5 hover:bg-gray-300 rounded"
+                              title="Sort descending"
                             >
-                              <pre className="text-[8px] whitespace-pre-wrap leading-tight">
-                                {formatColumnName(cell.values)}
-                              </pre>
-                            </div>
-                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => handleSort(column.column_id, 'desc')}
-                                className="p-0.5 hover:bg-gray-300 rounded"
-                                title="Sort descending"
-                              >
-                                <ChevronUp size={12} />
-                              </button>
-                              <button
-                                onClick={() => handleSort(column.column_id, 'asc')}
-                                className="p-0.5 hover:bg-gray-300 rounded"
-                                title="Sort ascending"
-                              >
-                                <ChevronDown size={12} />
-                              </button>
-                              <button
-                                onClick={() => handleRemoveColumn(column.column_id)}
-                                className="p-0.5 hover:bg-gray-300 rounded text-red-500"
-                                title="Remove column"
-                              >
-                                <X size={12} />
-                              </button>
-                            </div>
+                              <ChevronUp size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleSort(column.column_id, 'asc')}
+                              className="p-0.5 hover:bg-gray-300 rounded"
+                              title="Sort ascending"
+                            >
+                              <ChevronDown size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleRemoveColumn(column.column_id)}
+                              className="p-0.5 hover:bg-gray-300 rounded text-red-500"
+                              title="Remove column"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                          {/* Column name */}
+                          <div 
+                            className={`${hasDetails ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+                            onClick={() => hasDetails && setSelectedDetails(cell.details)}
+                          >
+                            <pre className="text-[8px] whitespace-pre-wrap leading-tight">
+                              {formatColumnName(cell.values)}
+                            </pre>
                           </div>
                         </th>
                       );
