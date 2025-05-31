@@ -610,13 +610,13 @@ const MetricsDashboard: React.FC = () => {
                 <div className="flex flex-wrap gap-1">
                   {request.filters.map((filter, idx) => (
                     <div key={idx} className="inline-flex items-center bg-blue-950 px-2 py-1 rounded-full">
-                      <span className="text-xs">{filter}</span>
                       <button
                         onClick={() => handleRemoveFilter(filter)}
-                        className="text-red-400 hover:text-red-300 ml-1"
+                        className="text-red-400 hover:text-red-300 mr-1"
                       >
                         <X size={10} />
                       </button>
+                      <span className="text-xs">{filter}</span>
                     </div>
                   ))}
                 </div>
@@ -688,13 +688,13 @@ const MetricsDashboard: React.FC = () => {
                 <div className="flex flex-wrap gap-1">
                   {request.slices.map((slice, idx) => (
                     <div key={idx} className="inline-flex items-center bg-green-900 px-2 py-1 rounded-full">
-                      <span className="text-xs">{slice}</span>
                       <button
                         onClick={() => handleRemoveSlice(slice)}
-                        className="text-red-400 hover:text-red-300 ml-1"
+                        className="text-red-400 hover:text-red-300 mr-1"
                       >
                         <X size={10} />
                       </button>
+                      <span className="text-xs">{slice}</span>
                     </div>
                   ))}
                 </div>
