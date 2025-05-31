@@ -325,6 +325,7 @@ def create_table(
                 column_value.details["value"] = v
                 row.append(column_value)
                 continue
+            v = v.copy()
             column_value.values["value"] = v.get("value")
             column_value.values["min_value"] = v.get("min_value")
             column_value.values["max_value"] = v.get("max_value")
