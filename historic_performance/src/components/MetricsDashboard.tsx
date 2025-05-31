@@ -55,23 +55,34 @@ const formatTimestamp = (value: any): string => {
   }
 };
 
-const formatCellValue = (values: Record<string, any>, unit?: string): string => {
-  const parts: string[] = [];
+const formatCellValue = (values: Record<string, any>, unit?: string): React.ReactNode => {
+  const parts: React.ReactNode[] = [];
+  let hasValue = false;
+  let hasRange = false;
+  
   if (values.value !== undefined && values.value !== null) {
-    if (unit === 'timestamp') {
-        parts.push(formatTimestamp(values.value));    
-    } else {
-        parts.push(String(values.value));
-    }
+    hasValue = true;
+    const valueStr = unit === 'timestamp' ? formatTimestamp(values.value) : String(values.value);
+    parts.push(
+      <div key="value" className="text-xs font-medium text-center">
+        {valueStr}
+      </div>
+    );
   }
+  
   if (values.min_value !== undefined && values.min_value !== null && values.max_value !== undefined && values.max_value !== null) {
-    if (unit === 'timestamp') {
-        parts.push(`[${formatTimestamp(values.min_value)}, ${formatTimestamp(values.max_value)}]`);
-    } else {
-        parts.push(`[${values.min_value}, ${values.max_value}]`);
-    }
+    hasRange = true;
+    const rangeStr = unit === 'timestamp' 
+      ? `[${formatTimestamp(values.min_value)}, ${formatTimestamp(values.max_value)}]`
+      : `[${values.min_value}, ${values.max_value}]`;
+    parts.push(
+      <div key="range" className="text-[10px] text-gray-600 text-center">
+        {rangeStr}
+      </div>
+    );
   }
-  return parts.join('\n');
+  
+  return parts.length > 0 ? <div className="flex flex-col items-center justify-center">{parts}</div> : '';
 };
 
 const formatColumnName = (values: Record<string, any>): string => {
@@ -99,13 +110,13 @@ const CollapsibleSection: React.FC<{
   const [isOpen, setIsOpen] = useState(defaultOpen);
   
   return (
-    <div className="mb-4">
+    <div className="mb-3">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full p-2 bg-gray-100 hover:bg-gray-200 rounded"
+        className="flex items-center justify-between w-full p-2 bg-gray-700 hover:bg-gray-600 rounded text-white"
       >
-        <span className="font-semibold">{title}</span>
-        {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        <span className="font-medium text-sm">{title}</span>
+        {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
       {isOpen && <div className="mt-2 p-2">{children}</div>}
     </div>
@@ -123,10 +134,10 @@ const ColumnTreeNode: React.FC<{
   const getCheckboxIcon = () => {
     switch (node.selection_state) {
       case 'all': return (
-        <div className="w-4 h-4 bg-purple-900 border border-purple-900 rounded-sm" />
+        <div className="w-3 h-3 bg-purple-900 border border-purple-900 rounded-sm" />
       );
       case 'partial': return (
-        <div className="w-4 h-4 border border-purple-900 rounded-sm relative overflow-hidden">
+        <div className="w-3 h-3 border border-purple-900 rounded-sm relative overflow-hidden">
           <div 
             className="absolute inset-0 bg-purple-900" 
             style={{ 
@@ -136,7 +147,7 @@ const ColumnTreeNode: React.FC<{
         </div>
       );
       case 'none': return (
-        <div className="w-4 h-4 border border-gray-400 rounded-sm" />
+        <div className="w-3 h-3 border border-gray-400 rounded-sm" />
       );
     }
   };
@@ -144,10 +155,10 @@ const ColumnTreeNode: React.FC<{
   return (
     <div>
       <div 
-        className="flex items-center py-1 hover:bg-gray-100 cursor-pointer"
-        style={{ paddingLeft: `${level * 20}px` }}
+        className="flex items-center py-0.5 hover:bg-gray-100 cursor-pointer"
+        style={{ paddingLeft: `${level * 16}px` }}
       >
-        <div className="w-5 mr-1">
+        <div className="w-4 mr-1">
           {hasChildren && (
             <button
               onClick={(e) => {
@@ -156,24 +167,24 @@ const ColumnTreeNode: React.FC<{
               }}
               className="p-0"
             >
-              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
             </button>
           )}
         </div>
         <button
           onClick={() => onToggle(node.column_node_id)}
-          className="flex items-center gap-2 flex-1 text-left"
+          className="flex items-center gap-1.5 flex-1 text-left"
         >
           {getCheckboxIcon()}
           <div className="flex-1">
             {level==0 && (
-                <span className="text-sm text-gray-500">&lt;root&gt;</span>    
+                <span className="text-xs text-gray-500">&lt;root&gt;</span>    
             )}
             {level>0 && (
-                <span className="text-sm">{node.name}</span>    
+                <span className="text-xs">{node.name}</span>    
             )}
             {node.description && (
-              <span className="text-xs text-gray-500 ml-2">{node.description}</span>
+              <span className="text-[10px] text-gray-500 ml-2">{node.description}</span>
             )}
           </div>
         </button>
@@ -194,16 +205,27 @@ const DetailsPopup: React.FC<{
   details: Record<string, any>;
   onClose: () => void;
 }> = ({ details, onClose }) => {
+  // Handle Esc key press
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-2xl max-h-[80vh] overflow-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Details</h3>
+      <div className="bg-white rounded-lg p-4 max-w-2xl max-h-[80vh] overflow-auto">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-sm font-semibold">Details</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
-        <pre className="text-xs p-4 rounded overflow-auto">
+        <pre className="text-[10px] p-3 rounded overflow-auto bg-gray-50">
           {JSON.stringify(details, null, 2)}
         </pre>
       </div>
@@ -417,47 +439,56 @@ const MetricsDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-100">
       {/* Control Panel */}
-      <div className="w-80 bg-white shadow-lg overflow-y-auto p-4">
-        <h2 className="text-xl font-bold mb-4">Controls</h2>
+      <div className="w-80 bg-gray-800 shadow-lg overflow-y-auto p-3 text-white">
+        <h2 className="text-lg font-bold mb-3">Controls</h2>
         
         {/* Parameters */}
         <CollapsibleSection title="Parameters">
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div>
-              <label className="block text-sm font-medium mb-1">prune_mode</label>
+              <label className="block text-xs font-medium mb-1" title="Controls how metrics are pruned across slices">
+                prune_mode
+              </label>
               <select
                 value={request.prune_mode}
                 onChange={(e) => handleParameterChange('prune_mode', e.target.value)}
-                className="w-full p-2 border rounded"
+                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
+                title="Select pruning strategy"
               >
-                <option value="none">none - No pruning</option>
-                <option value="column">column - Prune if marked in all slice entries</option>
+                <option value="none" title="No pruning applied">none</option>
+                <option value="column" title="Prune if marked in all slice entries">column</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">absent_metrics_strategy</label>
+              <label className="block text-xs font-medium mb-1" title="How to handle metrics that are absent in some entries">
+                absent_metrics_strategy
+              </label>
               <select
                 value={request.absent_metrics_strategy}
                 onChange={(e) => handleParameterChange('absent_metrics_strategy', e.target.value)}
-                className="w-full p-2 border rounded"
+                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
+                title="Select strategy for absent metrics"
               >
-                <option value="all_or_nothing">all_or_nothing - Include only if present in all slice entries</option>
-                <option value="nullify">nullify - Replace missing with 0</option>
-                <option value="accept_subset">accept_subset - Include even if only in some entries</option>
+                <option value="all_or_nothing" title="Include only if present in all slice entries">all_or_nothing</option>
+                <option value="nullify" title="Replace missing values with 0">nullify</option>
+                <option value="accept_subset" title="Include even if only in some entries">accept_subset</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">slices_recommendation_strategy</label>
+              <label className="block text-xs font-medium mb-1" title="Strategy for recommending slices">
+                slices_recommendation_strategy
+              </label>
               <select
                 value={request.slices_recommendation_strategy}
                 onChange={(e) => handleParameterChange('slices_recommendation_strategy', e.target.value)}
-                className="w-full p-2 border rounded"
+                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
+                title="Select slice recommendation strategy"
               >
-                <option value="none">none - No recommendations</option>
-                <option value="first_alphabetical">first_alphabetical - First alphabetical candidates</option>
-                <option value="concise">concise - Most concise candidates</option>
+                <option value="none" title="No slice recommendations">none</option>
+                <option value="first_alphabetical" title="Recommend first alphabetical candidates">first_alphabetical</option>
+                <option value="concise" title="Recommend most concise candidates">concise</option>
               </select>
             </div>
           </div>
@@ -465,35 +496,37 @@ const MetricsDashboard: React.FC = () => {
 
         {/* Filters */}
         <CollapsibleSection title="Filters">
-          <div className="space-y-3">
+          <div className="space-y-2">
             {/* Current filters */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Current Filters</label>
-              <div className="space-y-1">
-                {request.filters?.map((filter, idx) => (
-                  <div key={idx} className="flex items-center justify-between bg-gray-100 p-2 rounded">
-                    <span className="text-sm">{filter}</span>
-                    <button
-                      onClick={() => handleRemoveFilter(filter)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
+            {request.filters && request.filters.length > 0 && (
+              <div>
+                <label className="block text-xs font-medium mb-1">Current Filters</label>
+                <div className="space-y-1">
+                  {request.filters.map((filter, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-gray-700 px-2 py-1 rounded-full">
+                      <span className="text-xs">{filter}</span>
+                      <button
+                        onClick={() => handleRemoveFilter(filter)}
+                        className="text-red-400 hover:text-red-300 ml-2"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Add filter */}
             <div>
-              <label className="block text-sm font-medium mb-1">Add Filter</label>
+              <label className="block text-xs font-medium mb-1">Add Filter</label>
               <input
                 type="text"
                 value={filterInput}
                 onChange={(e) => setFilterInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleAddFilter()}
                 placeholder="e.g., runner:not_in:local"
-                className="w-full p-2 border rounded"
+                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600 placeholder-gray-400"
               />
             </div>
 
@@ -501,35 +534,35 @@ const MetricsDashboard: React.FC = () => {
             <div>
               <button
                 onClick={() => setShowFilterHelp(!showFilterHelp)}
-                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
+                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
               >
-                <Info size={14} />
+                <Info size={12} />
                 Filter Syntax Help
               </button>
               {showFilterHelp && (
-                <div className="mt-2 p-3 bg-gray-100 rounded text-sm">
-                  <p className="font-medium mb-2">Filter Format: <u>field:operator:value</u></p>
-                  <p className="mb-1">• <i>in/not_in</i>:</p>
-                  <p className="mb-1">agent_name:in:agent1,agent2</p>
-                  <p className="mb-1">• <i>range</i>:</p>
-                  <p className="text-xs">value:range:10:100<span className="text-xs text-gray-500 ml-2">(between 10 and 100)</span></p>
-                  <p className="text-xs">value:range:10:<span className="text-xs text-gray-500 ml-2">(minimum 10)</span></p>
-                  <p className="text-xs">value:range::100<span className="text-xs text-gray-500 ml-2">(maximum 100)</span></p>
-                  <p className="text-xs">time_end_utc:range:(2025-05-23T11:48):</p>
-                  <p className="text-xs text-gray-500 ml-2">(after specified date/time)</p>
+                <div className="mt-2 p-2 bg-gray-700 rounded text-xs">
+                  <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
+                  <p className="mb-1 text-gray-300">• <i>in/not_in</i>:</p>
+                  <p className="ml-2 text-gray-400">agent_name:in:agent1,agent2</p>
+                  <p className="mb-1 text-gray-300">• <i>range</i>:</p>
+                  <p className="ml-2 text-[10px] text-gray-400">value:range:10:100<span className="text-gray-500 ml-1">(between 10 and 100)</span></p>
+                  <p className="ml-2 text-[10px] text-gray-400">value:range:10:<span className="text-gray-500 ml-1">(minimum 10)</span></p>
+                  <p className="ml-2 text-[10px] text-gray-400">value:range::100<span className="text-gray-500 ml-1">(maximum 100)</span></p>
+                  <p className="ml-2 text-[10px] text-gray-400">time_end_utc:range:(2025-05-23T11:48):</p>
+                  <p className="ml-4 text-[10px] text-gray-500">(after specified date/time)</p>
                 </div>
               )}
             </div>
 
             {/* Time filters */}
             <div>
-              <label className="block text-sm font-medium mb-1">Time Filters</label>
+              <label className="block text-xs font-medium mb-1">Time Filters</label>
               <div className="space-y-1">
                 {getTimeFilters().map(({ label, filter }) => (
                   <button
                     key={label}
                     onClick={() => handleTimeFilter(filter)}
-                    className="w-full text-left p-2 bg-blue-50 hover:bg-blue-100 rounded text-sm"
+                    className="w-full text-left px-2 py-1 bg-blue-900 hover:bg-blue-800 rounded text-xs"
                   >
                     {label}
                   </button>
@@ -541,35 +574,37 @@ const MetricsDashboard: React.FC = () => {
 
         {/* Slices */}
         <CollapsibleSection title="Slices">
-          <div className="space-y-3">
+          <div className="space-y-2">
             {/* Current slices */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Current Slices</label>
-              <div className="space-y-1">
-                {request.slices?.map((slice, idx) => (
-                  <div key={idx} className="flex items-center justify-between bg-gray-100 p-2 rounded">
-                    <span className="text-sm">{slice}</span>
-                    <button
-                      onClick={() => handleRemoveSlice(slice)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
+            {request.slices && request.slices.length > 0 && (
+              <div>
+                <label className="block text-xs font-medium mb-1">Current Slices</label>
+                <div className="space-y-1">
+                  {request.slices.map((slice, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-gray-700 px-2 py-1 rounded-full">
+                      <span className="text-xs">{slice}</span>
+                      <button
+                        onClick={() => handleRemoveSlice(slice)}
+                        className="text-red-400 hover:text-red-300 ml-2"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Add slice */}
             <div>
-              <label className="block text-sm font-medium mb-1">Add Slice</label>
+              <label className="block text-xs font-medium mb-1">Add Slice</label>
               <input
                 type="text"
                 value={sliceInput}
                 onChange={(e) => setSliceInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleAddSlice()}
                 placeholder="e.g., agent_name"
-                className="w-full p-2 border rounded"
+                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600 placeholder-gray-400"
               />
             </div>
 
@@ -577,13 +612,13 @@ const MetricsDashboard: React.FC = () => {
             <div>
               <button
                 onClick={() => setShowSliceHelp(!showSliceHelp)}
-                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
+                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
               >
-                <Info size={14} />
+                <Info size={12} />
                 Slice Syntax Help
               </button>
               {showSliceHelp && (
-                <div className="mt-2 p-3 bg-gray-100 rounded text-sm">
+                <div className="mt-2 p-2 bg-gray-700 rounded text-xs">
                   <p className="mb-1">• Simple: agent_name</p>
                   <p>• Conditional: runner:in:local</p>
                 </div>
@@ -591,15 +626,15 @@ const MetricsDashboard: React.FC = () => {
             </div>
 
             {/* Slice recommendations */}
-            {response?.slice_recommendations && (
+            {response?.slice_recommendations && response.slice_recommendations.length > 0 && (
               <div>
-                <label className="block text-sm font-medium mb-1">Recommendations</label>
+                <label className="block text-xs font-medium mb-1">Recommendations</label>
                 <div className="space-y-1">
                   {response.slice_recommendations.map((rec) => (
                     <button
                       key={rec}
                       onClick={() => handleAddSliceRecommendation(rec)}
-                      className="w-full text-left p-2 bg-green-50 hover:bg-green-100 rounded text-sm"
+                      className="w-full text-left px-2 py-1 bg-green-900 hover:bg-green-800 rounded text-xs"
                     >
                       {rec}
                     </button>
@@ -612,39 +647,39 @@ const MetricsDashboard: React.FC = () => {
       </div>
 
       {/* Main Window */}
-      <div className="flex-1 flex flex-col overflow-x-auto">
+      <div className="flex-1 flex flex-col overflow-x-auto bg-gray-50">
         {/* Column Tree */}
         <div className="bg-white shadow-sm">
           <button
             onClick={() => setIsColumnTreeOpen(!isColumnTreeOpen)}
-            className="w-full flex items-center justify-between p-3 hover:bg-gray-50"
+            className="w-full flex items-center justify-between p-2 hover:bg-gray-50"
           >
-            <span className="font-semibold">Column Selection</span>
-            {isColumnTreeOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            <span className="font-medium text-sm">Column Selection</span>
+            {isColumnTreeOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {isColumnTreeOpen && response?.column_tree && (
-            <div className="max-h-60 overflow-y-auto p-3 border-t">
+            <div className="max-h-48 overflow-y-auto p-2 border-t border-gray-200 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               <ColumnTreeNode node={response.column_tree} onToggle={handleColumnToggle} />
             </div>
           )}
         </div>
 
         {/* Table */}
-        <div className="flex-1 overflow-auto p-4">
-          {error && <div className="text-red-600 text-center py-4">Error: {error}</div>}
+        <div className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          {error && <div className="text-red-600 text-center py-2 text-xs">Error: {error}</div>}
           
           {response && response.rows.length > 0 && (
-            <div className="bg-white rounded-lg shadow overflow-x-auto">
+            <div className="bg-white rounded shadow overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               <table className="min-w-full">
                 <thead>
-                  <tr className="bg-gray-100">
-                    <th className="p-3 text-left border-b border-r">
+                  <tr className="bg-gray-200">
+                    <th className="p-2 text-left border-b border-r border-gray-300">
                       {response.rows[0][0] && (
                         <div 
-                          className={`${Object.keys(response.rows[0][0].details).length > 0 ? 'cursor-pointer hover:bg-blue-50' : ''}`}
+                          className={`${Object.keys(response.rows[0][0].details).length > 0 ? 'cursor-pointer hover:bg-blue-100' : ''}`}
                           onClick={() => Object.keys(response.rows[0][0].details).length > 0 && setSelectedDetails(response.rows[0][0].details)}
                         >
-                          <pre className="text-sm whitespace-pre-wrap">
+                          <pre className="text-xs whitespace-pre-wrap leading-tight">
                             {formatColumnName(response.rows[0][0].values)}
                           </pre>
                         </div>
@@ -654,37 +689,37 @@ const MetricsDashboard: React.FC = () => {
                       const column = response.columns[idx];
                       const hasDetails = Object.keys(cell.details).length > 0;
                       return (
-                        <th key={idx} className="p-3 text-left border-b relative group">
+                        <th key={idx} className="p-2 text-left border-b border-gray-300 relative group">
                           <div className="flex items-start justify-between">
                             <div 
-                              className={`flex-1 ${hasDetails ? 'cursor-pointer hover:bg-blue-50' : ''}`}
+                              className={`flex-1 ${hasDetails ? 'cursor-pointer hover:bg-blue-100' : ''}`}
                               onClick={() => hasDetails && setSelectedDetails(cell.details)}
                             >
-                              <pre className="text-sm whitespace-pre-wrap">
+                              <pre className="text-xs whitespace-pre-wrap leading-tight">
                                 {formatColumnName(cell.values)}
                               </pre>
                             </div>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
                                 onClick={() => handleSort(column.column_id, 'desc')}
-                                className="p-1 hover:bg-gray-200 rounded"
+                                className="p-0.5 hover:bg-gray-300 rounded"
                                 title="Sort descending"
                               >
-                                <ChevronUp size={14} />
+                                <ChevronUp size={12} />
                               </button>
                               <button
                                 onClick={() => handleSort(column.column_id, 'asc')}
-                                className="p-1 hover:bg-gray-200 rounded"
+                                className="p-0.5 hover:bg-gray-300 rounded"
                                 title="Sort ascending"
                               >
-                                <ChevronDown size={14} />
+                                <ChevronDown size={12} />
                               </button>
                               <button
                                 onClick={() => handleRemoveColumn(column.column_id)}
-                                className="p-1 hover:bg-gray-200 rounded text-red-500"
+                                className="p-0.5 hover:bg-gray-300 rounded text-red-500"
                                 title="Remove column"
                               >
-                                <X size={14} />
+                                <X size={12} />
                               </button>
                             </div>
                           </div>
@@ -695,13 +730,13 @@ const MetricsDashboard: React.FC = () => {
                 </thead>
                 <tbody>
                   {response.rows.slice(1).map((row, rowIdx) => (
-                    <tr key={rowIdx} className="border-b hover:bg-gray-50">
-                      <td className="p-3 border-r bg-gray-50">
+                    <tr key={rowIdx} className="border-b border-gray-200 hover:bg-gray-50">
+                      <td className="p-2 border-r border-gray-200 bg-gray-100">
                         <div 
-                          className={`text-sm ${Object.keys(row[0].details).length > 0 ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+                          className={`text-xs ${Object.keys(row[0].details).length > 0 ? 'cursor-pointer hover:bg-blue-100' : ''}`}
                           onClick={() => Object.keys(row[0].details).length > 0 && setSelectedDetails(row[0].details)}
                         >
-                          <pre className="whitespace-pre-wrap">
+                          <pre className="whitespace-pre-wrap leading-tight">
                             {formatRowName(row[0].values)}
                           </pre>
                         </div>
@@ -713,12 +748,10 @@ const MetricsDashboard: React.FC = () => {
                         return (
                           <td
                             key={cellIdx}
-                            className={`p-3 ${hasDetails ? 'cursor-pointer hover:bg-blue-50' : ''}`}
+                            className={`p-2 ${hasDetails ? 'cursor-pointer hover:bg-blue-50' : ''}`}
                             onClick={() => hasDetails && setSelectedDetails(cell.details)}
                           >
-                            <pre className="text-sm whitespace-pre-wrap">
-                              {formatCellValue(cell.values, column?.unit)}
-                            </pre>
+                            {formatCellValue(cell.values, column?.unit)}
                           </td>
                         );
                       })}
