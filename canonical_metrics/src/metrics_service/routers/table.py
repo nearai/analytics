@@ -1,5 +1,6 @@
 """API endpoints for table operations."""
 
+import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -13,6 +14,8 @@ from pydantic import BaseModel
 from metrics_service.config import settings
 
 router = APIRouter(prefix="/table", tags=["table"])
+
+logger = logging.getLogger(__name__)
 
 
 class TableCreationRequest(BaseModel):
