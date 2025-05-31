@@ -109,6 +109,8 @@ const formatColumnName = (values: Record<string, any>, filters: string[] = [], s
 };
 
 const formatRowName = (values: Record<string, any>, filters: string[] = [], slices: string[] = []): React.ReactNode => {
+  if (Object.keys(values).length === 0)
+    return (<div>_</div>)
   return (
     <div>
       {Object.entries(values).map(([key, value], index) => {
