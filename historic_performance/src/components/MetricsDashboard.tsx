@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronDown, ChevronRight, X, ChevronUp, Info } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ChevronDown, ChevronRight, X, ChevronUp, Info, GripVertical } from 'lucide-react';
 
 // Types
 interface TableRequest {
@@ -49,7 +49,12 @@ interface TableResponse {
 const formatTimestamp = (value: any): string => {
   try {
     const date = new Date(value);
-    return date.toLocaleString();
+    // Compact format: MM/DD HH:mm
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${month}/${day} ${hours}:${minutes}`;
   } catch {
     return String(value);
   }
@@ -110,15 +115,15 @@ const CollapsibleSection: React.FC<{
   const [isOpen, setIsOpen] = useState(defaultOpen);
   
   return (
-    <div className="mb-3">
+    <div className="mb-3 bg-gray-700 rounded-lg overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full p-2 bg-gray-700 hover:bg-gray-600 rounded text-white"
+        className="flex items-center justify-between w-full p-2 hover:bg-gray-600 text-white"
       >
         <span className="font-medium text-sm">{title}</span>
         {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
-      {isOpen && <div className="mt-2 p-2">{children}</div>}
+      {isOpen && <div className="p-3 bg-gray-750">{children}</div>}
     </div>
   );
 };
@@ -234,6 +239,16 @@ const DetailsPopup: React.FC<{
 };
 
 const MetricsDashboard: React.FC = () => {
+  // Add custom styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `.bg-gray-750 { background-color: #374151; }`;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   // State
   const [request, setRequest] = useState<TableRequest>({
     prune_mode: 'column',
@@ -253,6 +268,29 @@ const MetricsDashboard: React.FC = () => {
   const [showFilterHelp, setShowFilterHelp] = useState(false);
   const [showSliceHelp, setShowSliceHelp] = useState(false);
   const [isColumnTreeOpen, setIsColumnTreeOpen] = useState(true);
+  const [panelWidth, setPanelWidth] = useState(256); // 256px = 16rem
+
+  // Resize panel
+  const isResizing = useRef(false);
+  
+  const handleMouseDown = (e: React.MouseEvent) => {
+    isResizing.current = true;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing.current) return;
+    const newWidth = Math.max(200, Math.min(400, e.clientX));
+    setPanelWidth(newWidth);
+  };
+
+  const handleMouseUp = () => {
+    isResizing.current = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  };
 
   // Generate time filter suggestions
   const getTimeFilters = () => {
@@ -441,17 +479,21 @@ const MetricsDashboard: React.FC = () => {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Control Panel */}
-      <div className="w-80 bg-gray-800 shadow-lg overflow-y-auto p-3 text-white" style={{
-        scrollbarWidth: 'thin',
-        scrollbarColor: '#4b5563 #1f2937'
-      }}>
+      <div 
+        className="bg-gray-800 shadow-lg overflow-y-auto p-3 text-white relative" 
+        style={{
+          width: `${panelWidth}px`,
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#4b5563 #1f2937'
+        }}
+      >
         <h2 className="text-lg font-bold mb-3">Controls</h2>
         
         {/* Parameters */}
         <CollapsibleSection title="Parameters">
           <div className="space-y-2">
             <div>
-              <label className="block text-xs font-medium mb-1" title="Controls how metrics are pruned across slices">
+              <label className="block text-xs font-medium mb-1" title="Heuristics to remove meaningless columns">
                 prune_mode
               </label>
               <select
@@ -461,7 +503,7 @@ const MetricsDashboard: React.FC = () => {
                 title="Select pruning strategy"
               >
                 <option value="none" title="No pruning applied">none</option>
-                <option value="column" title="Prune if marked in all slice entries">column</option>
+                <option value="column" title="Remove columns if all column values are determined meaningless">column</option>
               </select>
             </div>
             <div>
@@ -474,9 +516,9 @@ const MetricsDashboard: React.FC = () => {
                 className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
                 title="Select strategy for absent metrics"
               >
-                <option value="all_or_nothing" title="Include only if present in all slice entries">all_or_nothing</option>
+                <option value="all_or_nothing" title="Do aggregation only if present in all slice entries">all_or_nothing</option>
                 <option value="nullify" title="Replace missing values with 0">nullify</option>
-                <option value="accept_subset" title="Include even if only in some entries">accept_subset</option>
+                <option value="accept_subset" title="Include even if only in some entries. Number of samples is recorded in n_samples">accept_subset</option>
               </select>
             </div>
             <div>
@@ -504,15 +546,15 @@ const MetricsDashboard: React.FC = () => {
             {request.filters && request.filters.length > 0 && (
               <div>
                 <label className="block text-xs font-medium mb-1">Current Filters</label>
-                <div className="space-y-1">
+                <div className="flex flex-wrap gap-1">
                   {request.filters.map((filter, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-gray-700 px-2 py-1 rounded-full">
+                    <div key={idx} className="inline-flex items-center bg-gray-600 px-2 py-1 rounded-full">
                       <span className="text-xs">{filter}</span>
                       <button
                         onClick={() => handleRemoveFilter(filter)}
-                        className="text-red-400 hover:text-red-300 ml-2"
+                        className="text-red-400 hover:text-red-300 ml-1"
                       >
-                        <X size={12} />
+                        <X size={10} />
                       </button>
                     </div>
                   ))}
@@ -543,7 +585,7 @@ const MetricsDashboard: React.FC = () => {
                 Filter Syntax Help
               </button>
               {showFilterHelp && (
-                <div className="mt-2 p-2 bg-gray-700 rounded text-xs">
+                <div className="mt-2 p-2 bg-gray-600 rounded text-xs">
                   <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
                   <p className="mb-1 text-gray-300">• <i>in/not_in</i>:</p>
                   <p className="ml-2 text-gray-400">agent_name:in:agent1,agent2</p>
@@ -565,7 +607,7 @@ const MetricsDashboard: React.FC = () => {
                   <button
                     key={label}
                     onClick={() => handleTimeFilter(filter)}
-                    className="w-full text-left px-2 py-1 bg-blue-900 hover:bg-blue-800 rounded text-xs"
+                    className="w-full text-left px-2 py-1 bg-blue-950 hover:bg-blue-800 rounded text-xs"
                   >
                     {label}
                   </button>
@@ -582,15 +624,15 @@ const MetricsDashboard: React.FC = () => {
             {request.slices && request.slices.length > 0 && (
               <div>
                 <label className="block text-xs font-medium mb-1">Current Slices</label>
-                <div className="space-y-1">
+                <div className="flex flex-wrap gap-1">
                   {request.slices.map((slice, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-gray-700 px-2 py-1 rounded-full">
+                    <div key={idx} className="inline-flex items-center bg-gray-600 px-2 py-1 rounded-full">
                       <span className="text-xs">{slice}</span>
                       <button
                         onClick={() => handleRemoveSlice(slice)}
-                        className="text-red-400 hover:text-red-300 ml-2"
+                        className="text-red-400 hover:text-red-300 ml-1"
                       >
-                        <X size={12} />
+                        <X size={10} />
                       </button>
                     </div>
                   ))}
@@ -621,7 +663,7 @@ const MetricsDashboard: React.FC = () => {
                 Slice Syntax Help
               </button>
               {showSliceHelp && (
-                <div className="mt-2 p-2 bg-gray-700 rounded text-xs">
+                <div className="mt-2 p-2 bg-gray-600 rounded text-xs">
                   <p className="mb-1">• Simple: agent_name</p>
                   <p>• Conditional: runner:in:local</p>
                 </div>
@@ -647,6 +689,14 @@ const MetricsDashboard: React.FC = () => {
             )}
           </div>
         </CollapsibleSection>
+        
+        {/* Resize handle */}
+        <div
+          className="absolute right-0 top-0 w-1 h-full cursor-ew-resize bg-gray-700 hover:bg-gray-600 flex items-center justify-center"
+          onMouseDown={handleMouseDown}
+        >
+          <GripVertical size={14} className="text-gray-500" />
+        </div>
       </div>
 
       {/* Main Window */}
@@ -661,83 +711,86 @@ const MetricsDashboard: React.FC = () => {
             {isColumnTreeOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {isColumnTreeOpen && response?.column_tree && (
-            <div className="max-h-48 overflow-y-auto p-2 border-t border-gray-200" style={{
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#d1d5db #f3f4f6'
-            }}>
+            <div 
+              className="max-h-48 overflow-y-auto p-2 border-t border-gray-200 relative" 
+              style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#d1d5db #f3f4f6'
+              }}
+            >
+              <div className="absolute top-0 right-2 text-[10px] text-gray-400 bg-white px-1">
+                ↕ Scroll for more
+              </div>
               <ColumnTreeNode node={response.column_tree} onToggle={handleColumnToggle} />
             </div>
           )}
         </div>
 
         {/* Table */}
-        <div className="flex-1 overflow-auto p-2" style={{
-          scrollbarWidth: 'thin',
-          scrollbarColor: '#d1d5db #f3f4f6'
-        }}>
+        <div 
+          className="flex-1 overflow-auto p-2 relative" 
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#d1d5db #f3f4f6'
+          }}
+        >
           {error && <div className="text-red-600 text-center py-2 text-xs">Error: {error}</div>}
           
           {response && response.rows.length > 0 && (
-            <div className="bg-white rounded shadow overflow-x-auto" style={{
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#d1d5db #f3f4f6'
-            }}>
+            <div 
+              className="bg-white rounded shadow overflow-auto relative" 
+              style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#d1d5db #f3f4f6'
+              }}
+            >
+              <div className="absolute top-0 right-2 text-[10px] text-gray-400 bg-white px-1 z-10">
+                ↔ Scroll for more columns
+              </div>
               <table className="min-w-full">
-                <thead>
+                <thead className="sticky top-0 z-20">
                   <tr className="bg-gray-200">
-                    <th className="p-2 text-left border-b border-r border-gray-300">
-                      {response.rows[0][0] && (
-                        <div 
-                          className={`${Object.keys(response.rows[0][0].details).length > 0 ? 'cursor-pointer hover:bg-blue-100' : ''}`}
-                          onClick={() => Object.keys(response.rows[0][0].details).length > 0 && setSelectedDetails(response.rows[0][0].details)}
-                        >
-                          <pre className="text-xs whitespace-pre-wrap leading-tight">
-                            {formatColumnName(response.rows[0][0].values)}
-                          </pre>
-                        </div>
-                      )}
-                    </th>
-                    {response.rows[0].slice(1).map((cell, idx) => {
+                    <th className="p-2 text-left border-b border-r border-gray-300 bg-gray-200">
+                      {response.rows[0].slice(1).map((cell, idx) => {
                       const column = response.columns[idx];
                       const hasDetails = Object.keys(cell.details).length > 0;
                       return (
-                        <th key={idx} className="p-2 text-left border-b border-gray-300 relative group">
-                          <div className="flex items-start justify-between">
-                            <div 
-                              className={`flex-1 ${hasDetails ? 'cursor-pointer hover:bg-blue-100' : ''}`}
-                              onClick={() => hasDetails && setSelectedDetails(cell.details)}
+                        <th key={idx} className="p-2 text-left border-b border-gray-300 relative group bg-gray-200">
+                          <div className="absolute -top-6 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 bg-white rounded shadow p-0.5">
+                            <button
+                              onClick={() => handleSort(column.column_id, 'desc')}
+                              className="p-0.5 hover:bg-gray-300 rounded"
+                              title="Sort descending"
                             >
-                              <pre className="text-xs whitespace-pre-wrap leading-tight">
-                                {formatColumnName(cell.values)}
-                              </pre>
-                            </div>
-                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => handleSort(column.column_id, 'desc')}
-                                className="p-0.5 hover:bg-gray-300 rounded"
-                                title="Sort descending"
-                              >
-                                <ChevronUp size={12} />
-                              </button>
-                              <button
-                                onClick={() => handleSort(column.column_id, 'asc')}
-                                className="p-0.5 hover:bg-gray-300 rounded"
-                                title="Sort ascending"
-                              >
-                                <ChevronDown size={12} />
-                              </button>
-                              <button
-                                onClick={() => handleRemoveColumn(column.column_id)}
-                                className="p-0.5 hover:bg-gray-300 rounded text-red-500"
-                                title="Remove column"
-                              >
-                                <X size={12} />
-                              </button>
-                            </div>
+                              <ChevronUp size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleSort(column.column_id, 'asc')}
+                              className="p-0.5 hover:bg-gray-300 rounded"
+                              title="Sort ascending"
+                            >
+                              <ChevronDown size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleRemoveColumn(column.column_id)}
+                              className="p-0.5 hover:bg-gray-300 rounded text-red-500"
+                              title="Remove column"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                          <div 
+                            className={`${hasDetails ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+                            onClick={() => hasDetails && setSelectedDetails(cell.details)}
+                          >
+                            <pre className="text-[8px] whitespace-pre-wrap leading-tight">
+                              {formatColumnName(cell.values)}
+                            </pre>
                           </div>
                         </th>
                       );
                     })}
+                  </th>
                   </tr>
                 </thead>
                 <tbody>
