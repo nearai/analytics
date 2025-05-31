@@ -100,10 +100,22 @@ const formatColumnName = (values: Record<string, any>): string => {
     .join('\n');
 };
 
-const formatRowName = (values: Record<string, any>): string => {
-  return Object.entries(values)
-    .map(([key, value]) => `${key}: ${String(value)}`)
-    .join('\n');
+const formatRowName = (values: Record<string, any>, slices: string[] = []): React.ReactNode => {
+  return (
+    <div>
+      {Object.entries(values).map(([key, value], index) => {
+        const isSliceKey = slices.includes(key);
+        return (
+          <div 
+            key={index} 
+            className={isSliceKey ? 'text-green-600 font-medium' : ''}
+          >
+            {key}: {String(value)}
+          </div>
+        );
+      })}
+    </div>
+  );
 };
 
 // Components
@@ -829,9 +841,7 @@ const MetricsDashboard: React.FC = () => {
                           className={`text-xs ${Object.keys(row[0].details).length > 0 ? 'cursor-pointer hover:bg-blue-100' : ''}`}
                           onClick={() => Object.keys(row[0].details).length > 0 && setSelectedDetails(row[0].details)}
                         >
-                          <pre className="text-[8px] whitespace-pre-wrap leading-tight">
-                            {formatRowName(row[0].values)}
-                          </pre>
+                          {formatRowName(row[0].values, request.slices)}
                         </div>
                       </td>
                       {row.slice(1).map((cell, cellIdx) => {
