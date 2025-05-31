@@ -441,14 +441,17 @@ const MetricsDashboard: React.FC = () => {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Control Panel */}
-      <div className="w-80 bg-gray-800 shadow-lg overflow-y-auto p-3 text-white">
+      <div className="w-80 bg-gray-800 shadow-lg overflow-y-auto p-3 text-white" style={{
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#4b5563 #1f2937'
+      }}>
         <h2 className="text-lg font-bold mb-3">Controls</h2>
         
         {/* Parameters */}
         <CollapsibleSection title="Parameters">
           <div className="space-y-2">
             <div>
-              <label className="block text-xs font-medium mb-1" title="Heuristics to remove meaningless columns">
+              <label className="block text-xs font-medium mb-1" title="Controls how metrics are pruned across slices">
                 prune_mode
               </label>
               <select
@@ -458,7 +461,7 @@ const MetricsDashboard: React.FC = () => {
                 title="Select pruning strategy"
               >
                 <option value="none" title="No pruning applied">none</option>
-                <option value="column" title="Remove columns if all column values are determined meaningless">column</option>
+                <option value="column" title="Prune if marked in all slice entries">column</option>
               </select>
             </div>
             <div>
@@ -471,9 +474,9 @@ const MetricsDashboard: React.FC = () => {
                 className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
                 title="Select strategy for absent metrics"
               >
-                <option value="all_or_nothing" title="Do aggregation only if present in all slice entries">all_or_nothing</option>
+                <option value="all_or_nothing" title="Include only if present in all slice entries">all_or_nothing</option>
                 <option value="nullify" title="Replace missing values with 0">nullify</option>
-                <option value="accept_subset" title="Include even if only in some entries. Number of samples is recorded in n_samples">accept_subset</option>
+                <option value="accept_subset" title="Include even if only in some entries">accept_subset</option>
               </select>
             </div>
             <div>
@@ -658,18 +661,27 @@ const MetricsDashboard: React.FC = () => {
             {isColumnTreeOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {isColumnTreeOpen && response?.column_tree && (
-            <div className="max-h-48 overflow-y-auto p-2 border-t border-gray-200 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <div className="max-h-48 overflow-y-auto p-2 border-t border-gray-200" style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#d1d5db #f3f4f6'
+            }}>
               <ColumnTreeNode node={response.column_tree} onToggle={handleColumnToggle} />
             </div>
           )}
         </div>
 
         {/* Table */}
-        <div className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+        <div className="flex-1 overflow-auto p-2" style={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#d1d5db #f3f4f6'
+        }}>
           {error && <div className="text-red-600 text-center py-2 text-xs">Error: {error}</div>}
           
           {response && response.rows.length > 0 && (
-            <div className="bg-white rounded shadow overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <div className="bg-white rounded shadow overflow-x-auto" style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#d1d5db #f3f4f6'
+            }}>
               <table className="min-w-full">
                 <thead>
                   <tr className="bg-gray-200">
