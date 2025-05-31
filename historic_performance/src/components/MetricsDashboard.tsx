@@ -90,25 +90,34 @@ const formatCellValue = (values: Record<string, any>, unit?: string): React.Reac
   return parts.length > 0 ? <div className="flex flex-col items-center justify-center">{parts}</div> : '';
 };
 
-const formatColumnName = (values: Record<string, any>): string => {
+const formatColumnName = (values: Record<string, any>, filters: string[] = [], slices: string[] = []): React.ReactNode => {
   const value = values.value;
   if (!value) return '';
   
   const parts = String(value).split('/');
-  return parts
+  const text = parts
     .map((part, i) => i < parts.length - 1 ? part + '/' : part)
     .join('\n');
+
+  const isFilterKey = filters.some(filter => filter.startsWith(`${value}:`));
+  const isSliceKey = slices.includes(value) || slices.some(slice => slice.startsWith(`${value}:`));
+  return (
+          <div 
+            className={isSliceKey && isFilterKey ? 'text-cyan-700' : isFilterKey ? 'text-blue-700' : isSliceKey ? 'text-green-700' : ''}
+          >{text}</div>
+        );
 };
 
-const formatRowName = (values: Record<string, any>, slices: string[] = []): React.ReactNode => {
+const formatRowName = (values: Record<string, any>, filters: string[] = [], slices: string[] = []): React.ReactNode => {
   return (
     <div>
       {Object.entries(values).map(([key, value], index) => {
-        const isSliceKey = slices.includes(key);
+        const isFilterKey = filters.some(filter => filter.startsWith(`${key}:`));
+        const isSliceKey = slices.includes(key) || slices.some(slice => slice.startsWith(`${key}:`));
         return (
           <div 
             key={index} 
-            className={isSliceKey ? 'text-green-600 font-medium' : ''}
+            className={isSliceKey && isFilterKey ? 'text-cyan-700' : isFilterKey ? 'text-blue-700' : isSliceKey ? 'text-green-700' : ''}
           >
             {key}: {String(value)}
           </div>
@@ -785,7 +794,7 @@ const MetricsDashboard: React.FC = () => {
                           onClick={() => Object.keys(response.rows[0][0].details).length > 0 && setSelectedDetails(response.rows[0][0].details)}
                         >
                           <pre className="text-[8px] whitespace-pre-wrap leading-tight">
-                            {formatColumnName(response.rows[0][0].values)}
+                            {formatColumnName(response.rows[0][0].values, request.filters, request.slices)}
                           </pre>
                         </div>
                       )}
@@ -825,7 +834,7 @@ const MetricsDashboard: React.FC = () => {
                             onClick={() => hasDetails && setSelectedDetails(cell.details)}
                           >
                             <pre className="text-[8px] whitespace-pre-wrap leading-tight">
-                              {formatColumnName(cell.values)}
+                              {formatColumnName(cell.values, request.filters, request.slices)}
                             </pre>
                           </div>
                         </th>
@@ -841,7 +850,7 @@ const MetricsDashboard: React.FC = () => {
                           className={`text-xs ${Object.keys(row[0].details).length > 0 ? 'cursor-pointer hover:bg-blue-100' : ''}`}
                           onClick={() => Object.keys(row[0].details).length > 0 && setSelectedDetails(row[0].details)}
                         >
-                          {formatRowName(row[0].values, request.slices)}
+                          {formatRowName(row[0].values, request.filters, request.slices)}
                         </div>
                       </td>
                       {row.slice(1).map((cell, cellIdx) => {
