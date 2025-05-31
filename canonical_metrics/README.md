@@ -390,10 +390,10 @@ Column selections use hierarchical paths:
 
 ### Prune Modes
 - `none` - No pruning
-- `column` - Global pruning (prune if marked in all entries)
+- `column` - Global pruning (prune if marked in all slice entries)
 
 ### Absent Metrics Strategies
-- `all_or_nothing` - Include metric only if present in all entries (safest)
+- `all_or_nothing` - Include metric only if present in all slice entries (safest)
 - `nullify` - Replace missing metrics with 0 (use for metrics where absence means 0)
 - `accept_subset` - Include even if only in some entries (use for new/optional metrics)
 
