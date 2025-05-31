@@ -322,8 +322,10 @@ def create_table(
                 continue
             if not isinstance(v, dict):
                 column_value.values["value"] = v
+                column_value.details["value"] = v
                 row.append(column_value)
                 continue
+            v = v.copy()
             column_value.values["value"] = v.get("value")
             column_value.values["min_value"] = v.get("min_value")
             column_value.values["max_value"] = v.get("max_value")
@@ -353,7 +355,16 @@ def create_table(
 
 def determine_column_unit(key: str, entries: List[CanonicalMetricsEntry]) -> TableColumnUnit:
     for entry in entries:
-        metadata_field = entry.metadata.get(key, {})
+        metadata_field = entry.metadata.get(key)
+        if metadata_field is None:
+            # Split by field_name /, remove last part
+            if "/" in key:
+                splits = key.split("/")
+                parent_field = "/".join(splits[:-1])
+                subfield = splits[-1]
+                parent_data = entry.metadata.get(parent_field)
+                if isinstance(parent_data, dict) and subfield in ["min_value", "max_value"]:
+                    metadata_field = parent_data
         if (
             isinstance(metadata_field, dict)
             and metadata_field.get("category", "") == MetadataFieldCategory.TIMESTAMP.value

@@ -1,29 +1,82 @@
 # Historic Performance Dashboard
 
-Tools to browse logs, track and visualize agent performance over time.
+A web application for querying and visualizing analytics metrics data. Tools to browse logs, track and visualize agent performance over time.
 
-### Views
+## Prerequisites
 
-#### 1. Historic Performance Table View
+- Node.js 16+ and npm
+- The metrics service running at `http://localhost:8000`
 
-This view aggregates metrics over time with flexible grouping:
+## Installation
 
-- **Columns**: Averages of metrics over the selected time period
-- **Rows**: Initially a single row showing overall averages
-- **Slicing**: Dynamically slice the data by any metadata attribute
-  - By model (compare performance across different models)
-  - By date (weekly/monthly aggregation)
-  - By any other metadata field
+1. Navigate to the project directory:
+```bash
+cd analytics/historic_performance
+```
 
-#### 2. Chronological Log Entries View
+2. Install dependencies:
+```bash
+npm install
+```
+
+## Running the Application
+
+1. Ensure the metrics service is running:
+```bash
+# In the analytics/canonical_metrics directory
+poetry run metrics-service --metrics-path /path/to/your/tuned/metrics
+```
+
+2. Start the development server:
+```bash
+npm start
+```
+
+3. Open your browser and navigate to:
+```
+http://localhost:3000
+```
+
+## Building for Production
+
+To create a production build:
+
+```bash
+npm run build
+```
+
+The build files will be in the `build/` directory.
+
+## Features
+
+- **Control Panel**: Configure parameters, filters, and slices
+- **Column Tree**: Hierarchical column selection
+- **Data Table**: Interactive table with sorting and filtering
+  - Initially a single row showing overall averages
+  - Dynamically filter and slice the data by any column
+- **Time Filters**: Quick filters for last hour/day/week
+- **Details View**: Click cells to view detailed JSON data
+
+## Development
+
+The app is built with:
+- React 18
+- TypeScript
+- Tailwind CSS
+- Lucide React (for icons)
+
+To modify the dashboard, edit `src/components/MetricsDashboard.tsx`.
+
+#### TODO: Chronological Log Entries View
 
 This view displays individual log entries in chronological order:
 
 - Detailed metadata for each run
 - Quick access to metrics and log files
 - Filtering by date ranges and metadata
+- Grouping
 
-### Functions
+### TODO: Functions
 
 #### 1. Custom View
 
