@@ -390,7 +390,7 @@ Column selections use hierarchical paths:
 
 ### Prune Modes
 - `none` - No pruning
-- `column` - Global pruning (prune if marked in all slice entries)
+- `column` - Global pruning (prune if marked in all entries)
 
 ### Absent Metrics Strategies
 - `all_or_nothing` - Include metric only if present in all slice entries (safest)
