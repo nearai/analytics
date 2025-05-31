@@ -448,7 +448,7 @@ const MetricsDashboard: React.FC = () => {
         <CollapsibleSection title="Parameters">
           <div className="space-y-2">
             <div>
-              <label className="block text-xs font-medium mb-1" title="Controls how metrics are pruned across slices">
+              <label className="block text-xs font-medium mb-1" title="Heuristics to remove meaningless columns">
                 prune_mode
               </label>
               <select
@@ -458,7 +458,7 @@ const MetricsDashboard: React.FC = () => {
                 title="Select pruning strategy"
               >
                 <option value="none" title="No pruning applied">none</option>
-                <option value="column" title="Prune if marked in all slice entries">column</option>
+                <option value="column" title="Remove columns if all column values are determined meaningless">column</option>
               </select>
             </div>
             <div>
@@ -471,9 +471,9 @@ const MetricsDashboard: React.FC = () => {
                 className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
                 title="Select strategy for absent metrics"
               >
-                <option value="all_or_nothing" title="Include only if present in all slice entries">all_or_nothing</option>
+                <option value="all_or_nothing" title="Do aggregation only if present in all slice entries">all_or_nothing</option>
                 <option value="nullify" title="Replace missing values with 0">nullify</option>
-                <option value="accept_subset" title="Include even if only in some entries">accept_subset</option>
+                <option value="accept_subset" title="Include even if only in some entries. Number of samples is recorded in n_samples">accept_subset</option>
               </select>
             </div>
             <div>
