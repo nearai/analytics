@@ -602,12 +602,12 @@ const MetricsDashboard: React.FC = () => {
             {/* Time filters */}
             <div>
               <label className="block text-xs font-medium mb-1">Time Filters</label>
-              <div className="space-y-1">
+              <div className="flex flex-wrap gap-1">
                 {getTimeFilters().map(({ label, filter }) => (
                   <button
                     key={label}
                     onClick={() => handleTimeFilter(filter)}
-                    className="w-full text-left px-2 py-1 bg-blue-950 hover:bg-blue-800 rounded text-xs"
+                    className="inline-flex items-center px-2 py-1 bg-blue-950 hover:bg-blue-800 rounded-full text-xs"
                   >
                     {label}
                   </button>
@@ -674,12 +674,12 @@ const MetricsDashboard: React.FC = () => {
             {response?.slice_recommendations && response.slice_recommendations.length > 0 && (
               <div>
                 <label className="block text-xs font-medium mb-1">Recommendations</label>
-                <div className="space-y-1">
+                <div className="flex flex-wrap gap-1">
                   {response.slice_recommendations.map((rec) => (
                     <button
                       key={rec}
                       onClick={() => handleAddSliceRecommendation(rec)}
-                      className="w-full text-left px-2 py-1 bg-green-900 hover:bg-green-800 rounded text-xs"
+                      className="inline-flex items-center px-2 py-1 bg-green-900 hover:bg-green-800 rounded-full text-xs"
                     >
                       {rec}
                     </button>
@@ -711,86 +711,83 @@ const MetricsDashboard: React.FC = () => {
             {isColumnTreeOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {isColumnTreeOpen && response?.column_tree && (
-            <div 
-              className="max-h-48 overflow-y-auto p-2 border-t border-gray-200 relative" 
-              style={{
-                scrollbarWidth: 'thin',
-                scrollbarColor: '#d1d5db #f3f4f6'
-              }}
-            >
-              <div className="absolute top-0 right-2 text-[10px] text-gray-400 bg-white px-1">
-                ↕ Scroll for more
-              </div>
+            <div className="max-h-48 overflow-y-auto p-2 border-t border-gray-200" style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#d1d5db #f3f4f6'
+            }}>
               <ColumnTreeNode node={response.column_tree} onToggle={handleColumnToggle} />
             </div>
           )}
         </div>
 
         {/* Table */}
-        <div 
-          className="flex-1 overflow-auto p-2 relative" 
-          style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#d1d5db #f3f4f6'
-          }}
-        >
+        <div className="flex-1 overflow-auto p-2" style={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#d1d5db #f3f4f6'
+        }}>
           {error && <div className="text-red-600 text-center py-2 text-xs">Error: {error}</div>}
           
           {response && response.rows.length > 0 && (
-            <div 
-              className="bg-white rounded shadow overflow-auto relative" 
-              style={{
-                scrollbarWidth: 'thin',
-                scrollbarColor: '#d1d5db #f3f4f6'
-              }}
-            >
-              <div className="absolute top-0 right-2 text-[10px] text-gray-400 bg-white px-1 z-10">
-                ↔ Scroll for more columns
-              </div>
+            <div className="bg-white rounded shadow overflow-x-auto" style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#d1d5db #f3f4f6'
+            }}>
               <table className="min-w-full">
-                <thead className="sticky top-0 z-20">
+                <thead>
                   <tr className="bg-gray-200">
-                    <th className="p-2 text-left border-b border-r border-gray-300 bg-gray-200">
-                      {response.rows[0].slice(1).map((cell, idx) => {
+                    <th className="p-2 text-left border-b border-r border-gray-300">
+                      {response.rows[0][0] && (
+                        <div 
+                          className={`${Object.keys(response.rows[0][0].details).length > 0 ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+                          onClick={() => Object.keys(response.rows[0][0].details).length > 0 && setSelectedDetails(response.rows[0][0].details)}
+                        >
+                          <pre className="text-[8px] whitespace-pre-wrap leading-tight">
+                            {formatColumnName(response.rows[0][0].values)}
+                          </pre>
+                        </div>
+                      )}
+                    </th>
+                    {response.rows[0].slice(1).map((cell, idx) => {
                       const column = response.columns[idx];
                       const hasDetails = Object.keys(cell.details).length > 0;
                       return (
-                        <th key={idx} className="p-2 text-left border-b border-gray-300 relative group bg-gray-200">
-                          <div className="absolute -top-6 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 bg-white rounded shadow p-0.5">
-                            <button
-                              onClick={() => handleSort(column.column_id, 'desc')}
-                              className="p-0.5 hover:bg-gray-300 rounded"
-                              title="Sort descending"
+                        <th key={idx} className="p-2 text-left border-b border-gray-300 relative group">
+                          <div className="flex items-start justify-between">
+                            <div 
+                              className={`flex-1 ${hasDetails ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+                              onClick={() => hasDetails && setSelectedDetails(cell.details)}
                             >
-                              <ChevronUp size={12} />
-                            </button>
-                            <button
-                              onClick={() => handleSort(column.column_id, 'asc')}
-                              className="p-0.5 hover:bg-gray-300 rounded"
-                              title="Sort ascending"
-                            >
-                              <ChevronDown size={12} />
-                            </button>
-                            <button
-                              onClick={() => handleRemoveColumn(column.column_id)}
-                              className="p-0.5 hover:bg-gray-300 rounded text-red-500"
-                              title="Remove column"
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                          <div 
-                            className={`${hasDetails ? 'cursor-pointer hover:bg-blue-100' : ''}`}
-                            onClick={() => hasDetails && setSelectedDetails(cell.details)}
-                          >
-                            <pre className="text-[8px] whitespace-pre-wrap leading-tight">
-                              {formatColumnName(cell.values)}
-                            </pre>
+                              <pre className="text-[8px] whitespace-pre-wrap leading-tight">
+                                {formatColumnName(cell.values)}
+                              </pre>
+                            </div>
+                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleSort(column.column_id, 'desc')}
+                                className="p-0.5 hover:bg-gray-300 rounded"
+                                title="Sort descending"
+                              >
+                                <ChevronUp size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleSort(column.column_id, 'asc')}
+                                className="p-0.5 hover:bg-gray-300 rounded"
+                                title="Sort ascending"
+                              >
+                                <ChevronDown size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleRemoveColumn(column.column_id)}
+                                className="p-0.5 hover:bg-gray-300 rounded text-red-500"
+                                title="Remove column"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
                           </div>
                         </th>
                       );
                     })}
-                  </th>
                   </tr>
                 </thead>
                 <tbody>

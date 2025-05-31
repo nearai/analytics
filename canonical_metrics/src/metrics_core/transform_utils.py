@@ -322,6 +322,7 @@ def create_table(
                 continue
             if not isinstance(v, dict):
                 column_value.values["value"] = v
+                column_value.details["value"] = v
                 row.append(column_value)
                 continue
             column_value.values["value"] = v.get("value")
