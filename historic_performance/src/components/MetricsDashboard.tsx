@@ -588,7 +588,7 @@ const MetricsDashboard: React.FC = () => {
                 <label className="block text-xs font-medium mb-1">Current Filters</label>
                 <div className="flex flex-wrap gap-1">
                   {request.filters.map((filter, idx) => (
-                    <div key={idx} className="inline-flex items-center bg-gray-600 px-2 py-1 rounded-full">
+                    <div key={idx} className="inline-flex items-center bg-blue-950 px-2 py-1 rounded-full">
                       <span className="text-xs">{filter}</span>
                       <button
                         onClick={() => handleRemoveFilter(filter)}
@@ -666,7 +666,7 @@ const MetricsDashboard: React.FC = () => {
                 <label className="block text-xs font-medium mb-1">Current Slices</label>
                 <div className="flex flex-wrap gap-1">
                   {request.slices.map((slice, idx) => (
-                    <div key={idx} className="inline-flex items-center bg-gray-600 px-2 py-1 rounded-full">
+                    <div key={idx} className="inline-flex items-center bg-green-900 px-2 py-1 rounded-full">
                       <span className="text-xs">{slice}</span>
                       <button
                         onClick={() => handleRemoveSlice(slice)}
@@ -829,7 +829,7 @@ const MetricsDashboard: React.FC = () => {
                           className={`text-xs ${Object.keys(row[0].details).length > 0 ? 'cursor-pointer hover:bg-blue-100' : ''}`}
                           onClick={() => Object.keys(row[0].details).length > 0 && setSelectedDetails(row[0].details)}
                         >
-                          <pre className="whitespace-pre-wrap leading-tight">
+                          <pre className="text-[8px] whitespace-pre-wrap leading-tight">
                             {formatRowName(row[0].values)}
                           </pre>
                         </div>
