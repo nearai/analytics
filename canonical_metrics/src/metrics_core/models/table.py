@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+from metrics_core.models.canonical_metrics_entry import flatten_values, remove_subfields
 from metrics_core.models.column_selection import ColumnNode, TableColumn
 from metrics_core.models.condition import Condition
 
@@ -11,34 +12,6 @@ class SortOrder(Enum):
 
     ASC = "asc"
     DESC = "desc"
-
-
-def flatten_values(fields: Dict[str, Any]) -> Dict[str, Any]:
-    """If a field value only contains "value" field, flatten field value to the value of "value" field."""
-    contracted_fields = {}
-
-    for field_name, field_data in fields.items():
-        if isinstance(field_data, dict):
-            # Check if this dict only contains a "value" key
-            if len(field_data) == 1 and "value" in field_data:
-                # Contract: replace the dict with just the value
-                contracted_fields[field_name] = field_data["value"]
-            else:
-                # Keep the original structure
-                contracted_fields[field_name] = field_data
-        else:
-            # Not a dict, keep as-is
-            contracted_fields[field_name] = field_data
-
-    return contracted_fields
-
-
-def remove_subfields(fields: Dict[str, Any], subfields_to_remove: List[str]) -> None:
-    """Remove `subfields_to_remove` from `fields`."""
-    for field_data in fields.values():
-        if isinstance(field_data, dict):
-            for subfield in subfields_to_remove:
-                field_data.pop(subfield, None)
 
 
 @dataclass

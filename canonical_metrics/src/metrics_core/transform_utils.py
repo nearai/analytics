@@ -17,6 +17,7 @@ from metrics_core.conversions.sort_by_timestamp import SortByTimestampConversion
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry, MetadataFieldCategory
 from metrics_core.models.column_selection import ColumnNode, TableColumnUnit
 from metrics_core.models.condition import Condition, parse_condition_list, slice_condition
+from metrics_core.models.grouped_canonical_metrics import GroupedCanonicalMetrics, GroupedCanonicalMetricsList
 from metrics_core.models.table import SortOrder, Table, TableCell
 
 
@@ -220,14 +221,14 @@ def create_column_tree(entries: List[CanonicalMetricsEntry]) -> ColumnNode:
     return root
 
 
-class SlicesRecommendationStrategy(Enum):
-    """Strategies on which slices to recommend."""
+class GroupsRecommendationStrategy(Enum):
+    """Strategies on which groups (or slices) to recommend."""
 
     # No recommendations.
     NONE = "none"
-    # Decouple slices by taking first alphabetical candidate.
+    # Decouple groups by taking first alphabetical candidate.
     FIRST_ALPHABETICAL = "first_alphabetical"
-    # Decouple slices by taking the most concise candidate.
+    # Decouple groups by taking the most concise candidate.
     CONCISE = "concise"
 
 
@@ -249,7 +250,7 @@ class TableCreationParams:
     # Strategy on how to deal with absent metrics.
     absent_metrics_strategy: AggregateAbsentMetricsStrategy = AggregateAbsentMetricsStrategy.ALL_OR_NOTHING
     # Strategy on how to recommend slices.
-    slices_recommendation_strategy: SlicesRecommendationStrategy = SlicesRecommendationStrategy.CONCISE
+    slices_recommendation_strategy: GroupsRecommendationStrategy = GroupsRecommendationStrategy.CONCISE
 
 
 def create_table(
@@ -259,7 +260,7 @@ def create_table(
     column_selections_to_add: Optional[List[str]] = None,
     column_selections_to_remove: Optional[List[str]] = None,
 ) -> Table:
-    """Aggregates `entries` and creates Table."""
+    """Aggregate `entries` and creates Table."""
     filter_conditions = parse_condition_list(params.filters)
     slice_conditions = parse_condition_list(params.slices)
 
@@ -290,11 +291,11 @@ def create_table(
     for column in columns:
         column.unit = determine_column_unit(column.name, aggr_entries)
 
-    if params.slices_recommendation_strategy == SlicesRecommendationStrategy.NONE:
+    if params.slices_recommendation_strategy == GroupsRecommendationStrategy.NONE:
         slice_recommendations = []
     else:
-        possible_new_slices = determine_possible_new_slices(entries, slice_conditions)
-        slice_recommendations = dedupe_slices(possible_new_slices, entries, params.slices_recommendation_strategy)
+        possible_new_slices = determine_possible_new_groups(entries, slice_conditions)
+        slice_recommendations = dedupe_groups(possible_new_slices, entries, params.slices_recommendation_strategy)
 
     headers: List[TableCell] = [TableCell()]
     for column in columns:
@@ -379,17 +380,17 @@ def determine_column_unit(key: str, entries: List[CanonicalMetricsEntry]) -> Tab
     return TableColumnUnit.STRING
 
 
-def determine_possible_new_slices(entries: List[CanonicalMetricsEntry], slices: List[Condition]) -> List[str]:
-    """Return metadata keys for possible new slices."""
-    accepted_slices: Set[str] = set()
-    rejected_slices: Set[str] = set()
-    # [new_slice_field, slice_values] -> new_slice_value
-    # If there are multiple new slice values, then the candidate can be accepted.
+def determine_possible_new_groups(entries: List[CanonicalMetricsEntry], groups: List[Condition]) -> List[str]:
+    """Return metadata keys for possible new groups."""
+    accepted_groups: Set[str] = set()
+    rejected_groups: Set[str] = set()
+    # [new_group_field, group_values] -> new_group_value
+    # If there are multiple new group values, then the candidate can be accepted.
     candidates: Dict[Tuple[str, Tuple[Any]], Any] = dict()
-    new_slices: List[str] = []
+    new_groups: List[str] = []
 
     for entry in entries:
-        slice_values = get_slice_values(entry, slices)
+        group_values = get_slice_values(entry, groups)
         for k, v in entry.metadata.items():
             if k == "files":
                 continue
@@ -397,88 +398,169 @@ def determine_possible_new_slices(entries: List[CanonicalMetricsEntry], slices: 
                 continue
             if v.get("category", "") != MetadataFieldCategory.GROUP.value:
                 continue
-            if (k in accepted_slices) or (k in rejected_slices):
+            if (k in accepted_groups) or (k in rejected_groups):
                 continue
-            if not slices:
-                accepted_slices.add(k)
-                new_slices.append(k)
+            if not groups:
+                accepted_groups.add(k)
+                new_groups.append(k)
                 continue
 
-            appears_in_slices = False
-            for slice in slices:
-                if slice.field_name == k:
+            appears_in_groups = False
+            for group in groups:
+                if group.field_name == k:
                     # Even if it has operator other than slice.
-                    appears_in_slices = True
+                    appears_in_groups = True
                     break
-            if appears_in_slices:
-                rejected_slices.add(k)
+            if appears_in_groups:
+                rejected_groups.add(k)
                 continue
 
-            new_slice_value = v.get("value")
-            candidate_value = candidates.get((k, slice_values))
+            new_group_value = v.get("value")
+            candidate_value = candidates.get((k, group_values))
             if candidate_value is None:
-                candidates[(k, slice_values)] = new_slice_value
+                candidates[(k, group_values)] = new_group_value
                 continue
-            if candidate_value == new_slice_value:
+            if candidate_value == new_group_value:
                 continue
 
-            accepted_slices.add(k)
-            new_slices.append(k)
+            accepted_groups.add(k)
+            new_groups.append(k)
 
-    return sorted(new_slices)
+    return sorted(new_groups)
 
 
-def dedupe_slices(
-    slices: List[str],
+def dedupe_groups(
+    groups: List[str],
     entries: List[CanonicalMetricsEntry],
-    slices_recommendation_strategy: SlicesRecommendationStrategy,
+    groups_recommendation_strategy: GroupsRecommendationStrategy,
 ) -> List[str]:
-    """Reduce slices to the most promising and deduped ones.
+    """Reduce groups to the most promising and deduped ones.
 
     Assumptions about args:
-    1. `slices` are given in alphabetical order.
+    1. `groups` are given in alphabetical order.
     2. `entries` are given in chronological order, or otherwise in a format preference order.
     """
-    if not slices:
+    if not groups:
         return []
-    assert slices_recommendation_strategy in (
-        SlicesRecommendationStrategy.FIRST_ALPHABETICAL,
-        SlicesRecommendationStrategy.CONCISE,
+    assert groups_recommendation_strategy in (
+        GroupsRecommendationStrategy.FIRST_ALPHABETICAL,
+        GroupsRecommendationStrategy.CONCISE,
     )
-    # Assume that `slices` are already in alphabetic order.
-    if slices_recommendation_strategy == SlicesRecommendationStrategy.CONCISE:
+    # Assume that `groups` are already in alphabetic order.
+    if groups_recommendation_strategy == GroupsRecommendationStrategy.CONCISE:
         # Assume entries are in chronological order. i.e. the order of format preference.
-        first_slice_value_lengths: Dict[str, int] = dict()
+        first_group_value_lengths: Dict[str, int] = dict()
         for entry in entries:
-            for slice in slices:
-                if first_slice_value_lengths.get(slice) is not None:
+            for group in groups:
+                if first_group_value_lengths.get(group) is not None:
                     continue
-                v = entry.fetch_value(slice)
+                v = entry.fetch_value(group)
                 if v is not None:
-                    first_slice_value_lengths[slice] = len(str(v))
+                    first_group_value_lengths[group] = len(str(v))
 
-        def get_sort_key(slice: str) -> int:
+        def get_sort_key(group: str) -> int:
             """Calculate sort key as a length."""
             # Penalize "_version".
-            penalty = 20 if "_version" in slice else 0
-            return len(slice) + penalty + first_slice_value_lengths.get(slice, 0)
+            penalty = 20 if "_version" in group else 0
+            return len(group) + penalty + first_group_value_lengths.get(group, 0)
 
-        slices = sorted(slices, key=get_sort_key)
+        groups = sorted(groups, key=get_sort_key)
 
-    new_slices: List[str] = [slices[0]]
-    new_slice_conditions: List[Condition] = [slice_condition(slices[0])]
-    for slice in slices[1:]:
-        # (slice values of new_slices) -> new_slice_value
+    new_groups: List[str] = [groups[0]]
+    new_group_conditions: List[Condition] = [slice_condition(groups[0])]
+    for group in groups[1:]:
+        # (group values of new_groups) -> new_group_value
         # If there are multiple possible values, then the candidate can be accepted.
-        new_slice_values: Dict[tuple, Any] = {}
+        new_group_values: Dict[tuple, Any] = {}
         for entry in entries:
-            key = get_slice_values(entry, new_slice_conditions)
-            v = entry.fetch_value(slice)
-            if new_slice_values.get(key) is None:
-                new_slice_values[key] = v
+            key = get_slice_values(entry, new_group_conditions)
+            v = entry.fetch_value(group)
+            if new_group_values.get(key) is None:
+                new_group_values[key] = v
                 continue
-            if new_slice_values[key] == v:
+            if new_group_values[key] == v:
                 continue
-            new_slices.append(slice)
-            new_slice_conditions.append(slice_condition(slice))
-    return new_slices
+            new_groups.append(group)
+            new_group_conditions.append(slice_condition(group))
+    return new_groups
+
+
+@dataclass
+class ListLogsCreationParams:
+    """Parameters for list logs request."""
+
+    # List of filter conditions
+    filters: List[str] = field(default_factory=list)
+    # List of group conditions
+    groups: List[str] = field(default_factory=list)
+    # How to prune metrics: NONE, COLUMN, or ALL.
+    # Pruning heuristically determines which metrics do not contain any useful information and removes them.
+    prune_mode: PruneMode = PruneMode.ALL
+    # Strategy on how to recommend groups.
+    groups_recommendation_strategy: GroupsRecommendationStrategy = GroupsRecommendationStrategy.CONCISE
+
+
+def create_logs_list(
+    entries: List[CanonicalMetricsEntry],
+    params: ListLogsCreationParams,
+    verbose: bool = False,
+) -> GroupedCanonicalMetricsList:
+    """Group `entries` into list of GroupedCanonicalMetricsList."""
+    filter_conditions = parse_condition_list(params.filters)
+    group_conditions = parse_condition_list(params.groups)
+
+    preprocess_conversions: List[BaseConversion] = [CategorizeMetadataConversion()]
+    if filter_conditions:
+        preprocess_conversions.append(FilterConversion(filter_conditions))
+    preprocess_conversions.append(SortByTimestampConversion())
+    entries = ChainConversion(preprocess_conversions).convert(entries)
+
+    groups: Dict[tuple, List[CanonicalMetricsEntry]] = {}
+    for entry in entries:
+        key = get_slice_values(entry, group_conditions)
+        if key not in groups:
+            groups[key] = [entry]
+        else:
+            groups[key].append(entry)
+
+    aggregation_conversions: List[BaseConversion] = [AggregateConversion(slices=[])]
+    prune_conversion: Optional[PruneConversion] = None
+    # Apply pruning based on mode
+    if params.prune_mode == PruneMode.ALL:
+        prune_conversion = PruneConversion(verbose=verbose, prune_all_entries=True)
+    elif params.prune_mode == PruneMode.COLUMN:
+        prune_conversion = PruneConversion(verbose=verbose, prune_all_entries=False)
+    if prune_conversion:
+        aggregation_conversions.append(prune_conversion)
+    aggregation_conversion = ChainConversion(aggregation_conversions)
+    grouped_entries: List[GroupedCanonicalMetrics] = []
+    for entries in groups.values():
+        aggr_entries = aggregation_conversion.convert(entries)
+        assert len(aggr_entries) == 1
+        if prune_conversion:
+            entries = prune_conversion.convert(entries)
+        grouped_entries.append(GroupedCanonicalMetrics(aggr_entry=aggr_entries[0], entries=entries))
+
+    # Sort. Most recent ones first, oldest last.
+    def get_sort_key(entry: GroupedCanonicalMetrics):
+        timestamp = entry.aggr_entry.fetch_value("time_end_utc/max_value")
+        if timestamp:
+            return timestamp
+        return ""  # Put entries without timestamps at the end (empty string sorts before valid timestamps)
+
+    grouped_entries = sorted(grouped_entries, key=get_sort_key, reverse=True)
+
+    if params.groups_recommendation_strategy == GroupsRecommendationStrategy.NONE:
+        group_recommendations = []
+    else:
+        possible_new_groups = determine_possible_new_groups(entries, group_conditions)
+        group_recommendations = dedupe_groups(possible_new_groups, entries, params.groups_recommendation_strategy)
+
+    for grouped_entry in grouped_entries:
+        grouped_entry.aggr_entry.remove_subfields(["prune", "category"])
+        grouped_entry.aggr_entry.flatten_values()
+        for entry in grouped_entry.entries:
+            entry.remove_subfields(["prune", "category"])
+            entry.flatten_values()
+
+    return GroupedCanonicalMetricsList(groups=grouped_entries, group_recommendations=group_recommendations)

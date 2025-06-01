@@ -10,13 +10,44 @@ from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.table import Table, TableCell
 
 
-def load_canonical_metrics_from_disk(logs_entry_path: Path) -> CanonicalMetricsEntry:
+def load_canonical_metrics_from_disk(logs_entry_path: Path, include_log_files: bool = False) -> CanonicalMetricsEntry:
     """Load metrics.json file from `logs_entry_path`."""
     name = logs_entry_path.name
     metrics_json = logs_entry_path / "metrics.json"
     with open(metrics_json, "r", encoding="utf-8") as f:
         data: Dict[str, Any] = json.load(f)
-        return CanonicalMetricsEntry(name=name, metadata=data.get("metadata", {}), metrics=data.get("metrics", {}))
+        entry = CanonicalMetricsEntry(name=name, metadata=data.get("metadata", {}), metrics=data.get("metrics", {}))
+        if not include_log_files:
+            return entry
+        log_files = []
+        files: List[Dict[str, Any]] = entry.metadata.get("files", [])
+        for file in files:
+            filename = file.get("filename", "")
+            if not filename:
+                print("Error: no 'filename' field in file value.")
+                continue
+            file_path = logs_entry_path / filename
+            if not file_path.exists():
+                print(f"Error: file {file_path} not exists.")
+                continue
+            if file_path.is_file():
+                try:
+                    with open(file_path, "r", encoding="utf-8") as log_file:
+                        log_file_entry = file.copy()
+                        log_file_entry["content"] = log_file.read()
+                        log_files.append(log_file_entry)
+                except UnicodeDecodeError:
+                    # Handle binary files by reading as bytes and encoding as base64
+                    import base64
+
+                    with open(file_path, "rb") as log_file:
+                        log_file_entry = file.copy()
+                        log_file_entry["content"] = base64.b64encode(log_file.read()).decode("ascii")
+                        log_files.append(log_file_entry)
+                except Exception as e:
+                    print(f"Error: could not read file {file_path}: {e}")
+        entry.log_files = log_files
+        return entry
 
 
 def save_canonical_metrics_to_disk(original_path: Path, new_path: Path, metrics: CanonicalMetricsEntry):
@@ -42,7 +73,7 @@ def save_canonical_metrics_to_disk(original_path: Path, new_path: Path, metrics:
         shutil.copy2(file_path, dest_file)
 
 
-def load_logs_list_from_disk(logs_dir: Path) -> List[CanonicalMetricsEntry]:
+def load_logs_list_from_disk(logs_dir: Path, include_log_files=False) -> List[CanonicalMetricsEntry]:
     """Load all metric entries from subdirectories of logs_dir.
 
     Each subdirectory should contain a metrics.json file.
@@ -67,7 +98,7 @@ def load_logs_list_from_disk(logs_dir: Path) -> List[CanonicalMetricsEntry]:
             continue
 
         try:
-            entry = load_canonical_metrics_from_disk(entry_path)
+            entry = load_canonical_metrics_from_disk(entry_path, include_log_files=include_log_files)
             result.append(entry)
         except Exception as e:
             print(f"Error loading metrics from {entry_path}: {e}")
