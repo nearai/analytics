@@ -53,9 +53,9 @@ Execute popular and user-owned benchmarks to generate performance metrics. Run a
 
 Visualize, analyze, and compare agent & model performances using the collected metrics.
 
-### 6. Run Historic Performance Dashboard
+### 6. [Run Historic Performance Dashboard](./historic_performance/)
 
-Track agent performance over time to identify trends and regressions.
+Run a web application for querying and visualizing analytics metrics data. Tools to browse logs, track and visualize agent performance over time.
 
 ## Quick Start
 
@@ -82,6 +82,14 @@ Track agent performance over time to identify trends and regressions.
 4. **Access the API**:
    - API Documentation: http://localhost:8000/api/v1/docs
    - Query metrics programmatically or via the dashboard
+  
+5. **Run the Dashboard**:
+   ```bash
+   cd historic_performance
+   npm install
+   npm start
+   ```
+   Will open a dashboard at `http://localhost:3000`
 
 ## Key Features
 
