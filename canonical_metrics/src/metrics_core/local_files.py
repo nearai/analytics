@@ -28,7 +28,7 @@ def load_canonical_metrics_from_disk(logs_entry_path: Path, include_log_files: b
                 continue
             file_path = logs_entry_path / filename
             if not file_path.exists():
-                print(f"Error: file {file_path} not exists.")
+                print(f"Error: file {file_path} does not exist.")
                 continue
             if file_path.is_file():
                 try:
