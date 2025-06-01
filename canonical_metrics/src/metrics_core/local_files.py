@@ -67,7 +67,7 @@ def save_canonical_metrics_to_disk(original_path: Path, new_path: Path, metrics:
             continue
         file_path = original_path / filename
         if not file_path.exists():
-            print(f"Error: file {file_path} not exists.")
+            print(f"Error: file {file_path} does not exist.")
             continue
         dest_file = new_path / filename
         shutil.copy2(file_path, dest_file)
