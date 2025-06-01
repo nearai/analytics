@@ -534,12 +534,12 @@ def create_logs_list(
         aggregation_conversions.append(prune_conversion)
     aggregation_conversion = ChainConversion(aggregation_conversions)
     grouped_entries: List[GroupedCanonicalMetrics] = []
-    for entries in groups.values():
-        aggr_entries = aggregation_conversion.convert(entries)
+    for group_entries in groups.values():
+        aggr_entries = aggregation_conversion.convert(group_entries)
         assert len(aggr_entries) == 1
         if prune_conversion:
-            entries = prune_conversion.convert(entries)
-        grouped_entries.append(GroupedCanonicalMetrics(aggr_entry=aggr_entries[0], entries=entries))
+            group_entries = prune_conversion.convert(group_entries)
+        grouped_entries.append(GroupedCanonicalMetrics(aggr_entry=aggr_entries[0], entries=group_entries))
 
     # Sort. Most recent ones first, oldest last.
     def get_sort_key(entry: GroupedCanonicalMetrics):
