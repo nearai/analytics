@@ -22,6 +22,13 @@ A collection of tools for benchmarking, evaluating, and analyzing agent performa
 Transform, tune, aggregate, create csv table.
 
 ```bash
+# Installation
+cd canonical_metrics
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install poetry
+poetry install
+
 # Transform and aggregate metrics
 metrics-cli tune /path/to/logs /path/to/tuned_logs --rename --ms-to-s
 metrics-cli aggregate /path/to/tuned_logs /path/to/aggr_logs --filters "runner:not_in:local" --slices "agent_name"
@@ -45,51 +52,24 @@ curl -X POST "http://localhost:8000/api/v1/table/create" \
   }'
 ```
 
-### 4. Run Benchmarks and Evaluations
-
-Execute popular and user-owned benchmarks to generate performance metrics. Run audit evaluations on agents.
-
-### 5. Run Evaluation Dashboard
-
-Visualize, analyze, and compare agent & model performances using the collected metrics.
-
-### 6. [Run Historic Performance Dashboard](./historic_performance/)
+### 4. [Run Historic Performance Dashboard](./historic_performance/)
 
 Run a web application for querying and visualizing analytics metrics data. Tools to browse logs, track and visualize agent performance over time.
 
-## Quick Start
+```bash
+cd historic_performance
+npm install
+npm start
+```
+Will open a dashboard at `http://localhost:3000`
 
-1. **Install dependencies**:
-   ```bash
-   cd canonical_metrics
-   python3.11 -m venv .venv
-   source .venv/bin/activate
-   pip install poetry
-   poetry install
-   ```
+### 5. Run Benchmarks and Evaluations
 
-2. **Process metrics**:
-   ```bash
-   # Clean and transform metrics
-   metrics-cli tune /path/to/raw/logs /path/to/processed/logs --rename --ms-to-s
-   ```
+Execute popular and user-owned benchmarks to generate performance metrics. Run audit evaluations on agents.
 
-3. **Start the API service**:
-   ```bash
-   metrics-service --metrics-path /path/to/processed/logs
-   ```
+### 6. Run Evaluation Dashboard
 
-4. **Access the API**:
-   - API Documentation: http://localhost:8000/api/v1/docs
-   - Query metrics programmatically or via the dashboard
-  
-5. **Run the Dashboard**:
-   ```bash
-   cd historic_performance
-   npm install
-   npm start
-   ```
-   Will open a dashboard at `http://localhost:3000`
+Visualize, analyze, and compare agent & model performances using the collected metrics.
 
 ## Key Features
 
