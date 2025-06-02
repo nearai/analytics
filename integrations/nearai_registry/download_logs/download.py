@@ -158,7 +158,7 @@ def main():
         entries = [entry for entry in entries if entry.namespace in namespaces_list]
 
     # Create logs directory
-    logs_dir = Path("logs")
+    logs_dir = Path("~/.nearai/logs")
     logs_dir.mkdir(exist_ok=True)
 
     for entry in entries:
