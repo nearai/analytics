@@ -145,11 +145,13 @@ const ColumnTreeNode: React.FC<{
 
 interface TableDashboardProps {
   onNavigateToLogs: () => void;
+  savedRequest?: TableRequest | null;
+  onRequestChange?: (request: TableRequest) => void;
 }
 
-const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs }) => {
+const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, savedRequest, onRequestChange }) => {
   // State
-  const [request, setRequest] = useState<TableRequest>({
+  const [request, setRequest] = useState<TableRequest>(savedRequest || {
     prune_mode: 'column',
     absent_metrics_strategy: 'nullify',
     slices_recommendation_strategy: 'concise',
@@ -208,6 +210,13 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs }) => 
     });
   };
 
+  // Update parent component when request changes
+  useEffect(() => {
+    if (onRequestChange) {
+      onRequestChange(request);
+    }
+  }, [request, onRequestChange]);
+
   // API call
   const fetchTable = useCallback(async (requestData: TableRequest) => {
     setLoading(true);
@@ -254,7 +263,16 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs }) => 
 
   // Initial load
   useEffect(() => {
-    fetchTable(request);
+    if (!savedRequest) {
+      fetchTable(request);
+    }
+  }, []); // Empty dependency array - only run once on mount
+
+  // Load saved request when component mounts with saved data
+  useEffect(() => {
+    if (savedRequest) {
+      fetchTable(savedRequest);
+    }
   }, []); // Empty dependency array - only run once on mount
 
   // Helper function to find node by ID
@@ -501,7 +519,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs }) => 
         <CollapsibleSection title="Views" defaultOpen={true}>
           <button
             onClick={onNavigateToLogs}
-            className="w-full flex items-center justify-center gap-2 bg-purple-700 hover:bg-purple-600 text-white py-2 px-4 rounded-md transition-colors text-sm"
+            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
           >
             <FileText size={16} />
             View Logs

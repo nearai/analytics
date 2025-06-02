@@ -102,7 +102,7 @@ interface FilterManagerProps {
   recommendations?: string[];
   onAddRecommendation?: (item: string) => void;
   placeholder: string;
-  itemColor: string; // 'blue' | 'green'
+  itemColor: 'blue' | 'green';
   showHelp?: boolean;
   helpContent?: React.ReactNode;
 }
@@ -123,12 +123,12 @@ export const FilterManager: React.FC<FilterManagerProps> = ({
 }) => {
   const [showHelpContent, setShowHelpContent] = useState(false);
   
-  const bgColors = {
+  const bgColors: Record<'blue' | 'green', string> = {
     blue: 'bg-blue-950',
     green: 'bg-green-900'
   };
   
-  const hoverColors = {
+  const hoverColors: Record<'blue' | 'green', string> = {
     blue: 'hover:bg-blue-800',
     green: 'hover:bg-green-800'
   };
@@ -208,6 +208,63 @@ export const FilterManager: React.FC<FilterManagerProps> = ({
 };
 
 // Utility functions
+export const isTimestampLike = (value: any): boolean => {
+  if (typeof value !== 'string') return false;
+  
+  // ISO 8601 timestamp patterns
+  const isoPatterns = [
+    // Full ISO format with timezone: 2025-05-23T11:48:26.341261+00:00
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+[+-]\d{2}:\d{2}$/,
+    // ISO format without timezone: 2025-05-23T11:48:26.341267
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+$/,
+    // ISO format with seconds: 2025-05-23T11:48:26
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/,
+    // ISO format without seconds: 2025-05-23T11:48
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/,
+    // ISO format with Z timezone: 2025-05-23T11:48:26.341261Z
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$/,
+    // Date only: 2025-05-23
+    /^\d{4}-\d{2}-\d{2}$/,
+    // Unix timestamp (as string): 1716464906
+    /^\d{10}$/,
+    // Unix timestamp with milliseconds: 1716464906341
+    /^\d{13}$/,
+  ];
+  
+  // Check against regex patterns
+  for (const pattern of isoPatterns) {
+    if (pattern.test(value)) return true;
+  }
+  
+  // Additional datetime formats that Date.parse can handle
+  try {
+    const date = new Date(value);
+    if (!isNaN(date.getTime())) {
+      // Additional validation to avoid false positives
+      const year = date.getFullYear();
+      if (year >= 1900 && year <= 2100) return true;
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  
+  // Additional heuristics for timestamp-like strings
+  // Must contain date-like pattern (YYYY-MM-DD or similar)
+  if (/\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(value)) {
+    // And optionally time-like pattern
+    if (value.includes('T') || /\d{1,2}:\d{2}/.test(value)) {
+      return true;
+    }
+  }
+  
+  // Common date formats
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}( \d{1,2}:\d{2}(:\d{2})?)?$/.test(value)) {
+    return true; // MM/DD/YYYY or MM/DD/YYYY HH:MM:SS
+  }
+  
+  return false;
+};
+
 export const formatTimestamp = (value: any): string => {
   try {
     const date = new Date(value);

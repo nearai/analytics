@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp, GripVertical, Table, FileText, Eye } from 'lucide-react';
 import { LogsRequest, LogsResponse, LogGroup, LogEntry, LogFile } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, formatTimestamp, getStyleClass } from './shared/SharedComponents';
+import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, formatTimestamp, getStyleClass, isTimestampLike } from './shared/SharedComponents';
 
 // Format metadata/metrics for display
 const formatMetadataValue = (value: any): string => {
   if (typeof value === 'object' && value !== null) {
     if (value.min_value !== undefined && value.max_value !== undefined) {
-      if (typeof value.min_value === 'string' && value.min_value.includes('T')) {
+      if (isTimestampLike(value.min_value)) {
         // Timestamp range
         return `${formatTimestamp(value.min_value)} - ${formatTimestamp(value.max_value)} (n=${value.n_samples || 0})`;
       }
@@ -15,26 +15,55 @@ const formatMetadataValue = (value: any): string => {
     }
     return JSON.stringify(value);
   }
-  if (typeof value === 'string' && value.includes('T') && value.includes(':')) {
+  if (isTimestampLike(value)) {
     return formatTimestamp(value);
   }
   return String(value);
 };
 
-// Log Entry Component
-const LogEntryComponent: React.FC<{
-  entry: LogEntry;
+// Format entry name based on metadata
+const formatEntryName = (entry: LogEntry | LogGroup['aggr_entry'], isAggregated: boolean, filters: string[] = [], groups: string[] = []): React.ReactNode => {
+  if (isAggregated) {
+    return (
+        <div>
+          {Object.entries(entry.metadata).map(([key, value], index) => {
+            const className = getStyleClass(key, filters, groups);
+            return (
+              <div key={index} className={className}>
+                {key}: {formatMetadataValue(value)}
+              </div>
+            );
+          })}
+        </div>
+      );
+  } else {
+    // For individual entries, show time_end_utc and time_end_local
+    const utc = entry.metadata.time_end_utc;
+    const local = entry.metadata.time_end_local;
+    
+    if (utc || local) {
+      const parts: string[] = [];
+      if (utc) parts.push(`UTC: ${formatTimestamp(utc)}`);
+      if (local) parts.push(`Local: ${formatTimestamp(local)}`);
+      return parts.join(' | ');
+    }
+    
+    return entry.name; // Fallback to name if no time metadata
+  }
+};
+
+// Log Aggregated Entry Component
+const LogAggrEntryComponent: React.FC<{
+  entry: LogGroup;
   filters: string[];
   groups: string[];
-  isAggregated?: boolean;
-}> = ({ entry, filters, groups, isAggregated = false }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<LogFile | null>(null);
+}> = ({ entry, filters, groups}) => {
+  const [isExpanded, setIsExpanded] = useState(true);
   const [showMetadataDetails, setShowMetadataDetails] = useState(false);
   const [showMetricsDetails, setShowMetricsDetails] = useState(false);
 
   return (
-    <div className={`border ${isAggregated ? 'border-purple-300 bg-purple-50' : 'border-gray-200 bg-white'} rounded-lg p-3 mb-2`}>
+    <div className={`border border-purple-800 bg-purple-50 rounded-lg p-3 mb-2`}>
       {/* Header */}
       <div 
         className="flex items-center justify-between cursor-pointer"
@@ -42,11 +71,86 @@ const LogEntryComponent: React.FC<{
       >
         <div className="flex items-center gap-2">
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          <span className={`font-medium text-sm ${isAggregated ? 'text-purple-700' : ''}`}>
-            {entry.name}
+          <span className={`font-medium text-sm text-purple-950`}>
+            {formatEntryName(entry['aggr_entry'], true, filters, groups)}
+          </span>
+          <button
+            onClick={() => setShowMetadataDetails(true)}
+            className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+          >
+            <Eye size={12} />
+            View Aggregated Metadata JSON
+          </button>
+          <button
+            onClick={() => setShowMetricsDetails(true)}
+            className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+          >
+            <Eye size={12} />
+            View Aggregated Metrics JSON
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+            <div className="ml-4 mt-2">
+              {entry['entries'].map((entry, entryIdx) => (
+                <LogEntryComponent
+                  key={entryIdx}
+                  entry={entry}
+                  filters={filters || []}
+                  groups={groups || []}
+                />
+              ))}
+            </div>
+          )}
+      {/* Popups */}
+      {showMetadataDetails && (
+        <DetailsPopup
+          details={entry['aggr_entry'].metadata}
+          onClose={() => setShowMetadataDetails(false)}
+          title="Aggregated Metadata Details"
+        />
+      )}
+      {showMetricsDetails && (
+        <DetailsPopup
+          details={entry['aggr_entry'].metrics}
+          onClose={() => setShowMetricsDetails(false)}
+          title="Aggregated Metrics Details"
+        />
+      )}
+    </div>
+  );
+};
+
+// Log Entry Component
+const LogEntryComponent: React.FC<{
+  entry: LogEntry;
+  filters: string[];
+  groups: string[];
+}> = ({ entry, filters, groups}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<LogFile | null>(null);
+  const [showMetadataDetails, setShowMetadataDetails] = useState(false);
+  const [showMetricsDetails, setShowMetricsDetails] = useState(false);
+
+  // Type guard to check if entry has log_files
+  const hasLogFiles = (e: any): e is LogEntry => 'log_files' in e;
+
+  return (
+    <div className={`border border-gray-200 bg-white' rounded-lg p-3 mb-2`}>
+      {/* Header */}
+      <div 
+        className="flex items-center justify-between cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-2">
+          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          <span className={`font-medium text-sm`}>
+            {formatEntryName(entry, false, filters, groups)}
           </span>
         </div>
-        {!isAggregated && entry.log_files.length > 0 && (
+        {hasLogFiles(entry) && entry.log_files.length > 0 && (
           <span className="text-xs text-gray-500">
             {entry.log_files.length} file{entry.log_files.length > 1 ? 's' : ''}
           </span>
@@ -75,7 +179,7 @@ const LogEntryComponent: React.FC<{
                   return (
                     <div key={key} className="text-xs">
                       <span className={`font-medium ${className}`}>{key}:</span>{' '}
-                      <span className="text-gray-700">{formatMetadataValue(value)}</span>
+                      <span className={`text-gray-700 ${className}`}>{formatMetadataValue(value)}</span>
                     </div>
                   );
                 })}
@@ -105,7 +209,7 @@ const LogEntryComponent: React.FC<{
                   return (
                     <div key={key} className="text-xs">
                       <span className={`font-medium ${className}`}>{key}:</span>{' '}
-                      <span className="text-gray-700">{formatMetadataValue(value)}</span>
+                      <span className={`text-gray-700 ${className}`}>{formatMetadataValue(value)}</span>
                       {description && <span className="text-gray-500 text-[10px] ml-1">({description})</span>}
                     </div>
                   );
@@ -115,7 +219,7 @@ const LogEntryComponent: React.FC<{
           )}
 
           {/* Log Files Section */}
-          {!isAggregated && entry.log_files.length > 0 && (
+          {hasLogFiles(entry) && entry.log_files.length > 0 && (
             <div>
               <h4 className="text-xs font-semibold text-gray-700 mb-1">Log Files</h4>
               <div className="space-y-1">
@@ -169,11 +273,13 @@ const LogEntryComponent: React.FC<{
 
 interface LogsDashboardProps {
   onNavigateToTable: () => void;
+  savedRequest?: LogsRequest | null;
+  onRequestChange?: (request: LogsRequest) => void;
 }
 
-const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable }) => {
+const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable, savedRequest, onRequestChange }) => {
   // State
-  const [request, setRequest] = useState<LogsRequest>({
+  const [request, setRequest] = useState<LogsRequest>(savedRequest || {
     prune_mode: 'all',
     groups_recommendation_strategy: 'concise',
     filters: [],
@@ -209,12 +315,20 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable }) => {
     document.removeEventListener('mouseup', handleMouseUp);
   };
 
+  // Update parent component when request changes
+  useEffect(() => {
+    if (onRequestChange) {
+      onRequestChange(request);
+    }
+  }, [request, onRequestChange]);
+
   // API call
   const fetchLogs = useCallback(async (requestData: LogsRequest) => {
     setLoading(true);
     setError(null);
     
     try {
+      setRequest(requestData)
       const res = await fetch('http://localhost:8000/api/v1/logs/list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -227,6 +341,13 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable }) => {
       
       const data = await res.json();
       setResponse(data);
+
+      // Update request with response data
+      setRequest(prev => ({
+          ...prev,
+          filters: data.filters || [],
+          slices: data.slices || []
+      }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -236,7 +357,16 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable }) => {
 
   // Initial load
   useEffect(() => {
-    fetchLogs(request);
+    if (!savedRequest) {
+      fetchLogs(request);
+    }
+  }, []);
+
+  // Load saved request when component mounts with saved data
+  useEffect(() => {
+    if (savedRequest) {
+      fetchLogs(savedRequest);
+    }
   }, []);
 
   // Handlers
@@ -304,7 +434,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable }) => {
         <CollapsibleSection title="Views" defaultOpen={true}>
           <button
             onClick={onNavigateToTable}
-            className="w-full flex items-center justify-center gap-2 bg-purple-700 hover:bg-purple-600 text-white py-2 px-4 rounded-md transition-colors text-sm"
+            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
           >
             <Table size={16} />
             View Table
@@ -325,6 +455,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable }) => {
                 title="Select pruning strategy"
               >
                 <option value="none" title="No pruning applied">none</option>
+                <option value="column" title="Remove columns if all column values are determined meaningless">column</option>
                 <option value="all" title="Prune metrics marked in each entry">all</option>
               </select>
             </div>
@@ -355,7 +486,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable }) => {
             setInput={setFilterInput}
             onAdd={handleAddFilter}
             onRemove={handleRemoveFilter}
-            placeholder="e.g., user:in:alomonos.near"
+            placeholder="e.g., runner:not_in:local"
             itemColor="blue"
             helpContent={
               <>
@@ -415,27 +546,13 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable }) => {
         
         {response && response.groups.map((group, groupIdx) => (
           <div key={groupIdx} className="mb-6">
-            {/* Aggregated Entry */}
             {group.aggr_entry && (
-              <LogEntryComponent
-                entry={group.aggr_entry}
+              <LogAggrEntryComponent
+                entry={group}
                 filters={request.filters || []}
                 groups={request.groups || []}
-                isAggregated={true}
               />
             )}
-            
-            {/* Individual Entries */}
-            <div className="ml-4 mt-2">
-              {group.entries.map((entry, entryIdx) => (
-                <LogEntryComponent
-                  key={entryIdx}
-                  entry={entry}
-                  filters={request.filters || []}
-                  groups={request.groups || []}
-                />
-              ))}
-            </div>
           </div>
         ))}
       </div>
