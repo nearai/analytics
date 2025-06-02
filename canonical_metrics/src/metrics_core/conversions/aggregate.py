@@ -1,3 +1,4 @@
+import copy
 from enum import Enum
 from typing import Any, Dict, List, Set, Tuple
 
@@ -134,7 +135,7 @@ class AggregateConversion(BaseConversion):  # noqa: F821
                     break
             if same_in_all:
                 # If all values are the same, store the value
-                metadata[field_name] = first_value
+                metadata[field_name] = copy.copy(first_value)
 
             # Check if this field has category information and is UNIQUE or TIMESTAMP
             field_data = first_value

@@ -30,7 +30,7 @@ const formatEntryName = (entry: LogEntry | LogGroup['aggr_entry'], isAggregated:
             const className = getStyleClass(key, filters, groups);
             return (
               <div key={index} className={className}>
-                {key}: {formatMetadataValue(value)}
+                <b>{key}:</b> {formatMetadataValue(value)}
               </div>
             );
           })}
@@ -63,30 +63,38 @@ const LogAggrEntryComponent: React.FC<{
   const [showMetricsDetails, setShowMetricsDetails] = useState(false);
 
   return (
-    <div className={`border border-purple-800 bg-purple-50 rounded-lg p-3 mb-2`}>
+    <div className={`border border-gray-300 bg-gray-100 rounded-lg p-3 mb-2`}>
       {/* Header */}
-      <div 
-        className="flex items-center justify-between cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between">
+        <div 
+          className="flex items-center gap-2 cursor-pointer flex-1"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          <span className={`font-medium text-sm text-purple-950`}>
+          <span className={`font-medium text-xs text-zinc-800`}>
             {formatEntryName(entry['aggr_entry'], true, filters, groups)}
           </span>
+        </div>
+        <div className="flex flex-col gap-1">
           <button
-            onClick={() => setShowMetadataDetails(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMetadataDetails(true);
+            }}
             className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
           >
             <Eye size={12} />
-            View Aggregated Metadata JSON
+            Aggregated Metadata JSON
           </button>
           <button
-            onClick={() => setShowMetricsDetails(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMetricsDetails(true);
+            }}
             className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
           >
             <Eye size={12} />
-            View Aggregated Metrics JSON
+            Aggregated Metrics JSON
           </button>
         </div>
       </div>
@@ -341,13 +349,6 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable, savedR
       
       const data = await res.json();
       setResponse(data);
-
-      // Update request with response data
-      setRequest(prev => ({
-          ...prev,
-          filters: data.filters || [],
-          slices: data.slices || []
-      }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
