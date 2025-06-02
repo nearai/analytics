@@ -57,17 +57,7 @@ The build files will be in the `build/` directory.
 - **Time Filters**: Quick filters for last hour/day/week
 - **Details View**: Click cells to view detailed JSON data
 
-## Development
-
-The app is built with:
-- React 18
-- TypeScript
-- Tailwind CSS
-- Lucide React (for icons)
-
-To modify the dashboard, edit `src/components/MetricsDashboard.tsx`.
-
-## Chronological Log Entries View
+## Chronological Log Entries Features
 
 This view displays individual log entries in chronological order:
 
@@ -75,6 +65,14 @@ This view displays individual log entries in chronological order:
 - Quick access to metrics and log files
 - Filtering by date ranges and metadata
 - Grouping
+
+## Development
+
+The app is built with:
+- React 18
+- TypeScript
+- Tailwind CSS
+- Lucide React (for icons)
 
 ## TODO: Functions
 
