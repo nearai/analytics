@@ -76,7 +76,7 @@ This view displays individual log entries in chronological order:
 - Filtering by date ranges and metadata
 - Grouping
 
-### TODO: Functions
+## TODO: Functions
 
 #### 1. Custom View
 
