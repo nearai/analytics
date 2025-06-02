@@ -1,65 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronDown, ChevronRight, X, ChevronUp, Info, GripVertical } from 'lucide-react';
+import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical, FileText } from 'lucide-react';
+import { TableRequest, TableResponse, ColumnNode, Column, Cell } from './shared/types';
+import { CollapsibleSection, DetailsPopup, FilterManager, formatTimestamp, getStyleClass } from './shared/SharedComponents';
 
-// Types
-interface TableRequest {
-  filters?: string[];
-  slices?: string[];
-  column_selections?: string[];
-  column_selections_to_add?: string[];
-  column_selections_to_remove?: string[];
-  sort_by_column?: string;
-  sort_order?: 'asc' | 'desc';
-  prune_mode?: 'none' | 'all' | 'column';
-  absent_metrics_strategy?: 'all_or_nothing' | 'nullify' | 'accept_subset';
-  slices_recommendation_strategy?: 'none' | 'first_alphabetical' | 'concise';
-}
-
-interface ColumnNode {
-  column_node_id: string;
-  name: string;
-  description?: string;
-  selection_state: 'all' | 'partial' | 'none';
-  children?: ColumnNode[];
-}
-
-interface Column {
-  column_id: string;
-  name: string;
-  description?: string;
-  unit?: string;
-}
-
-interface Cell {
-  values: Record<string, any>;
-  details: Record<string, any>;
-}
-
-interface TableResponse {
-  rows: Cell[][];
-  column_tree: ColumnNode;
-  columns: Column[];
-  filters: string[];
-  slices: string[];
-  slice_recommendations: string[];
-  sorted_by?: { column: string; order: 'asc' | 'desc' };
-}
-
-// Utility functions
-const formatTimestamp = (value: any): string => {
-  try {
-    const date = new Date(value);
-    // Compact format: MM/DD HH:mm
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${month}/${day} ${hours}:${minutes}`;
-  } catch {
-    return String(value);
-  }
-};
-
+// Component-specific utility functions
 const formatCellValue = (values: Record<string, any>, unit?: string): React.ReactNode => {
   const parts: React.ReactNode[] = [];
   let hasValue = false;
@@ -99,13 +43,8 @@ const formatColumnName = (values: Record<string, any>, filters: string[] = [], s
     .map((part, i) => i < parts.length - 1 ? part + '/' : part)
     .join('\n');
 
-  const isFilterKey = filters.some(filter => filter.startsWith(`${value}:`));
-  const isSliceKey = slices.includes(value) || slices.some(slice => slice.startsWith(`${value}:`));
-  return (
-          <div 
-            className={isSliceKey && isFilterKey ? 'text-cyan-700' : isFilterKey ? 'text-blue-700' : isSliceKey ? 'text-green-700' : ''}
-          >{text}</div>
-        );
+  const className = getStyleClass(value, filters, slices);
+  return <div className={className}>{text}</div>;
 };
 
 const formatRowName = (values: Record<string, any>, filters: string[] = [], slices: string[] = []): React.ReactNode => {
@@ -114,13 +53,9 @@ const formatRowName = (values: Record<string, any>, filters: string[] = [], slic
   return (
     <div>
       {Object.entries(values).map(([key, value], index) => {
-        const isFilterKey = filters.some(filter => filter.startsWith(`${key}:`));
-        const isSliceKey = slices.includes(key) || slices.some(slice => slice.startsWith(`${key}:`));
+        const className = getStyleClass(key, filters, slices);
         return (
-          <div 
-            key={index} 
-            className={isSliceKey && isFilterKey ? 'text-cyan-700' : isFilterKey ? 'text-blue-700' : isSliceKey ? 'text-green-700' : ''}
-          >
+          <div key={index} className={className}>
             {key}: {String(value)}
           </div>
         );
@@ -129,28 +64,7 @@ const formatRowName = (values: Record<string, any>, filters: string[] = [], slic
   );
 };
 
-// Components
-const CollapsibleSection: React.FC<{
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}> = ({ title, children, defaultOpen = false }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  
-  return (
-    <div className="mb-3 bg-gray-700 rounded-lg overflow-hidden">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full p-2 hover:bg-gray-600 text-white"
-      >
-        <span className="font-medium text-sm">{title}</span>
-        {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-      </button>
-      {isOpen && <div className="p-3 bg-gray-750">{children}</div>}
-    </div>
-  );
-};
-
+// Column Tree Node Component
 const ColumnTreeNode: React.FC<{
   node: ColumnNode;
   onToggle: (nodeId: string) => void;
@@ -229,95 +143,15 @@ const ColumnTreeNode: React.FC<{
   );
 };
 
-const DetailsPopup: React.FC<{
-  details: Record<string, any>;
-  onClose: () => void;
-}> = ({ details, onClose }) => {
-  // Handle Esc key press
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', handleEsc);
-    return () => document.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
+interface TableDashboardProps {
+  onNavigateToLogs: () => void;
+  savedRequest?: TableRequest | null;
+  onRequestChange?: (request: TableRequest) => void;
+}
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-4 max-w-2xl max-h-[80vh] overflow-auto">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-sm font-semibold">Details</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={16} />
-          </button>
-        </div>
-        <pre className="text-[10px] p-3 rounded overflow-auto bg-gray-50">
-          {JSON.stringify(details, null, 2)}
-        </pre>
-      </div>
-    </div>
-  );
-};
-
-const MetricsDashboard: React.FC = () => {
-  // Add custom styles
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      .bg-gray-750 { background-color: #374151; }
-      
-      /* Custom scrollbar styles */
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: #f1f5f9;
-        border-radius: 4px;
-      }
-      
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 4px;
-      }
-      
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-      }
-      
-      .custom-scrollbar::-webkit-scrollbar-corner {
-        background: #f1f5f9;
-      }
-      
-      /* Dark theme scrollbar for control panel */
-      .dark-scrollbar::-webkit-scrollbar {
-        width: 8px;
-      }
-      
-      .dark-scrollbar::-webkit-scrollbar-track {
-        background: #1f2937;
-      }
-      
-      .dark-scrollbar::-webkit-scrollbar-thumb {
-        background: #4b5563;
-        border-radius: 4px;
-      }
-      
-      .dark-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #6b7280;
-      }
-    `;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
-
+const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, savedRequest, onRequestChange }) => {
   // State
-  const [request, setRequest] = useState<TableRequest>({
+  const [request, setRequest] = useState<TableRequest>(savedRequest || {
     prune_mode: 'column',
     absent_metrics_strategy: 'nullify',
     slices_recommendation_strategy: 'concise',
@@ -332,8 +166,6 @@ const MetricsDashboard: React.FC = () => {
   const [selectedDetails, setSelectedDetails] = useState<Record<string, any> | null>(null);
   const [filterInput, setFilterInput] = useState('');
   const [sliceInput, setSliceInput] = useState('');
-  const [showFilterHelp, setShowFilterHelp] = useState(false);
-  const [showSliceHelp, setShowSliceHelp] = useState(false);
   const [isColumnTreeOpen, setIsColumnTreeOpen] = useState(true);
   const [panelWidth, setPanelWidth] = useState(256); // 256px = 16rem
 
@@ -377,6 +209,13 @@ const MetricsDashboard: React.FC = () => {
       };
     });
   };
+
+  // Update parent component when request changes
+  useEffect(() => {
+    if (onRequestChange) {
+      onRequestChange(request);
+    }
+  }, [request, onRequestChange]);
 
   // API call
   const fetchTable = useCallback(async (requestData: TableRequest) => {
@@ -424,7 +263,16 @@ const MetricsDashboard: React.FC = () => {
 
   // Initial load
   useEffect(() => {
-    fetchTable(request);
+    if (!savedRequest) {
+      fetchTable(request);
+    }
+  }, []); // Empty dependency array - only run once on mount
+
+  // Load saved request when component mounts with saved data
+  useEffect(() => {
+    if (savedRequest) {
+      fetchTable(savedRequest);
+    }
   }, []); // Empty dependency array - only run once on mount
 
   // Helper function to find node by ID
@@ -550,7 +398,7 @@ const MetricsDashboard: React.FC = () => {
         className="bg-gray-800 shadow-lg overflow-y-auto p-3 text-white relative dark-scrollbar" 
         style={{ width: `${panelWidth}px` }}
       >
-        <h2 className="text-lg font-bold mb-3">Controls</h2>
+        <h2 className="text-lg font-bold mb-3">Table Controls</h2>
         
         {/* Parameters */}
         <CollapsibleSection title="Parameters">
@@ -604,153 +452,78 @@ const MetricsDashboard: React.FC = () => {
 
         {/* Filters */}
         <CollapsibleSection title="Filters">
-          <div className="space-y-2">
-            {/* Current filters */}
-            {request.filters && request.filters.length > 0 && (
-              <div>
-                <label className="block text-xs font-medium mb-1">Current Filters</label>
-                <div className="flex flex-wrap gap-1">
-                  {request.filters.map((filter, idx) => (
-                    <div key={idx} className="inline-flex items-center bg-blue-950 px-2 py-1 rounded-full">
-                      <button
-                        onClick={() => handleRemoveFilter(filter)}
-                        className="text-red-400 hover:text-red-300 mr-1"
-                      >
-                        <X size={10} />
-                      </button>
-                      <span className="text-xs">{filter}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+          <FilterManager
+            title="Filters"
+            items={request.filters || []}
+            input={filterInput}
+            setInput={setFilterInput}
+            onAdd={handleAddFilter}
+            onRemove={handleRemoveFilter}
+            placeholder="e.g., runner:not_in:local"
+            itemColor="blue"
+            helpContent={
+              <>
+                <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
+                <p className="mb-1 text-gray-300">• <i>in/not_in</i>:</p>
+                <p className="ml-2 text-gray-400">agent_name:in:agent1,agent2</p>
+                <p className="mb-1 text-gray-300">• <i>range</i>:</p>
+                <p className="ml-2 text-[10px] text-gray-400">value:range:10:100<span className="text-gray-500 ml-1">(between 10 and 100)</span></p>
+                <p className="ml-2 text-[10px] text-gray-400">value:range:10:<span className="text-gray-500 ml-1">(minimum 10)</span></p>
+                <p className="ml-2 text-[10px] text-gray-400">value:range::100<span className="text-gray-500 ml-1">(maximum 100)</span></p>
+                <p className="ml-2 text-[10px] text-gray-400">time_end_utc:range:(2025-05-23T11:48):</p>
+                <p className="ml-4 text-[10px] text-gray-500">(after specified date/time)</p>
+              </>
+            }
+          />
 
-            {/* Add filter */}
-            <div>
-              <label className="block text-xs font-medium mb-1">Add Filter</label>
-              <input
-                type="text"
-                value={filterInput}
-                onChange={(e) => setFilterInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddFilter()}
-                placeholder="e.g., runner:not_in:local"
-                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600 placeholder-gray-400"
-              />
-            </div>
-
-            {/* Filter help */}
-            <div>
-              <button
-                onClick={() => setShowFilterHelp(!showFilterHelp)}
-                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
-              >
-                <Info size={12} />
-                Filter Syntax Help
-              </button>
-              {showFilterHelp && (
-                <div className="mt-2 p-2 bg-gray-600 rounded text-xs">
-                  <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
-                  <p className="mb-1 text-gray-300">• <i>in/not_in</i>:</p>
-                  <p className="ml-2 text-gray-400">agent_name:in:agent1,agent2</p>
-                  <p className="mb-1 text-gray-300">• <i>range</i>:</p>
-                  <p className="ml-2 text-[10px] text-gray-400">value:range:10:100<span className="text-gray-500 ml-1">(between 10 and 100)</span></p>
-                  <p className="ml-2 text-[10px] text-gray-400">value:range:10:<span className="text-gray-500 ml-1">(minimum 10)</span></p>
-                  <p className="ml-2 text-[10px] text-gray-400">value:range::100<span className="text-gray-500 ml-1">(maximum 100)</span></p>
-                  <p className="ml-2 text-[10px] text-gray-400">time_end_utc:range:(2025-05-23T11:48):</p>
-                  <p className="ml-4 text-[10px] text-gray-500">(after specified date/time)</p>
-                </div>
-              )}
-            </div>
-
-            {/* Time filters */}
-            <div>
-              <label className="block text-xs font-medium mb-1">Time Filters</label>
-              <div className="flex flex-wrap gap-1">
-                {getTimeFilters().map(({ label, filter }) => (
-                  <button
-                    key={label}
-                    onClick={() => handleTimeFilter(filter)}
-                    className="inline-flex items-center px-2 py-1 bg-blue-950 hover:bg-blue-800 rounded-full text-xs"
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+          {/* Time filters */}
+          <div className="mt-2">
+            <label className="block text-xs font-medium mb-1">Time Filters</label>
+            <div className="flex flex-wrap gap-1">
+              {getTimeFilters().map(({ label, filter }) => (
+                <button
+                  key={label}
+                  onClick={() => handleTimeFilter(filter)}
+                  className="inline-flex items-center px-2 py-1 bg-blue-950 hover:bg-blue-800 rounded-full text-xs"
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
         </CollapsibleSection>
 
         {/* Slices */}
         <CollapsibleSection title="Slices">
-          <div className="space-y-2">
-            {/* Current slices */}
-            {request.slices && request.slices.length > 0 && (
-              <div>
-                <label className="block text-xs font-medium mb-1">Current Slices</label>
-                <div className="flex flex-wrap gap-1">
-                  {request.slices.map((slice, idx) => (
-                    <div key={idx} className="inline-flex items-center bg-green-900 px-2 py-1 rounded-full">
-                      <button
-                        onClick={() => handleRemoveSlice(slice)}
-                        className="text-red-400 hover:text-red-300 mr-1"
-                      >
-                        <X size={10} />
-                      </button>
-                      <span className="text-xs">{slice}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+          <FilterManager
+            title="Slices"
+            items={request.slices || []}
+            input={sliceInput}
+            setInput={setSliceInput}
+            onAdd={handleAddSlice}
+            onRemove={handleRemoveSlice}
+            recommendations={response?.slice_recommendations}
+            onAddRecommendation={handleAddSliceRecommendation}
+            placeholder="e.g., agent_name"
+            itemColor="green"
+            helpContent={
+              <>
+                <p className="mb-1">• Simple: agent_name</p>
+                <p>• Conditional: runner:in:local</p>
+              </>
+            }
+          />
+        </CollapsibleSection>
 
-            {/* Add slice */}
-            <div>
-              <label className="block text-xs font-medium mb-1">Add Slice</label>
-              <input
-                type="text"
-                value={sliceInput}
-                onChange={(e) => setSliceInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddSlice()}
-                placeholder="e.g., agent_name"
-                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600 placeholder-gray-400"
-              />
-            </div>
-
-            {/* Slice help */}
-            <div>
-              <button
-                onClick={() => setShowSliceHelp(!showSliceHelp)}
-                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
-              >
-                <Info size={12} />
-                Slice Syntax Help
-              </button>
-              {showSliceHelp && (
-                <div className="mt-2 p-2 bg-gray-600 rounded text-xs">
-                  <p className="mb-1">• Simple: agent_name</p>
-                  <p>• Conditional: runner:in:local</p>
-                </div>
-              )}
-            </div>
-
-            {/* Slice recommendations */}
-            {response?.slice_recommendations && response.slice_recommendations.length > 0 && (
-              <div>
-                <label className="block text-xs font-medium mb-1">Recommendations</label>
-                <div className="flex flex-wrap gap-1">
-                  {response.slice_recommendations.map((rec) => (
-                    <button
-                      key={rec}
-                      onClick={() => handleAddSliceRecommendation(rec)}
-                      className="inline-flex items-center px-2 py-1 bg-green-900 hover:bg-green-800 rounded-full text-xs"
-                    >
-                      {rec}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+        {/* Navigation to Logs */}
+        <CollapsibleSection title="Views" defaultOpen={true}>
+          <button
+            onClick={onNavigateToLogs}
+            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
+          >
+            <FileText size={16} />
+            View Logs
+          </button>
         </CollapsibleSection>
         
         {/* Resize handle */}
@@ -889,4 +662,4 @@ const MetricsDashboard: React.FC = () => {
   );
 };
 
-export default MetricsDashboard;
+export default TableDashboard;

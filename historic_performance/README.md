@@ -47,7 +47,7 @@ npm run build
 
 The build files will be in the `build/` directory.
 
-## Features
+## Table Features
 
 - **Control Panel**: Configure parameters, filters, and slices
 - **Column Tree**: Hierarchical column selection
@@ -67,7 +67,7 @@ The app is built with:
 
 To modify the dashboard, edit `src/components/MetricsDashboard.tsx`.
 
-#### TODO: Chronological Log Entries View
+## Chronological Log Entries View
 
 This view displays individual log entries in chronological order:
 
