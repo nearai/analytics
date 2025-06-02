@@ -498,6 +498,8 @@ class ListLogsCreationParams:
     prune_mode: PruneMode = PruneMode.ALL
     # Strategy on how to recommend groups.
     groups_recommendation_strategy: GroupsRecommendationStrategy = GroupsRecommendationStrategy.CONCISE
+    # Number of decimal places for rounding.
+    round_precision: int = 2
 
 
 def create_logs_list(
@@ -532,6 +534,7 @@ def create_logs_list(
         prune_conversion = PruneConversion(verbose=verbose, prune_all_entries=False)
     if prune_conversion:
         aggregation_conversions.append(prune_conversion)
+    aggregation_conversions.append(RoundConversion(precision=params.round_precision))
     aggregation_conversion = ChainConversion(aggregation_conversions)
     grouped_entries: List[GroupedCanonicalMetrics] = []
     for group_entries in groups.values():
