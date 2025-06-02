@@ -14,3 +14,5 @@ poetry install
 python3.11 download.py
 python3.11 download.py --namespaces comma_separated_list --limit 200
 ```
+
+## Tune metrics
