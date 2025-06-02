@@ -8,7 +8,7 @@ from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy
 from metrics_core.local_files import load_logs_list_from_disk
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.table import SortOrder, Table
-from metrics_core.transform_utils import PruneMode, SlicesRecommendationStrategy, TableCreationParams, create_table
+from metrics_core.transform_utils import GroupsRecommendationStrategy, PruneMode, TableCreationParams, create_table
 from pydantic import BaseModel
 
 from metrics_service.config import settings
@@ -40,7 +40,7 @@ class TableCreationRequest(BaseModel):
 
         json_schema_extra = {
             "example": {
-                "filters": ["runner:not_in:local"],
+                "filters": ["runner:not_in:local", "user:in:alomonos.near"],
                 "slices": ["agent_name", "debug_mode"],
                 "column_selections": ["/metadata/time_end_utc/max_value", "/metrics/"],
                 "sort_by_column": "performance/latency/env_run_s_all",
@@ -84,7 +84,7 @@ async def create_metrics_table(request: TableCreationRequest):
         # Convert strings to enums
         absent_strategy = AggregateAbsentMetricsStrategy(request.absent_metrics_strategy)
         prune_mode = PruneMode(request.prune_mode)
-        slices_rec_strategy = SlicesRecommendationStrategy(request.slices_recommendation_strategy)
+        slices_rec_strategy = GroupsRecommendationStrategy(request.slices_recommendation_strategy)
 
         # Handle sort_by parameter
         sort_by = None
@@ -120,12 +120,12 @@ async def create_metrics_table(request: TableCreationRequest):
 
 
 @router.get("/schema")
-async def get_table_schema():
+async def get_schema():
     """Get the schema information for table creation parameters."""
     return {
         "prune_modes": [mode.value for mode in PruneMode],
         "absent_metrics_strategies": [strategy.value for strategy in AggregateAbsentMetricsStrategy],
-        "slices_recommendation_strategies": [strategy.value for strategy in SlicesRecommendationStrategy],
+        "slices_recommendation_strategies": [strategy.value for strategy in GroupsRecommendationStrategy],
         "sort_orders": [order.value for order in SortOrder],
         "filter_operators": [
             "in",
@@ -135,10 +135,13 @@ async def get_table_schema():
         "example_filters": [
             "agent_name:in:agent1,agent2,agent3",
             "runner:not_in:local",
+            "user:in:alomonos.near",
+            "debug_mode:in:true",
             "value:range:10:100",
             "value:range:10:",
             "value:range::100",
             "performance/latency/total_ms:range:1000:",
+            "time_end_utc:range:(2025-05-23T04:00:00):",
         ],
         "example_column_selections": [
             "/metadata/",
@@ -166,6 +169,11 @@ async def get_table_schema():
             "Filters are applied before aggregation",
             "Use comma-separated values for in/not_in operators",
             "Range operator supports open-ended ranges with : separator",
+        ],
+        "time_filtering_tips": [
+            "Time filters support ISO format with parentheses: time_end_utc:range:(2025-05-23T04:00:00):",
+            "Use time ranges to analyze performance trends over specific periods",
+            "Combine time filters with other conditions for targeted analysis",
         ],
         "slice_tips": [
             "Simple slices use just the field name (e.g., 'agent_name')",

@@ -161,6 +161,21 @@ poetry run metrics-service --metrics-path /Users/me/.nearai/tuned_logs
 poetry run metrics-service --metrics-path /Users/me/.nearai/tuned_logs --port 8080 --reload
 ```
 
+### API Documentation
+
+Once the service is running, visit:
+- Interactive API docs: http://localhost:8000/api/v1/docs
+- Alternative docs: http://localhost:8000/api/v1/redoc
+
+### Get Schema Information
+
+Get information about available options and example values:
+
+```bash
+curl "http://localhost:8000/api/v1/table/schema"
+curl "http://localhost:8000/api/v1/logs/schema"
+```
+
 ## API Endpoints
 
 ### 1. Create Table - POST /api/v1/table/create
@@ -192,6 +207,28 @@ curl -X POST "http://localhost:8000/api/v1/table/create" \
       "/metrics/performance/"
     ],
     "absent_metrics_strategy": "nullify"
+  }'
+```
+
+#### Full Example with All Parameters
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/table/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": ["runner:not_in:local"],
+    "slices": ["agent_name", "debug_mode"],
+    "column_selections": [
+      "/metadata/time_end_utc/max_value",
+      "/metrics/"
+    ],
+    "column_selections_to_add": ["/metadata/time_end_utc"],
+    "column_selections_to_remove": ["/metrics/api_calls/"],
+    "sort_by_column": "performance/latency/env_run_s_all",
+    "sort_order": "desc",
+    "prune_mode": "column",
+    "absent_metrics_strategy": "nullify",
+    "slices_recommendation_strategy": "concise"
   }'
 ```
 
@@ -243,121 +280,139 @@ Example response (truncated for clarity):
 }
 ```
 
-#### Full Example with All Parameters
+**Understanding the Response**
+
+*Row Structure*
+- First row contains column headers
+- Each subsequent row represents an aggregated entry
+- First cell in each row contains metadata about the aggregation
+
+*Cell Structure*
+
+Each cell contains:
+- `values`: The actual data values
+  - `value`: Primary value
+  - `min_value`: Minimum value in aggregation
+  - `max_value`: Maximum value in aggregation
+- `details`: Additional metadata
+  - `n_samples`: Number of samples aggregated
+  - `description`: Metric description
+  - Other metadata fields
+
+*Column Tree*
+
+The `column_tree` shows all available columns in a hierarchical structure:
+- `selection_state`: "all", "partial", or "none"
+- `children`: Nested columns
+- Use this to discover available metrics and fields
+
+### 2. List Logs - POST /api/v1/logs/list
+
+The Logs API provides access to individual log entries with grouping and filtering capabilities. Unlike the Table API which focuses on aggregated metrics, the Logs API lets you examine individual runs and their associated log files. This endpoint processes metrics & log entries according to the provided parameters and returns formatted grouped logs in chronological order.
+
+
+#### Basic Example
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/table/create" \
+curl -X POST "http://localhost:8000/api/v1/logs/list" \
   -H "Content-Type: application/json" \
   -d '{
-    "filters": ["runner:not_in:local"],
-    "slices": ["agent_name", "debug_mode"],
-    "column_selections": [
-      "/metadata/time_end_utc/max_value",
-      "/metrics/"
-    ],
-    "column_selections_to_add": ["/metadata/time_end_utc"],
-    "column_selections_to_remove": ["/metrics/api_calls/"],
-    "sort_by_column": "performance/latency/env_run_s_all",
-    "sort_order": "desc",
-    "prune_mode": "column",
-    "absent_metrics_strategy": "nullify",
-    "slices_recommendation_strategy": "concise"
+    "filters": ["user:in:alomonos.near"]
   }'
 ```
 
-### 2. Get Schema Information - GET /api/v1/table/schema
-
-Get information about available options and example values:
+#### Full Example with All Parameters
 
 ```bash
-curl "http://localhost:8000/api/v1/table/schema"
+curl -X POST "http://localhost:8000/api/v1/logs/list" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": ["user:in:alomonos.near", "runner:not_in:local"],
+    "groups": ["agent_name", "debug_mode"],
+    "prune_mode": "all",
+    "groups_recommendation_strategy": "concise"
+  }'
 ```
 
-Response:
+#### Response Structure
+
+The response contains:
+- `groups`: Array of grouped entries, each containing:
+  - `aggr_entry`: Aggregated metadata and metrics for the group
+  - `entries`: Individual log entries in chronological order
+- `group_recommendations`: Suggested additional grouping fields
+
+Example response structure:
 
 ```json
 {
-  "prune_modes": ["none", "all", "column"],
-  "absent_metrics_strategies": ["all_or_nothing", "nullify", "accept_subset"],
-  "slices_recommendation_strategies": ["none", "first_alphabetical", "concise"],
-  "sort_orders": ["asc", "desc"],
-  "filter_operators": ["in", "not_in", "range"],
-  "example_filters": [
-    "agent_name:in:agent1,agent2,agent3",
-    "runner:not_in:local",
-    "value:range:10:100",
-    "value:range:10:",
-    "value:range::100",
-    "performance/latency/total_ms:range:1000:"
+  "groups": [
+    {
+      "aggr_entry": {
+        "name": "aggregated",
+        "metadata": {
+          "agent_name": "example-logging-agent",
+          "user": "alomonos.near",
+          "time_begin_utc": {
+            "min_value": "2025-05-23T03:29:06.323656+00:00",
+            "max_value": "2025-05-23T04:24:14.806316+00:00",
+            "n_samples": 7
+          }
+        },
+        "metrics": {
+          "performance/latency/env_run_s_all": {
+            "value": 7.512857142857143,
+            "description": "Total agent run time in seconds",
+            "min_value": 3.25,
+            "max_value": 13.38,
+            "n_samples": 7
+          }
+        }
+      },
+      "entries": [
+        {
+          "name": "logs_alomonos.near_example-logging-agent_0.0.1_20250523_042414",
+          "metadata": {
+            "agent_name": "example-logging-agent",
+            "user": "alomonos.near",
+            "time_end_utc": "2025-05-23T04:24:24.341524+00:00",
+            "debug_mode": false
+          },
+          "metrics": {
+            "performance/latency/env_run_s_all": {
+              "value": 9.54,
+              "description": "Total agent run time in seconds"
+            }
+          },
+          "log_files": []
+        }
+      ]
+    }
   ],
-  "example_column_selections": [
-    "/metadata/agent_name",
-    "/metadata/model",
-    "/metrics/performance/latency/total_ms",
-    "/metrics/accuracy/answer_correctness"
-  ],
-  "example_slices": [
-    "agent_name",
-    "runner:in:local",
-    "performance/latency/total_ms:range:1000:"
-  ]
+  "group_recommendations": ["runner", "debug_mode"]
 }
 ```
 
-### 3. API Documentation
+#### Log Files Example in Response
 
-Once the service is running, visit:
-- Interactive API docs: http://localhost:8000/api/v1/docs
-- Alternative docs: http://localhost:8000/api/v1/redoc
-
-## Python Client Example
-
-```python
-import requests
-
-# Define the request
-request_data = {
-    "filters": ["runner:not_in:local"],
-    "slices": ["agent_name"],
-    "column_selections": [
-        "/metadata/agent_name",
-        "/metadata/model",
-        "/metrics/performance/latency/"
-    ],
-    "sort_by_column": "performance/latency/total_ms",
-    "sort_order": "desc",
-    "prune_mode": "column",
-    "absent_metrics_strategy": "nullify"
-}
-
-# Make the request
-response = requests.post(
-    "http://localhost:8000/api/v1/table/create",
-    json=request_data
-)
-
-# Handle the response
-if response.status_code == 200:
-    table_data = response.json()
-    
-    # Access table components
-    rows = table_data["rows"]
-    columns = table_data["columns"]
-    slice_recommendations = table_data["slice_recommendations"]
-    
-    # Process the data
-    print(f"Table has {len(rows)-1} data rows and {len(columns)} columns")
-    print(f"Recommended slices: {', '.join(slice_recommendations)}")
-    
-    # Access specific values
-    for row in rows[1:]:  # Skip header row
-        row_name = row[0]["details"]  # First cell contains row metadata
-        for i, cell in enumerate(row[1:], 1):  # Skip row name cell
-            column_name = columns[i-1]["name"]
-            value = cell["values"].get("value")
-            print(f"{row_name.get('agent_name', 'N/A')} - {column_name}: {value}")
-else:
-    print(f"Error: {response.status_code} - {response.text}")
+```json
+"log_files": [
+  {
+    "filename": "system_log.txt",
+    "description": "System output log",
+    "content": ".."
+  },
+  {
+    "filename": "chat_history_log.txt", 
+    "description": "Chat history log",
+    "content": ".."
+  },
+  {
+    "filename": "agent_log.txt",
+    "description": "Agent output log", 
+    "content": ".."
+  }
+]
 ```
 
 ## Parameters Reference
@@ -375,8 +430,8 @@ Supported operators:
   - Example: `value:range::100` (maximum 100)
   - Example: `time_end_utc:range:(2025-05-23T11:48:26):` (time cutoff)
 
-### Slice Format
-Slices support:
+### Slice/Group Format
+Slices aka groups support:
 
 - Simple column names: `agent_name`
 - Conditional slices: `runner:in:local`, `value:range:10:`
@@ -389,39 +444,17 @@ Column selections use hierarchical paths:
 - `/metadata/agent_name` - Select specific field
 
 ### Prune Modes
+Pruning heuristically determines which columns do not contain any useful information and removes them.
 - `none` - No pruning
-- `column` - Global pruning (prune if marked in all entries)
+- `column` - Global pruning (prune if marked in all entries), use in table or logs api
+- `all` - Individual pruning (prune metrics marked in each entry), use in logs api
 
 ### Absent Metrics Strategies
 - `all_or_nothing` - Include metric only if present in all slice entries (safest)
 - `nullify` - Replace missing metrics with 0 (use for metrics where absence means 0)
 - `accept_subset` - Include even if only in some entries (use for new/optional metrics)
 
-### Slices Recommendation Strategies
+### Slices/Groups Recommendation Strategies
 - `none` - No recommendations
 - `first_alphabetical` - Recommend first alphabetical candidates
 - `concise` - Recommend the most concise candidates
-
-## Understanding the Response
-
-### Row Structure
-- First row contains column headers
-- Each subsequent row represents an aggregated entry
-- First cell in each row contains metadata about the aggregation
-
-### Cell Structure
-Each cell contains:
-- `values`: The actual data values
-  - `value`: Primary value
-  - `min_value`: Minimum value in aggregation
-  - `max_value`: Maximum value in aggregation
-- `details`: Additional metadata
-  - `n_samples`: Number of samples aggregated
-  - `description`: Metric description
-  - Other metadata fields
-
-### Column Tree
-The `column_tree` shows all available columns in a hierarchical structure:
-- `selection_state`: "all", "partial", or "none"
-- `children`: Nested columns
-- Use this to discover available metrics and fields
