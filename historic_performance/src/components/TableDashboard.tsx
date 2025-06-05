@@ -400,6 +400,17 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
       >
         <h2 className="text-lg font-bold mb-3">Table Controls</h2>
         
+        {/* Navigation to Logs */}
+        <CollapsibleSection title="Views" defaultOpen={true}>
+          <button
+            onClick={onNavigateToLogs}
+            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
+          >
+            <FileText size={16} />
+            View Logs
+          </button>
+        </CollapsibleSection>
+
         {/* Parameters */}
         <CollapsibleSection title="Parameters">
           <div className="space-y-2">
@@ -513,17 +524,6 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
               </>
             }
           />
-        </CollapsibleSection>
-
-        {/* Navigation to Logs */}
-        <CollapsibleSection title="Views" defaultOpen={true}>
-          <button
-            onClick={onNavigateToLogs}
-            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-          >
-            <FileText size={16} />
-            View Logs
-          </button>
         </CollapsibleSection>
         
         {/* Resize handle */}
