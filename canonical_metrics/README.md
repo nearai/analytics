@@ -139,7 +139,7 @@ metrics-cli -v ms_to_s /Users/me/.nearai/clean_logs  /Users/me/.nearai/clean_log
 metrics-cli round /Users/me/.nearai/clean_logs  /Users/me/.nearai/clean_logs
 metrics-cli tune /Users/me/.nearai/logs  /Users/me/.nearai/tuned_logs --rename --ms-to-s
 metrics-cli aggregate /Users/me/.nearai/tuned_logs /Users/me/.nearai/aggr_logs --filters "runner:not_in:local" --slices "agent_name;debug_mode" --absent-metrics-strategy=nullify --prune=all
-metrics-cli table /Users/me/.nearai/tuned_logs /Users/me/.nearai/table --filters "runner:not_in:local" --absent-metrics-strategy=nullify
+metrics-cli aggregation /Users/me/.nearai/tuned_logs /Users/me/.nearai/table --filters "runner:not_in:local" --absent-metrics-strategy=nullify
 ```
 
 ## Run metrics-service
@@ -178,14 +178,14 @@ curl "http://localhost:8000/api/v1/logs/schema"
 
 ## API Endpoints
 
-### 1. Create Table - POST /api/v1/table/create
+### 1. Create Aggregation Table - POST /api/v1/table/aggregation
 
-This endpoint creates a table from your metrics data based on the provided parameters.
+This endpoint creates an aggregation table from your metrics data based on the provided parameters.
 
 #### Basic Example
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/table/create" \
+curl -X POST "http://localhost:8000/api/v1/table/aggregation" \
   -H "Content-Type: application/json" \
   -d '{
     "column_selections": [
@@ -198,7 +198,7 @@ curl -X POST "http://localhost:8000/api/v1/table/create" \
 #### Example with Filters and Strategy
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/table/create" \
+curl -X POST "http://localhost:8000/api/v1/table/aggregation" \
   -H "Content-Type: application/json" \
   -d '{
     "filters": ["runner:not_in:local"],
@@ -213,7 +213,7 @@ curl -X POST "http://localhost:8000/api/v1/table/create" \
 #### Full Example with All Parameters
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/table/create" \
+curl -X POST "http://localhost:8000/api/v1/table/aggregation" \
   -H "Content-Type: application/json" \
   -d '{
     "filters": ["runner:not_in:local"],

@@ -4,13 +4,13 @@ import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
 from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy
 from metrics_core.local_files import load_logs_list_from_disk
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.table import SortOrder, Table
 from metrics_core.transform_utils import GroupsRecommendationStrategy, PruneMode, TableCreationParams, create_table
-from pydantic import BaseModel
-
 from metrics_service.config import settings
 
 router = APIRouter(prefix="/table", tags=["table"])
@@ -54,7 +54,7 @@ class TableCreationRequest(BaseModel):
         }
 
 
-@router.post("/create", response_model=dict)
+@router.post("/aggregation", response_model=dict)
 async def create_metrics_table(request: TableCreationRequest):
     """Create a table from metrics data.
 

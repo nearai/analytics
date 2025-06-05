@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import click
+
 from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy
 from metrics_core.conversions.base import BaseConversion
 from metrics_core.conversions.determine_pruning import DeterminePruningConversion
@@ -178,8 +179,10 @@ def aggregate(ctx, from_path: Path, to_path: Path, filters: str, slices: str, ab
     help="Pruning mode: none (no pruning), column (global)",
 )
 @click.pass_context
-def table(ctx, from_path: Path, to_path: Path, filters: str, slices: str, absent_metrics_strategy: str, prune: str):
-    """Create csv table."""
+def aggregation(
+    ctx, from_path: Path, to_path: Path, filters: str, slices: str, absent_metrics_strategy: str, prune: str
+):
+    """Create aggregation table (CSV)."""
     verbose = ctx.obj.get("verbose", False)
 
     # Ensure output path has .csv extension

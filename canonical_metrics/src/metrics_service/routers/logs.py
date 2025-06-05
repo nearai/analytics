@@ -4,6 +4,8 @@ import logging
 from typing import List
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
 from metrics_core.local_files import load_logs_list_from_disk
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.transform_utils import (
@@ -12,8 +14,6 @@ from metrics_core.transform_utils import (
     PruneMode,
     create_logs_list,
 )
-from pydantic import BaseModel
-
 from metrics_service.config import settings
 
 router = APIRouter(prefix="/logs", tags=["logs"])
