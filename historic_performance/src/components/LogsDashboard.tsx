@@ -356,17 +356,12 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable, savedR
     }
   }, []);
 
-  // Initial load
-  useEffect(() => {
-    if (!savedRequest) {
-      fetchLogs(request);
-    }
-  }, []);
-
-  // Load saved request when component mounts with saved data
+  // Initial load. Use saved request if present.
   useEffect(() => {
     if (savedRequest) {
       fetchLogs(savedRequest);
+    } else {
+      fetchLogs(request);
     }
   }, []);
 
