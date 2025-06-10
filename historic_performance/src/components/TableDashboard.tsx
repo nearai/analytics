@@ -253,19 +253,14 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
     }
   }, []);
 
-  // Initial load
-  useEffect(() => {
-    if (!savedRequest) {
-      fetchTable(request);
-    }
-  }, [fetchTable, request, savedRequest]);
-
-  // Load saved request when component mounts with saved data
+  // Initial load. Use saved request if present.
   useEffect(() => {
     if (savedRequest) {
       fetchTable(savedRequest);
+    } else {
+      fetchTable(request);
     }
-  }, [fetchTable, savedRequest]);
+  }, []);
 
   // Helper function to find node by ID
   const findNodeById = (node: ColumnNode | undefined, targetId: string): ColumnNode | null => {
@@ -383,9 +378,11 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
     fetchTable(newRequest);
   };
 
-  // Helper function to detect if there's exactly one time filter
+  // Helper function to detect if there's exactly one lower bound time filter
   const getTimeFilter = (): string | null => {
-    const timeFilters = (request.filters || []).filter(f => f.startsWith('time_end_utc:range:'));
+    const timeFilters = (request.filters || []).filter(f => 
+      /^time_end_utc:range:\([^)]+\):/.test(f)
+    );
     // Only show button if there's exactly one time filter to avoid confusion
     return timeFilters.length === 1 ? timeFilters[0] : null;
   };
@@ -398,7 +395,9 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
     const match = filter.match(/time_end_utc:range:\(([^)]+)\):/);
     if (match && match[1]) {
       try {
-        return new Date(match[1]);
+        // Explicitly treat as UTC by adding 'Z' suffix if not present
+        const timestamp = match[1].endsWith('Z') ? match[1] : match[1] + 'Z';
+        return new Date(timestamp);
       } catch {
         return null;
       }
@@ -415,7 +414,9 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
       const match = slice.match(/time_end_utc:range:\(([^)]+)\):/);
       if (match && match[1]) {
         try {
-          const timestamp = new Date(match[1]);
+          // Explicitly treat as UTC by adding 'Z' suffix if not present
+          const match_utc = match[1].endsWith('Z') ? match[1] : match[1] + 'Z';
+          const timestamp = new Date(match_utc);
           if (!minTimestamp || timestamp < minTimestamp) {
             minTimestamp = timestamp;
           }
@@ -440,11 +441,19 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
     const timeStep = minSliceTimestamp.getTime() - filterTimestamp.getTime();
 
     // Remove the time filter from filters
-    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:'));
+    const newFilters = (request.filters || []).filter(f => 
+      !(/^time_end_utc:range:\([^)]+\):/.test(f))
+    );
 
     // Create new time filter with adjusted timestamp
     const adjustedTimestamp = new Date(filterTimestamp.getTime() - timeStep);
-    const adjustedFilter = `time_end_utc:range:(${adjustedTimestamp.toISOString().replace(/\.\d{3}Z$/, '')}):`;
+    const adjustedTimestampStr = adjustedTimestamp.toISOString().replace(/\.\d{3}Z$/, '');
+  
+    // Replace the first timestamp in the timeFilter with the adjusted timestamp
+    const adjustedFilter = timeFilter.replace(
+      /^(time_end_utc:range:)\([^)]+\)/,
+      `$1(${adjustedTimestampStr})`
+    );
 
     // Add the original filter as a slice and the adjusted filter as a new filter
     const newRequest = {
@@ -713,16 +722,16 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
                   </tbody>
                 </table>
               </div>
-              
+
               {/* Add Time Slice Button */}
               {getTimeFilter() && (
-                <div className="mt-2 flex justify-center">
+                <div className="mt-2 flex justify-start">
                   <button
                     onClick={handleAddTimeSlice}
-                    className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors"
+                    className="border-b border-gray-300 inline-flex items-center px-2.5 py-1.5 bg-blue-50 hover:bg-blue-200 text-gray-700 text-xs rounded transition-colors"
                     title="Add another time slice row"
                   >
-                    Add Another Time Slice
+                    + Add Time Slice
                   </button>
                 </div>
               )}
