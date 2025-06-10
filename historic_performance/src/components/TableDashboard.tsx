@@ -383,6 +383,75 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
     fetchTable(newRequest);
   };
 
+  // Helper function to detect if there's a time filter
+  const getTimeFilter = (): string | null => {
+    const timeFilters = (request.filters || []).filter(f => f.startsWith('time_end_utc:range:'));
+    return timeFilters.length > 0 ? timeFilters[0] : null;
+  };
+
+  // Helper function to parse timestamp from time filter
+  const parseTimeFilter = (filter: string): Date | null => {
+    const match = filter.match(/time_end_utc:range:\(([^)]+)\):/);
+    if (match && match[1]) {
+      try {
+        return new Date(match[1]);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  // Helper function to find min timestamp from existing time slices
+  const getMinSliceTimestamp = (): Date => {
+    const timeSlices = (request.slices || []).filter(s => s.startsWith('time_end_utc:range:('));
+    let minTimestamp: Date | null = null;
+
+    for (const slice of timeSlices) {
+      const match = slice.match(/time_end_utc:range:\(([^)]+)\):/);
+      if (match && match[1]) {
+        try {
+          const timestamp = new Date(match[1]);
+          if (!minTimestamp || timestamp < minTimestamp) {
+            minTimestamp = timestamp;
+          }
+        } catch {
+          // Ignore invalid timestamps
+        }
+      }
+    }
+
+    return minTimestamp || new Date(); // Return current time if no valid slices found
+  };
+
+  // Handle adding another time slice row
+  const handleAddTimeSlice = () => {
+    const timeFilter = getTimeFilter();
+    if (!timeFilter) return;
+
+    const filterTimestamp = parseTimeFilter(timeFilter);
+    if (!filterTimestamp) return;
+
+    const minSliceTimestamp = getMinSliceTimestamp();
+    const timeStep = minSliceTimestamp.getTime() - filterTimestamp.getTime();
+
+    // Remove the time filter from filters
+    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:'));
+
+    // Create new time filter with adjusted timestamp
+    const adjustedTimestamp = new Date(filterTimestamp.getTime() - timeStep);
+    const adjustedFilter = `time_end_utc:range:(${adjustedTimestamp.toISOString().replace(/\.\d{3}Z$/, '')}):`;
+
+    // Add the original filter as a slice and the adjusted filter as a new filter
+    const newRequest = {
+      ...request,
+      filters: [...newFilters, adjustedFilter],
+      slices: [...(request.slices || []), timeFilter]
+    };
+
+    fetchTable(newRequest);
+  };
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Control Panel */}
@@ -550,95 +619,110 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
           {error && <div className="text-red-600 text-center py-2 text-xs">Error: {error}</div>}
           
           {response && response.rows.length > 0 && (
-            <div className="bg-white rounded shadow overflow-auto custom-scrollbar">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="bg-gray-200">
-                    <th className="p-2 text-left border-b border-r border-gray-300">
-                      {response.rows[0][0] && (
-                        <div 
-                          className={`${Object.keys(response.rows[0][0].details).length > 0 ? 'cursor-pointer hover:bg-blue-100' : ''}`}
-                          onClick={() => Object.keys(response.rows[0][0].details).length > 0 && setSelectedDetails(response.rows[0][0].details)}
-                        >
-                          <pre className="text-[8px] whitespace-pre-wrap leading-tight">
-                            {formatColumnName(response.rows[0][0].values, request.filters, request.slices)}
-                          </pre>
-                        </div>
-                      )}
-                    </th>
-                    {response.rows[0].slice(1).map((cell, idx) => {
-                      const column = response.columns[idx];
-                      const hasDetails = Object.keys(cell.details).length > 0;
-                      return (
-                        <th key={idx} className="p-2 text-left border-b border-gray-300 relative group">
-                          {/* Action buttons above column name */}
-                          <div className="flex justify-end gap-0.5 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => handleSort(column.column_id, 'desc')}
-                              className="p-0.5 hover:bg-gray-300 rounded"
-                              title="Sort descending"
-                            >
-                              <ChevronUp size={12} />
-                            </button>
-                            <button
-                              onClick={() => handleSort(column.column_id, 'asc')}
-                              className="p-0.5 hover:bg-gray-300 rounded"
-                              title="Sort ascending"
-                            >
-                              <ChevronDown size={12} />
-                            </button>
-                            <button
-                              onClick={() => handleRemoveColumn(column.column_id)}
-                              className="p-0.5 hover:bg-gray-300 rounded text-red-500"
-                              title="Remove column"
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                          {/* Column name */}
+            <>
+              <div className="bg-white rounded shadow overflow-auto custom-scrollbar">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="bg-gray-200">
+                      <th className="p-2 text-left border-b border-r border-gray-300">
+                        {response.rows[0][0] && (
                           <div 
-                            className={`${hasDetails ? 'cursor-pointer hover:bg-blue-100' : ''}`}
-                            onClick={() => hasDetails && setSelectedDetails(cell.details)}
+                            className={`${Object.keys(response.rows[0][0].details).length > 0 ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+                            onClick={() => Object.keys(response.rows[0][0].details).length > 0 && setSelectedDetails(response.rows[0][0].details)}
                           >
                             <pre className="text-[8px] whitespace-pre-wrap leading-tight">
-                              {formatColumnName(cell.values, request.filters, request.slices)}
+                              {formatColumnName(response.rows[0][0].values, request.filters, request.slices)}
                             </pre>
                           </div>
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {response.rows.slice(1).map((row, rowIdx) => (
-                    <tr key={rowIdx} className="border-b border-gray-200 hover:bg-gray-50">
-                      <td className="p-2 border-r border-gray-200 bg-gray-100">
-                        <div 
-                          className={`text-xs ${Object.keys(row[0].details).length > 0 ? 'cursor-pointer hover:bg-blue-100' : ''}`}
-                          onClick={() => Object.keys(row[0].details).length > 0 && setSelectedDetails(row[0].details)}
-                        >
-                          {formatRowName(row[0].values, request.filters, request.slices)}
-                        </div>
-                      </td>
-                      {row.slice(1).map((cell, cellIdx) => {
-                        const column = response.columns[cellIdx];
+                        )}
+                      </th>
+                      {response.rows[0].slice(1).map((cell, idx) => {
+                        const column = response.columns[idx];
                         const hasDetails = Object.keys(cell.details).length > 0;
-                        
                         return (
-                          <td
-                            key={cellIdx}
-                            className={`p-2 ${hasDetails ? 'cursor-pointer hover:bg-blue-50' : ''}`}
-                            onClick={() => hasDetails && setSelectedDetails(cell.details)}
-                          >
-                            {formatCellValue(cell.values, column?.unit)}
-                          </td>
+                          <th key={idx} className="p-2 text-left border-b border-gray-300 relative group">
+                            {/* Action buttons above column name */}
+                            <div className="flex justify-end gap-0.5 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleSort(column.column_id, 'desc')}
+                                className="p-0.5 hover:bg-gray-300 rounded"
+                                title="Sort descending"
+                              >
+                                <ChevronUp size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleSort(column.column_id, 'asc')}
+                                className="p-0.5 hover:bg-gray-300 rounded"
+                                title="Sort ascending"
+                              >
+                                <ChevronDown size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleRemoveColumn(column.column_id)}
+                                className="p-0.5 hover:bg-gray-300 rounded text-red-500"
+                                title="Remove column"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                            {/* Column name */}
+                            <div 
+                              className={`${hasDetails ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+                              onClick={() => hasDetails && setSelectedDetails(cell.details)}
+                            >
+                              <pre className="text-[8px] whitespace-pre-wrap leading-tight">
+                                {formatColumnName(cell.values, request.filters, request.slices)}
+                              </pre>
+                            </div>
+                          </th>
                         );
                       })}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {response.rows.slice(1).map((row, rowIdx) => (
+                      <tr key={rowIdx} className="border-b border-gray-200 hover:bg-gray-50">
+                        <td className="p-2 border-r border-gray-200 bg-gray-100">
+                          <div 
+                            className={`text-xs ${Object.keys(row[0].details).length > 0 ? 'cursor-pointer hover:bg-blue-100' : ''}`}
+                            onClick={() => Object.keys(row[0].details).length > 0 && setSelectedDetails(row[0].details)}
+                          >
+                            {formatRowName(row[0].values, request.filters, request.slices)}
+                          </div>
+                        </td>
+                        {row.slice(1).map((cell, cellIdx) => {
+                          const column = response.columns[cellIdx];
+                          const hasDetails = Object.keys(cell.details).length > 0;
+                          
+                          return (
+                            <td
+                              key={cellIdx}
+                              className={`p-2 ${hasDetails ? 'cursor-pointer hover:bg-blue-50' : ''}`}
+                              onClick={() => hasDetails && setSelectedDetails(cell.details)}
+                            >
+                              {formatCellValue(cell.values, column?.unit)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Add Time Slice Button */}
+              {getTimeFilter() && (
+                <div className="mt-2 flex justify-center">
+                  <button
+                    onClick={handleAddTimeSlice}
+                    className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors"
+                    title="Add another time slice row"
+                  >
+                    Add Another Time Slice
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
