@@ -54,7 +54,7 @@ class TableCreationRequest(BaseModel):
         }
 
 
-@router.post("/create", response_model=dict)
+@router.post("/aggregation", response_model=dict)
 async def create_metrics_table(request: TableCreationRequest):
     """Create a table from metrics data.
 

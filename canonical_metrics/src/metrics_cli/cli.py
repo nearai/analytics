@@ -157,7 +157,7 @@ def aggregate(ctx, from_path: Path, to_path: Path, filters: str, slices: str, ab
     convert(from_path, to_path, converter)
 
 
-@cli.command()
+@cli.command(name="aggregation-table")
 @click.argument("from_path", type=click.Path(exists=True, path_type=Path))
 @click.argument("to_path", type=click.Path(path_type=Path))
 @click.option("--filters", "-f", type=str, default="", help="Filter conditions (field:operator:values)")
@@ -178,8 +178,10 @@ def aggregate(ctx, from_path: Path, to_path: Path, filters: str, slices: str, ab
     help="Pruning mode: none (no pruning), column (global)",
 )
 @click.pass_context
-def table(ctx, from_path: Path, to_path: Path, filters: str, slices: str, absent_metrics_strategy: str, prune: str):
-    """Create csv table."""
+def aggregation_table(
+    ctx, from_path: Path, to_path: Path, filters: str, slices: str, absent_metrics_strategy: str, prune: str
+):
+    """Create aggregation table (CSV)."""
     verbose = ctx.obj.get("verbose", False)
 
     # Ensure output path has .csv extension

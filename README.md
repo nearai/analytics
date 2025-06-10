@@ -32,7 +32,7 @@ poetry install
 # Transform and aggregate metrics
 metrics-cli tune /path/to/logs /path/to/tuned_logs --rename --ms-to-s
 metrics-cli aggregate /path/to/tuned_logs /path/to/aggr_logs --filters "runner:not_in:local" --slices "agent_name"
-metrics-cli table /Users/me/.nearai/tuned_logs /Users/me/.nearai/table --filters "runner:not_in:local" --absent-metrics-strategy=nullify
+metrics-cli aggregation-table /Users/me/.nearai/tuned_logs /Users/me/.nearai/table --filters "runner:not_in:local" --absent-metrics-strategy=nullify
 ```
 
 ### 3. [Query Metrics via API](./canonical_metrics/README.md#api-endpoints)
@@ -44,7 +44,7 @@ Run the metrics service to query and analyze metrics data:
 metrics-service --metrics-path /path/to/tuned_logs
 
 # Query metrics via API
-curl -X POST "http://localhost:8000/api/v1/table/create" \
+curl -X POST "http://localhost:8000/api/v1/table/aggregation" \
   -H "Content-Type: application/json" \
   -d '{
     "filters": ["runner:not_in:local"],
