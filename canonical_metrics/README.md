@@ -462,17 +462,17 @@ The response returns a mapping of metric display names to tuples of `(additional
 
 Each entry in the response contains:
 - **Display Name**: Human-readable name for the metric (e.g., "Agent Invocations")
-- **Additional Filters**: Array of additional filters applied when checking this metric
+- **Additional Filters**: Array of additional filters applied when calculating this metric
 - **Field Name**: The actual field path in the metrics data structure
 
 **Predefined Important Metrics**
 
 The endpoint checks for these predefined important metrics:
 - **Agent Invocations** - Total number of agent invocations
-- **Successful/Failed Invocations** - Success and failure counts with error filtering
+- **Successful/Failed Invocations** - Successful and failed counts of agent invocations
 - **Avg/Max Agent Latency** - Agent execution time statistics
-- **Avg/Max Runner Start Latency** - Runner startup time statistics (cloud runners only)
-- **Avg/Max Completion Latency** - API completion time statistics
+- **Avg/Max Runner Start Latency** - Runner startup time statistics
+- **Avg/Max Completion Latency** - Latency of model inference calls
 
 Only metrics that have actual data present in the filtered dataset are returned.
 

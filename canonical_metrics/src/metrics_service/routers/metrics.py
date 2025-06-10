@@ -4,12 +4,12 @@ import logging
 from typing import Dict, List, Tuple
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-
 from metrics_core.conversions.filter import FilterConversion
 from metrics_core.local_files import load_logs_list_from_disk
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
-from metrics_core.models.condition import parse_condition_list
+from metrics_core.models.condition import Condition, parse_condition_list
+from pydantic import BaseModel
+
 from metrics_service.config import settings
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
@@ -38,11 +38,7 @@ class ImportantMetricsRequest(BaseModel):
     class Config:
         """Pydantic config."""
 
-        json_schema_extra = {
-            "example": {
-                "filters": ["user:in:alomonos.near", "runner:not_in:local"]
-            }
-        }
+        json_schema_extra = {"example": {"filters": ["user:in:alomonos.near", "runner:not_in:local"]}}
 
 
 def _extract_base_field_name(field_name: str) -> str:
@@ -53,7 +49,7 @@ def _extract_base_field_name(field_name: str) -> str:
 
     for subfield in subfields:
         if base_field.endswith(subfield):
-            base_field = base_field[:-len(subfield)]
+            base_field = base_field[: -len(subfield)]
             break
 
     return base_field
@@ -63,58 +59,61 @@ def _check_field_presence(entries: List[CanonicalMetricsEntry], field_name: str,
     """Check if field is present in at least one entry after applying additional filters.
 
     Args:
+    ----
         entries: List of entries to check
         field_name: Field name to check for (may include subfields)
         additional_filters: Additional filters to apply (not_in filters are ignored as per spec)
 
     Returns:
+    -------
         True if field is present in at least one entry, False otherwise
 
     """
     # Parse additional filters, ignoring not_in filters as specified
-    relevant_filters = []
+    relevant_filters: List[Condition] = []
     if additional_filters:
         parsed_filters = parse_condition_list(additional_filters)
         for condition in parsed_filters:
             # Ignore not_in filters as per specification
-            if hasattr(condition, 'operator') and hasattr(condition.operator, 'value'):
+            if hasattr(condition, "operator") and hasattr(condition.operator, "value"):
                 if condition.operator.value != "not_in":
                     relevant_filters.append(condition)
             elif str(condition.operator) != "not_in":
                 relevant_filters.append(condition)
 
-    # Apply additional filters
-    if relevant_filters:
-        filter_conversion = FilterConversion(relevant_filters)
-        filtered_entries = filter_conversion.convert(entries)
-    else:
-        filtered_entries = entries
+    field_name = _extract_base_field_name(field_name)
 
-    # Check for field presence in filtered entries
-    for entry in filtered_entries:
-        # Try to fetch the field value - if it exists and is not None, field is present
-        try:
-            value = entry.fetch_value(field_name)
-            if value is not None:
-                return True
-        except (KeyError, AttributeError):
-            # Field doesn't exist in this entry, continue
+    # Check for field presences in entries
+    for entry in entries:
+        value = entry.fetch_value(field_name)
+        if value is None:
             continue
+        has_condition_fields = True
+        for filter in relevant_filters:
+            value = entry.fetch_value(filter.field_name)
+            if value is None:
+                has_condition_fields = False
+                break
+        if not has_condition_fields:
+            continue
+        return True
 
     return False
 
 
 @router.post("/important", response_model=dict)
 async def get_important_metrics(request: ImportantMetricsRequest):
-    """Get important metrics and their field presence status.
+    """Get important metrics depending on their field presence status.
 
     This endpoint checks which important metrics are present in the data
     after applying the provided filters.
 
     Args:
+    ----
         request: Request containing filters to apply
 
     Returns:
+    -------
         Dictionary mapping metric display names to tuples of (additional_filters, field_name)
         for metrics that are present in the data
 
@@ -164,10 +163,10 @@ async def get_schema():
                     "user:in:alomonos.near",
                     "runner:not_in:local",
                     "debug_mode:in:true",
-                    "time_end_utc:range:(2025-05-23T04:00:00):"
-                ]
+                    "time_end_utc:range:(2025-05-23T04:00:00):",
+                ],
             },
             "predefined_metrics": list(IMPORTANT_METRICS.keys()),
-            "response_format": "display_name -> (additional_filters, field_name)"
+            "response_format": "display_name -> (additional_filters, field_name)",
         }
     }
