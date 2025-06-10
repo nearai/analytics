@@ -361,14 +361,14 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable, savedR
     if (!savedRequest) {
       fetchLogs(request);
     }
-  }, []);
+  }, [fetchLogs, request, savedRequest]);
 
   // Load saved request when component mounts with saved data
   useEffect(() => {
     if (savedRequest) {
       fetchLogs(savedRequest);
     }
-  }, []);
+  }, [fetchLogs, savedRequest]);
 
   // Handlers
   const handleRemoveFilter = (filter: string) => {

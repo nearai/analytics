@@ -1,16 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical, FileText } from 'lucide-react';
-import { TableRequest, TableResponse, ColumnNode, Column, Cell } from './shared/types';
+import { TableRequest, TableResponse, ColumnNode, Column } from './shared/types';
 import { CollapsibleSection, DetailsPopup, FilterManager, formatTimestamp, getStyleClass } from './shared/SharedComponents';
 
 // Component-specific utility functions
 const formatCellValue = (values: Record<string, any>, unit?: string): React.ReactNode => {
   const parts: React.ReactNode[] = [];
-  let hasValue = false;
-  let hasRange = false;
   
   if (values.value !== undefined && values.value !== null) {
-    hasValue = true;
     const valueStr = unit === 'timestamp' ? formatTimestamp(values.value) : String(values.value);
     parts.push(
       <div key="value" className="text-xs font-medium text-center">
@@ -20,7 +17,6 @@ const formatCellValue = (values: Record<string, any>, unit?: string): React.Reac
   }
   
   if (values.min_value !== undefined && values.min_value !== null && values.max_value !== undefined && values.max_value !== null) {
-    hasRange = true;
     const rangeStr = unit === 'timestamp' 
       ? `[${formatTimestamp(values.min_value)}, ${formatTimestamp(values.max_value)}]`
       : `[${values.min_value}, ${values.max_value}]`;
@@ -119,10 +115,10 @@ const ColumnTreeNode: React.FC<{
         >
           {getCheckboxIcon()}
           <div className="flex-1">
-            {level==0 && (
+            {level === 0 && (
                 <span className="text-xs text-gray-500">&lt;root&gt;</span>    
             )}
-            {level>0 && (
+            {level > 0 && (
                 <span className="text-xs">{node.name}</span>    
             )}
             {node.description && (
@@ -161,7 +157,6 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
   });
   
   const [response, setResponse] = useState<TableResponse | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDetails, setSelectedDetails] = useState<Record<string, any> | null>(null);
   const [filterInput, setFilterInput] = useState('');
@@ -219,7 +214,6 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
 
   // API call
   const fetchTable = useCallback(async (requestData: TableRequest) => {
-    setLoading(true);
     setError(null);
     
     try {
@@ -256,8 +250,6 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -266,14 +258,14 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
     if (!savedRequest) {
       fetchTable(request);
     }
-  }, []); // Empty dependency array - only run once on mount
+  }, [fetchTable, request, savedRequest]);
 
   // Load saved request when component mounts with saved data
   useEffect(() => {
     if (savedRequest) {
       fetchTable(savedRequest);
     }
-  }, []); // Empty dependency array - only run once on mount
+  }, [fetchTable, savedRequest]);
 
   // Helper function to find node by ID
   const findNodeById = (node: ColumnNode | undefined, targetId: string): ColumnNode | null => {
