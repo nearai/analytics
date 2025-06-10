@@ -383,14 +383,18 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
     fetchTable(newRequest);
   };
 
-  // Helper function to detect if there's a time filter
+  // Helper function to detect if there's exactly one time filter
   const getTimeFilter = (): string | null => {
     const timeFilters = (request.filters || []).filter(f => f.startsWith('time_end_utc:range:'));
-    return timeFilters.length > 0 ? timeFilters[0] : null;
+    // Only show button if there's exactly one time filter to avoid confusion
+    return timeFilters.length === 1 ? timeFilters[0] : null;
   };
 
   // Helper function to parse timestamp from time filter
   const parseTimeFilter = (filter: string): Date | null => {
+    // Handle both formats:
+    // 1. "time_end_utc:range:(<timestamp>):"
+    // 2. "time_end_utc:range:(<timestamp>):(<upper_bound>)"
     const match = filter.match(/time_end_utc:range:\(([^)]+)\):/);
     if (match && match[1]) {
       try {
