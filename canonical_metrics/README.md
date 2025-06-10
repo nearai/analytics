@@ -174,6 +174,7 @@ Get information about available options and example values:
 ```bash
 curl "http://localhost:8000/api/v1/table/schema"
 curl "http://localhost:8000/api/v1/logs/schema"
+curl "http://localhost:8000/api/v1/metrics/schema"
 ```
 
 ## API Endpoints
@@ -413,6 +414,74 @@ Example response structure:
     "content": ".."
   }
 ]
+```
+
+### 3. Get Important Metrics - POST /api/v1/metrics/important
+
+This endpoint returns important metrics that are available in the dataset after applying filters. It helps identify which key performance metrics have data available for analysis.
+
+#### Basic Example
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/metrics/important" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": []
+  }'
+```
+
+#### Example with Filters
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/metrics/important" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": ["user:in:alomonos.near", "runner:not_in:local"]
+  }'
+```
+
+#### Response Structure
+
+The response returns a mapping of metric display names to tuples of `(additional_filters, field_name)` for metrics that are present in the data:
+
+```json
+{
+  "Agent Invocations": [[], "time_end_utc/n_samples"],
+  "Successful Invocations": [["errors/summary/error_count_all:range::0"], "time_end_utc/n_samples"],
+  "Failed Invocations": [["errors/summary/error_count_all:range:1:"], "time_end_utc/n_samples"],
+  "Avg Agent Latency": [[], "performance/latency/init_and_env_run_s_all"],
+  "Max Agent Latency": [[], "performance/latency/init_and_env_run_s_all/max_value"],
+  "Avg Runner Start Latency": [["runner:not_in:local"], "performance/latency/runner_latency_s"],
+  "Max Runner Start Latency": [["runner:not_in:local"], "performance/latency/runner_latency_s/max_value"],
+  "Avg Completion Latency": [[], "api_calls/inference_client_completions/latency_s_avg"],
+  "Max Completion Latency": [[], "api_calls/inference_client_completions/latency_s_max/max_value"]
+}
+```
+
+**Understanding the Response**
+
+Each entry in the response contains:
+- **Display Name**: Human-readable name for the metric (e.g., "Agent Invocations")
+- **Additional Filters**: Array of additional filters applied when calculating this metric
+- **Field Name**: The actual field path in the metrics data structure
+
+**Predefined Important Metrics**
+
+The endpoint checks for these predefined important metrics:
+- **Agent Invocations** - Total number of agent invocations
+- **Successful/Failed Invocations** - Successful and failed counts of agent invocations
+- **Avg/Max Agent Latency** - Agent execution time statistics
+- **Avg/Max Runner Start Latency** - Runner startup time statistics
+- **Avg/Max Completion Latency** - Latency of model inference calls
+
+Only metrics that have actual data present in the filtered dataset are returned.
+
+### 4. Get Metrics Schema - GET /api/v1/metrics/schema
+
+Get schema information for the metrics endpoints:
+
+```bash
+curl "http://localhost:8000/api/v1/metrics/schema"
 ```
 
 ## Parameters Reference

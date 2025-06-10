@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .routers import logs, table
+from .routers import logs, metrics, table
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -34,6 +34,7 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(table.router, prefix=settings.api_prefix)
     app.include_router(logs.router, prefix=settings.api_prefix)
+    app.include_router(metrics.router, prefix=settings.api_prefix)
 
     @app.on_event("startup")
     async def startup_event():
