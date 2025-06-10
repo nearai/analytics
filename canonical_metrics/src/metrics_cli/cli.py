@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import click
-
 from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy
 from metrics_core.conversions.base import BaseConversion
 from metrics_core.conversions.determine_pruning import DeterminePruningConversion
