@@ -72,7 +72,7 @@ import { Dashboard } from './historic_performance/src/components';
 <Dashboard config={{
   views: ['table'], // Show only table view
   globalFilters: ['runner:not_in:local'], // Applied to all requests
-  metricSelection: 'PERFORMANCE', // Metric selection (unused for now)
+  metricSelection: 'PERFORMANCE', // Metric selection
   viewConfigs: {
     table: {
       showParameters: ['prune_mode'], // Show only specific parameters

@@ -39,10 +39,7 @@ http://localhost:3000
 
 ## Web Component Usage
 
-The dashboard can be used as a configurable web component in other React applications:
-
-```jsx
-import { Dashboard } from './components';
+For detailed web component usage instructions, see [WEB_COMPONENT_USAGE.md](./WEB_COMPONENT_USAGE.md).
 
 // Basic usage (shows both table and logs views)
 <Dashboard />
@@ -150,13 +147,13 @@ The app is built with:
 - Metrics table with filtering, slicing, performance columns, and custom columns.
 - Stream of log files with chronological ordering.
 - Default parameters optimized for performance tracking.
-- Time filter recommendations passed to logs view.
+- Time filter recommendations passed to logs view. Recommended granulation: 1 minute, 1 hour, 1 day, 1 week.
 
 #### 3. Cost/Accuracy/Latency Tracking
 
-**Current implementation**: 🔄 Table view only
+**Current implementation**: ❌ Not implemented
 - Metrics table with filtering, slicing, cost/accuracy/latency columns, and custom columns.
-- No time filters in current implementation.
+- No time filters.
 - **Note**: Metric selection parameter (CAL) added to configuration but not yet implemented.
 - **Future**: Will include specialized cost, accuracy, and latency column selections.
 

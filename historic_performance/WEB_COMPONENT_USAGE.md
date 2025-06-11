@@ -4,15 +4,24 @@ The Historic Performance Dashboard can be used as a configurable web component i
 
 ## Installation
 
-First, ensure you have the dashboard package available in your React application:
+To add the analytics dashboard as a dependency to another repository, you have several options:
 
+### Option 1: As an npm package (future)
 ```bash
-# If using as a dependency
 npm install @nearai/analytics-dashboard
+```
 
-# Or if copying the source code
+### Option 2: As a git submodule
+```bash
+git submodule add https://github.com/nearai/analytics historic_performance
+```
+
+### Option 3: Copy source code
+```bash
 cp -r analytics/historic_performance/src/components ./src/
 ```
+
+The examples in this guide assume you're using Option 2 or 3 where the source code is available locally.
 
 ## Basic Import and Usage
 
@@ -98,7 +107,7 @@ interface ViewConfig {
 ```jsx
 <Dashboard config={{
   views: ['logs'],
-  globalFilters: ['status:error', 'severity:high'],
+  globalFilters: ['runner:not_in:local'],
   metricSelection: 'ERROR',
   defaultView: 'logs',
   viewConfigs: {
@@ -116,15 +125,14 @@ interface ViewConfig {
 ```jsx
 <Dashboard config={{
   views: ['table', 'logs'],
-  globalFilters: ['environment:production'],
+  globalFilters: ['runner:not_in:local'],
   metricSelection: 'PERFORMANCE',
   defaultView: 'table',
   viewConfigs: {
     table: {
-      showParameters: ['prune_mode', 'sort_by_column', 'sort_order'],
+      showParameters: ['prune_mode'],
       defaultParameters: { 
-        prune_mode: 'column',
-        sort_order: 'desc' 
+        prune_mode: 'column'
       },
       timeFilterRecommendations: ['last hour', 'last 6 hours', 'last day'],
       refreshRate: 60
@@ -143,7 +151,7 @@ interface ViewConfig {
 ```jsx
 <Dashboard config={{
   views: ['table'],
-  globalFilters: ['environment:staging'],
+  globalFilters: ['runner:not_in:local'],
   viewConfigs: {
     table: {
       showParameters: [], // Hides Parameters panel
@@ -157,6 +165,9 @@ interface ViewConfig {
 
 ### Table View Parameters
 
+For a complete list of available parameters, see the [Parameters section in canonical_metrics/README](../canonical_metrics/README.md#parameters).
+
+Key parameters include:
 - **prune_mode**: `'none' | 'column'` - How to handle missing data
 - **absent_metrics_strategy**: `'all_or_nothing' | 'nullify' | 'accept_subset'` - Strategy for missing metrics
 - **slices_recommendation_strategy**: `'none' | 'first_alphabetical' | 'concise'` - How to recommend data slices
@@ -167,28 +178,6 @@ interface ViewConfig {
 
 - **prune_mode**: `'none' | 'column' | 'all'` - Data pruning strategy
 - **groups_recommendation_strategy**: `'none' | 'first_alphabetical' | 'concise'` - How to recommend groupings
-
-## Global Filters
-
-Global filters are powerful for web component usage as they pre-filter data without showing the filters in the UI:
-
-```jsx
-// Pre-filter to production environment data only
-globalFilters: ['environment:production']
-
-// Multiple filters
-globalFilters: [
-  'runner:not_in:local',
-  'status:success',
-  'date:>2024-01-01'
-]
-
-// Complex filters
-globalFilters: [
-  'performance.latency:<1000',
-  'metadata.model_name:gpt-4'
-]
-```
 
 ## Auto-Refresh Feature
 
@@ -225,12 +214,12 @@ function AnalyticsPage() {
       
       <Dashboard config={{
         views: ['table'],
-        globalFilters: ['environment:production'],
+        globalFilters: ['runner:not_in:local'],
         viewConfigs: {
           table: {
             showParameters: ['prune_mode'],
             defaultParameters: { prune_mode: 'column' },
-            refreshRate: 300 // 5 minutes
+            refreshRate: 300 // 300 seconds
           }
         }
       }} />
@@ -249,7 +238,7 @@ function ErrorMonitor() {
       <h3>Error Logs</h3>
       <Dashboard config={{
         views: ['logs'],
-        globalFilters: ['status:error'],
+        metricSelection: 'ERROR',
         viewConfigs: {
           logs: {
             showParameters: [],
@@ -322,7 +311,7 @@ import { Dashboard, DashboardConfig, ViewConfig } from './components';
 
 const config: DashboardConfig = {
   views: ['table'],
-  globalFilters: ['environment:production'],
+  globalFilters: ['runner:not_in:local'],
   viewConfigs: {
     table: {
       showParameters: ['prune_mode'],
@@ -338,18 +327,13 @@ function MyApp() {
 
 ## API Requirements
 
-The Dashboard component requires a metrics service running at `http://localhost:8000` with the following endpoints:
-
-- **POST /api/metrics/table** - For table data
-- **POST /api/metrics/logs** - For logs data
-
-Ensure your metrics service is running before using the component.
+The Dashboard component requires a metrics service running at `http://localhost:8000`. Ensure your metrics service is running before using the component.
 
 ## Styling and Theming
 
 The component uses Tailwind CSS for styling. Ensure Tailwind is available in your application, or the component will fall back to unstyled HTML.
 
-## Troubleshooting
+## Troubleshooting (suggested by AI)
 
 ### Common Issues
 
@@ -378,7 +362,7 @@ For debugging, you can log the current configuration:
 function DebugDashboard() {
   const config = {
     views: ['table'],
-    globalFilters: ['debug:true']
+    globalFilters: ['runner:not_in:local']
   };
   
   console.log('Dashboard config:', config);
@@ -386,25 +370,3 @@ function DebugDashboard() {
   return <Dashboard config={config} />;
 }
 ```
-
-## Migration from Standalone Usage
-
-If you're migrating from standalone usage to web component usage:
-
-```jsx
-// Before (standalone)
-// No changes needed - component works with default config
-
-// After (web component with custom config)
-<Dashboard config={{
-  views: ['table', 'logs'], // Same as default
-  viewConfigs: {
-    table: {
-      showParameters: ['prune_mode'], // Customize as needed
-      refreshRate: 60 // Add auto-refresh
-    }
-  }
-}} />
-```
-
-The component maintains full backward compatibility, so existing usage continues to work without changes.
