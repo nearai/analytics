@@ -175,6 +175,7 @@ Get information about available options and example values:
 curl "http://localhost:8000/api/v1/table/schema"
 curl "http://localhost:8000/api/v1/logs/schema"
 curl "http://localhost:8000/api/v1/metrics/schema"
+curl "http://localhost:8000/api/v1/graphs/schema"
 ```
 
 ## API Endpoints
@@ -476,13 +477,72 @@ The endpoint checks for these predefined important metrics:
 
 Only metrics that have actual data present in the filtered dataset are returned.
 
-### 4. Get Metrics Schema - GET /api/v1/metrics/schema
+### 4. Create Time Series Graph - POST /api/v1/graphs/time-series
 
-Get schema information for the metrics endpoints:
+This endpoint creates time series data for graphing from your metrics data based on moving aggregation parameters. It processes metrics entries to generate time-based aggregated values suitable for visualization.
+
+#### Basic Example
 
 ```bash
-curl "http://localhost:8000/api/v1/metrics/schema"
+curl -X POST "http://localhost:8000/api/v1/graphs/time-series" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "time_granulation": 86400000,
+    "moving_aggregation_field_name": "performance/latency/env_run_s_all"
+  }'
 ```
+
+#### Example with Filters and Slicing
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/graphs/time-series" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "time_granulation": 86400000,
+    "moving_aggregation_field_name": "performance/latency/env_run_s_all",
+    "global_filters": ["runner:not_in:local"],
+    "moving_aggregation_filters": ["errors/summary/error_count_all:range::0"],
+    "slice_field": "agent_name"
+  }'
+```
+
+#### Response Structure
+
+The response returns time series data with aggregated values:
+
+```json
+{
+  "time_begin": 1672531200000,
+  "time_end": 1672617600000,
+  "time_granulation": 86400000,
+  "field_name": "performance/latency/env_run_s_all",
+  "slice_field": "agent_name",
+  "slice_values": ["agent1", "agent2"],
+  "values": [[1.2, 1.5, 1.8], [0.9, 1.1, 1.3]],
+  "min_value": 0.9,
+  "max_value": 1.8,
+  "filters": ["errors/summary/error_count_all:range::0"]
+}
+```
+
+**Understanding the Response**
+
+- **time_begin/time_end**: Time range covered by the data in milliseconds
+- **time_granulation**: Time interval between data points in milliseconds
+- **field_name**: The metric field that was aggregated
+- **slice_field**: Field used for data grouping (optional)
+- **slice_values**: Values of the slice field (one array per slice)
+- **values**: Nested arrays of aggregated values (one array per slice value)
+- **min_value/max_value**: Overall minimum and maximum values in the dataset
+- **filters**: Applied filter conditions
+
+**Parameters**
+
+- **time_granulation** (required): Time interval in milliseconds (e.g., 86400000 for 1 day)
+- **moving_aggregation_field_name** (required): Field path to aggregate (supports subfields)
+- **global_filters** (optional): Filters applied before aggregation
+- **moving_aggregation_filters** (optional): Filters applied during aggregation
+- **slice_field** (optional): Field for data grouping/slicing
 
 ## Parameters Reference
 
