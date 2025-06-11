@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical, FileText } from 'lucide-react';
-import { TableRequest, TableResponse, ColumnNode, Column } from './shared/types';
+import { TableRequest, TableResponse, ColumnNode, Column, DashboardConfig } from './shared/types';
 import { CollapsibleSection, DetailsPopup, FilterManager, formatTimestamp, getStyleClass } from './shared/SharedComponents';
 
 // Component-specific utility functions
@@ -143,18 +143,49 @@ interface TableDashboardProps {
   onNavigateToLogs: () => void;
   savedRequest?: TableRequest | null;
   onRequestChange?: (request: TableRequest) => void;
+  config?: DashboardConfig;
+  showViewsPanel?: boolean;
 }
 
-const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, savedRequest, onRequestChange }) => {
+const TableDashboard: React.FC<TableDashboardProps> = ({ 
+  onNavigateToLogs, 
+  savedRequest, 
+  onRequestChange, 
+  config, 
+  showViewsPanel = true 
+}) => {
   // State
-  const [request, setRequest] = useState<TableRequest>(savedRequest || {
+  const defaultRequest: TableRequest = {
     prune_mode: 'column',
     absent_metrics_strategy: 'nullify',
     slices_recommendation_strategy: 'concise',
     filters: [],
     slices: [],
     column_selections: ['/metadata/time_end_utc/max_value', '/metrics/']
-  });
+  };
+  
+  // Apply default parameters from config
+  const getInitialRequest = (): TableRequest => {
+    const configDefaults = config?.viewConfigs?.table?.defaultParameters || {};
+    return { ...defaultRequest, ...configDefaults };
+  };
+  
+  const [request, setRequest] = useState<TableRequest>(savedRequest || getInitialRequest());
+  
+  // Helper functions for configuration
+  const getVisibleParameters = (): string[] => {
+    const showParameters = config?.viewConfigs?.table?.showParameters;
+    if (showParameters === undefined) {
+      // Show all parameters by default
+      return ['prune_mode', 'absent_metrics_strategy', 'slices_recommendation_strategy'];
+    }
+    return showParameters;
+  };
+  
+  const shouldShowParametersPanel = (): boolean => {
+    const visibleParameters = getVisibleParameters();
+    return visibleParameters.length > 0;
+  };
   
   const [response, setResponse] = useState<TableResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -260,7 +291,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
     } else {
       fetchTable(request);
     }
-  }, []);
+  }, [savedRequest, request, fetchTable]);
 
   // Helper function to find node by ID
   const findNodeById = (node: ColumnNode | undefined, targetId: string): ColumnNode | null => {
@@ -475,65 +506,75 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
         <h2 className="text-lg font-bold mb-3">Table Controls</h2>
         
         {/* Navigation to Logs */}
-        <CollapsibleSection title="Views" defaultOpen={true}>
-          <button
-            onClick={onNavigateToLogs}
-            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-          >
-            <FileText size={16} />
-            View Logs
-          </button>
-        </CollapsibleSection>
+        {showViewsPanel && (
+          <CollapsibleSection title="Views" defaultOpen={true}>
+            <button
+              onClick={onNavigateToLogs}
+              className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
+            >
+              <FileText size={16} />
+              View Logs
+            </button>
+          </CollapsibleSection>
+        )}
 
         {/* Parameters */}
-        <CollapsibleSection title="Parameters">
-          <div className="space-y-2">
-            <div>
-              <label className="block text-xs font-medium mb-1" title="Heuristics to remove meaningless columns">
-                prune_mode
-              </label>
-              <select
-                value={request.prune_mode}
-                onChange={(e) => handleParameterChange('prune_mode', e.target.value)}
-                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
-                title="Select pruning strategy"
-              >
-                <option value="none" title="No pruning applied">none</option>
-                <option value="column" title="Remove columns if all column values are determined meaningless">column</option>
-              </select>
+        {shouldShowParametersPanel() && (
+          <CollapsibleSection title="Parameters">
+            <div className="space-y-2">
+              {getVisibleParameters().includes('prune_mode') && (
+                <div>
+                  <label className="block text-xs font-medium mb-1" title="Heuristics to remove meaningless columns">
+                    prune_mode
+                  </label>
+                  <select
+                    value={request.prune_mode}
+                    onChange={(e) => handleParameterChange('prune_mode', e.target.value)}
+                    className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
+                    title="Select pruning strategy"
+                  >
+                    <option value="none" title="No pruning applied">none</option>
+                    <option value="column" title="Remove columns if all column values are determined meaningless">column</option>
+                  </select>
+                </div>
+              )}
+              {getVisibleParameters().includes('absent_metrics_strategy') && (
+                <div>
+                  <label className="block text-xs font-medium mb-1" title="Strategy on how to deal with absent metrics">
+                    absent_metrics_strategy
+                  </label>
+                  <select
+                    value={request.absent_metrics_strategy}
+                    onChange={(e) => handleParameterChange('absent_metrics_strategy', e.target.value)}
+                    className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
+                    title="Select absent metrics strategy"
+                  >
+                    <option value="all_or_nothing" title="Include metric only if present in all entries">all_or_nothing</option>
+                    <option value="nullify" title="Replace missing values with 0">nullify</option>
+                    <option value="accept_subset" title="Include even if only in some entries. Number of samples is recorded in n_samples">accept_subset</option>
+                  </select>
+                </div>
+              )}
+              {getVisibleParameters().includes('slices_recommendation_strategy') && (
+                <div>
+                  <label className="block text-xs font-medium mb-1" title="Strategy for recommending slices">
+                    slices_recommendation_strategy
+                  </label>
+                  <select
+                    value={request.slices_recommendation_strategy}
+                    onChange={(e) => handleParameterChange('slices_recommendation_strategy', e.target.value)}
+                    className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
+                    title="Select slice recommendation strategy"
+                  >
+                    <option value="none" title="No slice recommendations">none</option>
+                    <option value="first_alphabetical" title="Recommend first alphabetical candidates">first_alphabetical</option>
+                    <option value="concise" title="Recommend most concise candidates">concise</option>
+                  </select>
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" title="How to handle metrics that are absent in some entries">
-                absent_metrics_strategy
-              </label>
-              <select
-                value={request.absent_metrics_strategy}
-                onChange={(e) => handleParameterChange('absent_metrics_strategy', e.target.value)}
-                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
-                title="Select strategy for absent metrics"
-              >
-                <option value="all_or_nothing" title="Do aggregation only if present in all slice entries">all_or_nothing</option>
-                <option value="nullify" title="Replace missing values with 0">nullify</option>
-                <option value="accept_subset" title="Include even if only in some entries. Number of samples is recorded in n_samples">accept_subset</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" title="Strategy for recommending slices">
-                slices_recommendation_strategy
-              </label>
-              <select
-                value={request.slices_recommendation_strategy}
-                onChange={(e) => handleParameterChange('slices_recommendation_strategy', e.target.value)}
-                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
-                title="Select slice recommendation strategy"
-              >
-                <option value="none" title="No slice recommendations">none</option>
-                <option value="first_alphabetical" title="Recommend first alphabetical candidates">first_alphabetical</option>
-                <option value="concise" title="Recommend most concise candidates">concise</option>
-              </select>
-            </div>
-          </div>
-        </CollapsibleSection>
+          </CollapsibleSection>
+        )}
 
         {/* Filters */}
         <CollapsibleSection title="Filters">

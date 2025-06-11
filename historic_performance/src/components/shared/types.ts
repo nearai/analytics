@@ -79,3 +79,33 @@ export interface LogsResponse {
   groups: LogGroup[];
   group_recommendations: string[];
 }
+
+// Dashboard Configuration types for web component usage
+export type MetricSelection = 'CUSTOM' | 'PERFORMANCE' | 'CAL' | 'ERROR' | 'FEEDBACK';
+export type ViewType = 'table' | 'logs';
+
+export interface ViewConfig {
+  // Which parameters to show and their default values
+  showParameters?: string[];
+  defaultParameters?: Record<string, any>;
+  // Which time filters to include in recommendations
+  timeFilterRecommendations?: string[];
+  // Refresh rate in seconds (for web component usage)
+  refreshRate?: number;
+}
+
+export interface DashboardConfig {
+  // Which views to show - if single view, don't show 'Views' panel
+  views?: ViewType[];
+  // Global filters - not shown in 'Filters' panel but passed in each request
+  globalFilters?: string[];
+  // Metric selection - keep as unused param for now
+  metricSelection?: MetricSelection;
+  // Configuration for each view
+  viewConfigs?: {
+    table?: ViewConfig;
+    logs?: ViewConfig;
+  };
+  // Default view to show
+  defaultView?: ViewType;
+}

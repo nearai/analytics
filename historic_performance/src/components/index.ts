@@ -1,4 +1,5 @@
 // Export all components for easy importing
+export { default as Dashboard } from './Dashboard';
 export { default as TableDashboard } from './TableDashboard';
 export { default as LogsDashboard } from './LogsDashboard';
 export * from './shared/types';

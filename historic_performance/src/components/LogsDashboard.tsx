@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp, GripVertical, Table, FileText, Eye } from 'lucide-react';
-import { LogsRequest, LogsResponse, LogGroup, LogEntry, LogFile } from './shared/types';
+import { LogsRequest, LogsResponse, LogGroup, LogEntry, LogFile, DashboardConfig } from './shared/types';
 import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, formatTimestamp, getStyleClass, isTimestampLike } from './shared/SharedComponents';
 
 // Format metadata/metrics for display
@@ -283,16 +283,47 @@ interface LogsDashboardProps {
   onNavigateToTable: () => void;
   savedRequest?: LogsRequest | null;
   onRequestChange?: (request: LogsRequest) => void;
+  config?: DashboardConfig;
+  showViewsPanel?: boolean;
 }
 
-const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable, savedRequest, onRequestChange }) => {
+const LogsDashboard: React.FC<LogsDashboardProps> = ({ 
+  onNavigateToTable, 
+  savedRequest, 
+  onRequestChange, 
+  config, 
+  showViewsPanel = true 
+}) => {
   // State
-  const [request, setRequest] = useState<LogsRequest>(savedRequest || {
+  const defaultRequest: LogsRequest = {
     prune_mode: 'all',
     groups_recommendation_strategy: 'concise',
     filters: [],
     groups: []
-  });
+  };
+  
+  // Apply default parameters from config
+  const getInitialRequest = (): LogsRequest => {
+    const configDefaults = config?.viewConfigs?.logs?.defaultParameters || {};
+    return { ...defaultRequest, ...configDefaults };
+  };
+  
+  const [request, setRequest] = useState<LogsRequest>(savedRequest || getInitialRequest());
+  
+  // Helper functions for configuration
+  const getVisibleParameters = (): string[] => {
+    const showParameters = config?.viewConfigs?.logs?.showParameters;
+    if (showParameters === undefined) {
+      // Show all parameters by default
+      return ['prune_mode', 'groups_recommendation_strategy'];
+    }
+    return showParameters;
+  };
+  
+  const shouldShowParametersPanel = (): boolean => {
+    const visibleParameters = getVisibleParameters();
+    return visibleParameters.length > 0;
+  };
   
   const [response, setResponse] = useState<LogsResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -363,7 +394,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable, savedR
     } else {
       fetchLogs(request);
     }
-  }, []);
+  }, [savedRequest, request, fetchLogs]);
 
   // Handlers
   const handleRemoveFilter = (filter: string) => {
@@ -427,51 +458,59 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({ onNavigateToTable, savedR
         <h2 className="text-lg font-bold mb-3">Logs Controls</h2>
         
         {/* Navigation to Table */}
-        <CollapsibleSection title="Views" defaultOpen={true}>
-          <button
-            onClick={onNavigateToTable}
-            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-          >
-            <Table size={16} />
-            View Table
-          </button>
-        </CollapsibleSection>
+        {showViewsPanel && (
+          <CollapsibleSection title="Views" defaultOpen={true}>
+            <button
+              onClick={onNavigateToTable}
+              className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
+            >
+              <Table size={16} />
+              View Table
+            </button>
+          </CollapsibleSection>
+        )}
         
         {/* Parameters */}
-        <CollapsibleSection title="Parameters">
-          <div className="space-y-2">
-            <div>
-              <label className="block text-xs font-medium mb-1" title="Heuristics to remove meaningless data">
-                prune_mode
-              </label>
-              <select
-                value={request.prune_mode}
-                onChange={(e) => handleParameterChange('prune_mode', e.target.value)}
-                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
-                title="Select pruning strategy"
-              >
-                <option value="none" title="No pruning applied">none</option>
-                <option value="column" title="Remove columns if all column values are determined meaningless">column</option>
-                <option value="all" title="Prune metrics marked in each entry">all</option>
-              </select>
+        {shouldShowParametersPanel() && (
+          <CollapsibleSection title="Parameters">
+            <div className="space-y-2">
+              {getVisibleParameters().includes('prune_mode') && (
+                <div>
+                  <label className="block text-xs font-medium mb-1" title="Heuristics to remove meaningless data">
+                    prune_mode
+                  </label>
+                  <select
+                    value={request.prune_mode}
+                    onChange={(e) => handleParameterChange('prune_mode', e.target.value)}
+                    className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
+                    title="Select pruning strategy"
+                  >
+                    <option value="none" title="No pruning applied">none</option>
+                    <option value="column" title="Remove columns if all column values are determined meaningless">column</option>
+                    <option value="all" title="Prune metrics marked in each entry">all</option>
+                  </select>
+                </div>
+              )}
+              {getVisibleParameters().includes('groups_recommendation_strategy') && (
+                <div>
+                  <label className="block text-xs font-medium mb-1" title="Strategy for recommending groups">
+                    groups_recommendation_strategy
+                  </label>
+                  <select
+                    value={request.groups_recommendation_strategy}
+                    onChange={(e) => handleParameterChange('groups_recommendation_strategy', e.target.value)}
+                    className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
+                    title="Select group recommendation strategy"
+                  >
+                    <option value="none" title="No group recommendations">none</option>
+                    <option value="first_alphabetical" title="Recommend first alphabetical candidates">first_alphabetical</option>
+                    <option value="concise" title="Recommend most concise candidates">concise</option>
+                  </select>
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" title="Strategy for recommending groups">
-                groups_recommendation_strategy
-              </label>
-              <select
-                value={request.groups_recommendation_strategy}
-                onChange={(e) => handleParameterChange('groups_recommendation_strategy', e.target.value)}
-                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
-                title="Select group recommendation strategy"
-              >
-                <option value="none" title="No group recommendations">none</option>
-                <option value="first_alphabetical" title="Recommend first alphabetical candidates">first_alphabetical</option>
-                <option value="concise" title="Recommend most concise candidates">concise</option>
-              </select>
-            </div>
-          </div>
-        </CollapsibleSection>
+          </CollapsibleSection>
+        )}
 
         {/* Filters */}
         <CollapsibleSection title="Filters">

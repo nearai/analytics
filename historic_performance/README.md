@@ -1,6 +1,6 @@
 # Historic Performance Dashboard
 
-A web application for querying and visualizing analytics metrics data. Tools to browse logs, track and visualize agent performance over time.
+A web application for querying and visualizing analytics metrics data. Tools to browse logs, track and visualize agent performance over time. Can be used as a standalone web app or as a configurable web component in other applications.
 
 ## Prerequisites
 
@@ -36,6 +36,65 @@ npm start
 ```
 http://localhost:3000
 ```
+
+## Web Component Usage
+
+The dashboard can be used as a configurable web component in other React applications:
+
+```jsx
+import { Dashboard } from './components';
+
+// Basic usage (shows both table and logs views)
+<Dashboard />
+
+// Configured for single view with custom settings
+<Dashboard config={{
+  views: ['table'], // Show only table view (hides Views panel)
+  globalFilters: ['runner:not_in:local'], // Applied to all requests but not shown in UI
+  metricSelection: 'PERFORMANCE', // Metric selection (CUSTOM, PERFORMANCE, CAL, ERROR, FEEDBACK)
+  defaultView: 'table',
+  viewConfigs: {
+    table: {
+      showParameters: ['prune_mode', 'absent_metrics_strategy'], // Show specific parameters
+      defaultParameters: { prune_mode: 'column' }, // Default parameter values
+      timeFilterRecommendations: ['last hour', 'last day'], // Time filter recommendations
+      refreshRate: 30 // Refresh every 30 seconds (for web component usage)
+    },
+    logs: {
+      refreshRate: 60 // Refresh every 60 seconds
+    }
+  }
+}} />
+```
+
+### Configuration Options
+
+- **views**: Array of views to show ('table', 'logs'). If single view, hides the Views panel.
+- **globalFilters**: Filters applied to all requests but not shown in the Filters panel.
+- **metricSelection**: CUSTOM, PERFORMANCE, CAL (Cost/Accuracy/Latency), ERROR, FEEDBACK. Currently unused.
+- **defaultView**: Initial view to display.
+- **viewConfigs**: Per-view configuration:
+  - **showParameters**: Which parameters to show in Parameters panel. If empty, hides the panel.
+  - **defaultParameters**: Default values for parameters.
+  - **timeFilterRecommendations**: Time filters to include in recommendations.
+  - **refreshRate**: Refresh interval in seconds (useful for web component usage).
+
+### Usage Scenarios
+
+**Standalone Web App** (useful parameters):
+- showParameters and defaultParameters (customize parameter visibility and defaults)
+- metricSelection (when implemented)
+- timeFilterRecommendations (customize time filter suggestions)
+
+**Web Component** (useful parameters):
+- views (control which views are available)
+- globalFilters (pre-apply filters without showing them)
+- refreshRate (auto-refresh data)
+- All standalone parameters
+
+**Not useful in Standalone Web App**:
+- globalFilters (filters are already applied by user)
+- refreshRate (no auto-refresh needed in standalone usage)
 
 ## Building for Production
 
@@ -78,26 +137,41 @@ The app is built with:
 
 #### 1. Custom View
 
+**Current implementation**: ✅ Available
 - Launch on any data as long as it is in canonical metrics format.
-- Custom metrics table.
-- Stream of log files.
+- Custom metrics table with full parameter control.
+- Stream of log files with detailed metadata.
+- Configurable through Dashboard component with any combination of parameters.
 
 #### 2. Performance Dashboard
 
-- Time granulation: 1 minute, 1 hour, 1 day, 1 week.
+**Current implementation**: ✅ Available (almost complete)
+- Time granulation: Manual time filters (last hour, day, week, custom ranges).
 - Metrics table with filtering, slicing, performance columns, and custom columns.
-- Stream of log files.
+- Stream of log files with chronological ordering.
+- Default parameters optimized for performance tracking.
+- Time filter recommendations passed to logs view.
 
 #### 3. Cost/Accuracy/Latency Tracking
 
+**Current implementation**: 🔄 Table view only
 - Metrics table with filtering, slicing, cost/accuracy/latency columns, and custom columns.
+- No time filters in current implementation.
+- **Note**: Metric selection parameter (CAL) added to configuration but not yet implemented.
+- **Future**: Will include specialized cost, accuracy, and latency column selections.
 
 #### 4. Error Analysis
 
-- Metrics table with filtering, slicing, error columns, and custom columns.
-- Stream of log files for error runs.
+**Current implementation**: ❌ Not implemented
+- **Planned**: Metrics table with filtering, slicing, error columns, and custom columns.
+- **Planned**: Stream of log files specifically for error runs.
+- **Future**: Error-specific filters and grouping strategies.
+- **Future**: Error pattern detection and analysis.
 
 #### 5. User Feedback Analysis
 
-- Metrics table with filtering, slicing, feedback columns, and custom columns.
-- Stream of log files with user feedback.
+**Current implementation**: ❌ Not implemented
+- **Planned**: Metrics table with filtering, slicing, feedback columns, and custom columns.
+- **Planned**: Stream of log files with user feedback data.
+- **Future**: Feedback sentiment analysis and categorization.
+- **Future**: User feedback correlation with performance metrics.
