@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import TableDashboard from './TableDashboard';
 import LogsDashboard from './LogsDashboard';
 import { DashboardConfig, ViewType, TableRequest, LogsRequest } from './shared/types';
@@ -90,28 +90,40 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
   }, [finalConfig.viewConfigs, currentView, tableRequest, logsRequest]);
 
   // Helper to merge global filters with request filters
-  const mergeGlobalFilters = (requestFilters?: string[]): string[] => {
+  const mergeGlobalFilters = useCallback((requestFilters?: string[]): string[] => {
     const globalFilters = finalConfig.globalFilters || [];
     const filters = requestFilters || [];
     return [...globalFilters, ...filters];
-  };
+  }, [finalConfig.globalFilters]);
 
   // Enhanced request handlers that include global filters
-  const handleTableRequestChange = (request: TableRequest) => {
+  const handleTableRequestChange = useCallback((request: TableRequest) => {
     const enhancedRequest = {
       ...request,
       filters: mergeGlobalFilters(request.filters)
     };
-    setTableRequest(enhancedRequest);
-  };
+    setTableRequest(prev => {
+      // Only update if the request has actually changed
+      if (JSON.stringify(prev) !== JSON.stringify(enhancedRequest)) {
+        return enhancedRequest;
+      }
+      return prev;
+    });
+  }, [mergeGlobalFilters]);
 
-  const handleLogsRequestChange = (request: LogsRequest) => {
+  const handleLogsRequestChange = useCallback((request: LogsRequest) => {
     const enhancedRequest = {
       ...request,
       filters: mergeGlobalFilters(request.filters)
     };
-    setLogsRequest(enhancedRequest);
-  };
+    setLogsRequest(prev => {
+      // Only update if the request has actually changed
+      if (JSON.stringify(prev) !== JSON.stringify(enhancedRequest)) {
+        return enhancedRequest;
+      }
+      return prev;
+    });
+  }, [mergeGlobalFilters]);
 
   // Navigation handlers
   const handleNavigateToLogs = () => {

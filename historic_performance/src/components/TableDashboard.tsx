@@ -236,19 +236,17 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     });
   };
 
-  // Update parent component when request changes
-  useEffect(() => {
-    if (onRequestChange) {
-      onRequestChange(request);
-    }
-  }, [request, onRequestChange]);
+
 
   // API call
   const fetchTable = useCallback(async (requestData: TableRequest) => {
     setError(null);
     
     try {
-      setRequest(requestData)
+      setRequest(requestData);
+      if (onRequestChange) {
+        onRequestChange(requestData);
+      }
       const res = await fetch('http://localhost:8000/api/v1/table/aggregation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -264,25 +262,33 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
       
       // Update request with response data
       if (requestData.column_selections_to_remove && requestData.column_selections_to_remove?.length > 0) {
-        setRequest(prev => ({
-            ...prev,
+        const newRequest = {
+            ...requestData,
             filters: data.filters || [],
             slices: data.slices || [],
             column_selections: data.columns.map((col: Column) => col.column_id),
             column_selections_to_add: [],
             column_selections_to_remove: []
-        }));
+        };
+        setRequest(newRequest);
+        if (onRequestChange) {
+          onRequestChange(newRequest);
+        }
       } else {
-        setRequest(prev => ({
-            ...prev,
+        const newRequest = {
+            ...requestData,
             filters: data.filters || [],
             slices: data.slices || []
-        }));
+        };
+        setRequest(newRequest);
+        if (onRequestChange) {
+          onRequestChange(newRequest);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
-  }, []);
+  }, [onRequestChange]);
 
   // Initial load. Use saved request if present.
   useEffect(() => {

@@ -354,12 +354,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     document.removeEventListener('mouseup', handleMouseUp);
   };
 
-  // Update parent component when request changes
-  useEffect(() => {
-    if (onRequestChange) {
-      onRequestChange(request);
-    }
-  }, [request, onRequestChange]);
+
 
   // API call
   const fetchLogs = useCallback(async (requestData: LogsRequest) => {
@@ -367,7 +362,10 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     setError(null);
     
     try {
-      setRequest(requestData)
+      setRequest(requestData);
+      if (onRequestChange) {
+        onRequestChange(requestData);
+      }
       const res = await fetch('http://localhost:8000/api/v1/logs/list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -385,7 +383,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [onRequestChange]);
 
   // Initial load. Use saved request if present.
   useEffect(() => {
