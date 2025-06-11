@@ -13,6 +13,7 @@ class MovingAggregation:
     time_granulation: int
     # A field name (can be subfield) used to calculate moving aggregation values
     field_name: str
+    # One row if no slice field, otherwise, one for each slice value
     values: List[List[float]]
     min_value: float
     max_value: float
@@ -21,7 +22,6 @@ class MovingAggregation:
     # Optional slice field
     slice_field: str = ""
     slice_values: List[str] = field(default_factory=list)
-    # One row if no slice field, otherwise, one for each slice value.
 
     def to_dict(self) -> dict:
         """Convert the MovingAggregation instance to a dictionary."""

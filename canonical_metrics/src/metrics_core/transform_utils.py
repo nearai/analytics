@@ -576,17 +576,17 @@ def create_logs_list(
 class MovingAggregationParams:
     """Parameters to calculate moving aggregation."""
 
-    # Time granulation in ms.
+    # Time granulation in ms
     time_granulation: int
     # A field name (can be subfield) used to calculate moving aggregation values
     moving_aggregation_field_name: str
-    # Global filters to apply first.
+    # Global filters to apply first
     global_filters: List[str] = field(default_factory=list)
-    # List of filter conditions to calculate moving aggregation values.
+    # List of filter conditions to calculate moving aggregation values
     moving_aggregation_filters: List[str] = field(default_factory=list)
     # Optional slice field
     slice_field: str = ""
-    # Number of decimal places for rounding.
+    # Number of decimal places for rounding
     round_precision: int = 2
 
 
@@ -666,7 +666,7 @@ def create_moving_aggregation(
     # In order to include all entries should satisfy this condition:
     # time_end - n * time_granulation < time_begin
     # n > (time_end - time_begin) / time_granulation
-    n = math.ceil((time_end - time_begin) / params.time_granulation)
+    n = int((time_end - time_begin) / params.time_granulation) + 1
 
     time_begin = time_end - n * params.time_granulation
     values: List[List[float]] = []
