@@ -1,6 +1,5 @@
 """Utilities to transform data."""
 
-import math
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -682,11 +681,11 @@ def create_moving_aggregation(
 
     def update_min_max_values(value: float):
         nonlocal min_value, max_value
-        if not min_value:
+        if min_value is None:
             min_value = value
         else:
             min_value = min(min_value, value)
-        if not max_value:
+        if max_value is None:
             max_value = value
         else:
             max_value = max(max_value, value)
