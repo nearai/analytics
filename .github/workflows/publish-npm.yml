@@ -1,0 +1,77 @@
+name: Publish to NPM
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./historic_performance
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build package
+        run: npm run build
+      
+      - name: Update package.json for publishing
+        run: |
+          # Update package name and remove private flag for publishing
+          npm pkg set name="@nearai/analytics-dashboard"
+          npm pkg delete private
+          # Set main entry point to the built components
+          npm pkg set main="build/static/js/main.js"
+          npm pkg set types="src/components/index.ts"
+          npm pkg set files='["build", "src/components", "README.md"]'
+          # Add repository and homepage info
+          npm pkg set repository.type="git"
+          npm pkg set repository.url="git+https://github.com/nearai/analytics.git"
+          npm pkg set repository.directory="historic_performance"
+          npm pkg set homepage="https://github.com/nearai/analytics/tree/main/historic_performance"
+          npm pkg set bugs.url="https://github.com/nearai/analytics/issues"
+          # Add keywords for discoverability
+          npm pkg set keywords='["react", "dashboard", "analytics", "performance", "nearai"]'
+          # Set license
+          npm pkg set license="MIT"
+      
+      - name: Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            ## What's Changed
+            
+            Published @nearai/analytics-dashboard@${{ github.ref_name }} to NPM.
+            
+            ### Installation
+            ```bash
+            npm install @nearai/analytics-dashboard
+            ```
+            
+            ### Usage
+            See [Web Component Usage Guide](./historic_performance/WEB_COMPONENT_USAGE.md) for detailed documentation.
+          draft: false
+          prerelease: false

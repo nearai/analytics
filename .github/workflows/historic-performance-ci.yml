@@ -1,0 +1,54 @@
+name: Historic Performance CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: 
+      - 'historic_performance/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'historic_performance/**'
+
+jobs:
+  test-dashboard:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./historic_performance
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: historic_performance/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build package
+        run: npm run build
+      
+      - name: Run tests
+        run: npm test -- --coverage --watchAll=false --passWithNoTests
+      
+      - name: Lint check (if available)
+        run: |
+          if npm list eslint > /dev/null 2>&1; then
+            npx eslint src/
+          else
+            echo "ESLint not found, skipping lint check"
+          fi
+        continue-on-error: true
+      
+      - name: Type check
+        run: npx tsc --noEmit
+      
+      - name: Test package.json validity
+        run: npm pkg get name version
