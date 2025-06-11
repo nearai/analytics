@@ -1,6 +1,7 @@
 """Utilities to transform data."""
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -8,7 +9,7 @@ from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy, A
 from metrics_core.conversions.base import BaseConversion, ChainConversion
 from metrics_core.conversions.categorize_metadata import CategorizeMetadataConversion
 from metrics_core.conversions.determine_pruning import DeterminePruningConversion
-from metrics_core.conversions.filter import FilterConversion
+from metrics_core.conversions.filter import FilterConversion, check_filters_against_entry
 from metrics_core.conversions.ms_to_s import MsToSConversion
 from metrics_core.conversions.prune import PruneConversion
 from metrics_core.conversions.rename import RenameConversion
@@ -18,6 +19,7 @@ from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry, M
 from metrics_core.models.column_selection import ColumnNode, TableColumnUnit
 from metrics_core.models.condition import Condition, parse_condition_list, slice_condition
 from metrics_core.models.grouped_canonical_metrics import GroupedCanonicalMetrics, GroupedCanonicalMetricsList
+from metrics_core.models.moving_aggregation import MovingAggregation
 from metrics_core.models.table import SortOrder, Table, TableCell
 
 
@@ -206,10 +208,10 @@ def create_column_tree(entries: List[CanonicalMetricsEntry]) -> ColumnNode:
     leaves_list = sorted(leaves.values(), key=lambda node: node.column_node_id, reverse=True)
 
     def build_tree(root: ColumnNode) -> None:
-        while len(leaves_list) > 0 and leaves_list[len(leaves_list) - 1].column_node_id.startswith(root.column_node_id):
-            leaf_name = leaves_list[len(leaves_list) - 1].column_node_id[len(root.column_node_id) :]
+        while len(leaves_list) > 0 and leaves_list[-1].column_node_id.startswith(root.column_node_id):
+            leaf_name = leaves_list[-1].column_node_id[len(root.column_node_id) :]
             if "/" not in leaf_name:
-                root.children.append(leaves_list.pop(len(leaves_list) - 1))
+                root.children.append(leaves_list.pop(-1))
                 continue
             node_name = leaf_name.split("/")[0]
             node = ColumnNode(column_node_id=f"{root.column_node_id}{node_name}/", name=node_name)
@@ -567,3 +569,189 @@ def create_logs_list(
             entry.flatten_values()
 
     return GroupedCanonicalMetricsList(groups=grouped_entries, group_recommendations=group_recommendations)
+
+
+@dataclass
+class MovingAggregationParams:
+    """Parameters to calculate moving aggregation."""
+
+    # Time granulation in ms
+    time_granulation: int
+    # A field name (can be subfield) used to calculate moving aggregation values
+    moving_aggregation_field_name: str
+    # Global filters to apply first
+    global_filters: List[str] = field(default_factory=list)
+    # List of filter conditions to calculate moving aggregation values
+    moving_aggregation_filters: List[str] = field(default_factory=list)
+    # Optional slice field
+    slice_field: str = ""
+    # Number of decimal places for rounding
+    round_precision: int = 2
+
+
+def time_str_to_ms(time_str) -> int:
+    # Parse the ISO format datetime string
+    dt = datetime.fromisoformat(time_str)
+    # Convert to milliseconds since Unix epoch
+    time_ms = int(dt.timestamp() * 1000)
+    return time_ms
+
+
+def extract_base_field_name(field_name: str) -> str:
+    """Extract base field name by removing subfields like /n_samples, /min_value, /max_value."""
+    # Remove subfield suffixes
+    subfields = ["/n_samples", "/min_value", "/max_value"]
+    base_field = field_name
+
+    for subfield in subfields:
+        if base_field.endswith(subfield):
+            base_field = base_field[: -len(subfield)]
+            break
+
+    return base_field
+
+
+def create_moving_aggregation(
+    entries: List[CanonicalMetricsEntry],
+    params: MovingAggregationParams,
+    _verbose: bool = False,
+) -> MovingAggregation:
+    """Create Moving Aggregation."""
+    filter_conditions = parse_condition_list(params.global_filters)
+    moving_aggregation_filters = parse_condition_list(params.moving_aggregation_filters)
+
+    preprocess_conversions: List[BaseConversion] = []
+    if filter_conditions:
+        preprocess_conversions.append(FilterConversion(filter_conditions))
+    preprocess_conversions.append(SortByTimestampConversion())
+    entries = ChainConversion(preprocess_conversions).convert(entries)
+
+    no_result = MovingAggregation(
+        time_begin=0,
+        time_end=0,
+        time_granulation=params.time_granulation,
+        filters=moving_aggregation_filters,
+        field_name=params.moving_aggregation_field_name,
+        values=[],
+        min_value=0,
+        max_value=0,
+    )
+
+    if not entries:
+        return no_result
+
+    # Determine slice values. Prioritize the ones that appear in the latest entries.
+    slice_values_to_index: Dict[str, int] = {}
+    if params.slice_field:
+        for entry in entries:
+            if not check_filters_against_entry(entry, moving_aggregation_filters):
+                continue
+            slice_value = str(entry.fetch_value(params.slice_field))
+            if slice_values_to_index.get(slice_value) is not None:
+                continue
+            slice_values_to_index[slice_value] = len(slice_values_to_index)
+    slice_values_list: List[str] = list(slice_values_to_index.keys())
+
+    def fetch_time(entry: CanonicalMetricsEntry) -> int:
+        time_str = entry.fetch_value("time_end_utc")
+        assert isinstance(time_str, str)
+        return time_str_to_ms(time_str)
+
+    time_end = fetch_time(entries[0])
+    time_begin = fetch_time(entries[-1])
+
+    # Time window: (time_window_begin; time_window_end]
+    # Includes time_window_end, but does not include time_window_begin
+    # In order to include all entries should satisfy this condition:
+    # time_end - n * time_granulation < time_begin
+    # n > (time_end - time_begin) / time_granulation
+    n = int((time_end - time_begin) / params.time_granulation) + 1
+
+    time_begin = time_end - n * params.time_granulation
+    values: List[List[float]] = []
+    # One list when no slicing, otherwise number of slice values.
+    if not slice_values_list:
+        values = [[]]
+    else:
+        for _slice_value in slice_values_list:
+            values.append([])
+
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+
+    def update_min_max_values(value: float):
+        nonlocal min_value, max_value
+        if min_value is None:
+            min_value = value
+        else:
+            min_value = min(min_value, value)
+        if max_value is None:
+            max_value = value
+        else:
+            max_value = max(max_value, value)
+
+    base_field_name = extract_base_field_name(params.moving_aggregation_field_name)
+    slices: List[Condition] = []
+    if params.slice_field:
+        slices = [slice_condition(params.slice_field)]
+
+    # Use entries as a stack, calculating time windows, and popping entries from the end of the list.
+    time_window_begin = time_begin
+    while time_window_begin < time_end:
+        num_populated_windows = len(values[0])
+        try:
+            window_entries: List[CanonicalMetricsEntry] = []
+            while entries:
+                entry = entries[-1]
+                entry_time = fetch_time(entry)
+                if entry_time > time_window_begin + params.time_granulation:
+                    break
+                entries.pop(-1)
+                if not check_filters_against_entry(entry, moving_aggregation_filters):
+                    continue
+
+                window_entry = CanonicalMetricsEntry()
+                window_entry.metadata[params.slice_field] = entry.metadata.get(params.slice_field)
+                metadata_field_value = entry.metadata.get(base_field_name)
+                if metadata_field_value:
+                    window_entry.metadata[base_field_name] = metadata_field_value
+                metrics_field_value = entry.metrics.get(base_field_name)
+                if metrics_field_value:
+                    window_entry.metrics[base_field_name] = metrics_field_value
+                window_entries.append(window_entry)
+
+            window_entries = AggregateConversion(
+                slices, absent_metrics_strategy=AggregateAbsentMetricsStrategy.NULLIFY
+            ).convert(window_entries)
+            for entry in window_entries:
+                if not params.slice_field:
+                    slice_index = 0
+                else:
+                    slice_index = slice_values_to_index[str(entry.fetch_value(params.slice_field))]
+                value_obj = entry.fetch_value(params.moving_aggregation_field_name)
+                if not isinstance(value_obj, (float, int)):
+                    value = 0.0
+                else:
+                    value = float(value_obj)
+                    value = round(value, params.round_precision)
+                update_min_max_values(value)
+                values[slice_index].append(value)
+        finally:
+            for slice_values in values:
+                if len(slice_values) == num_populated_windows:
+                    slice_values.append(0.0)
+                    update_min_max_values(0.0)
+            time_window_begin += params.time_granulation
+
+    return MovingAggregation(
+        time_begin=time_begin,
+        time_end=time_end,
+        time_granulation=params.time_granulation,
+        filters=moving_aggregation_filters,
+        field_name=params.moving_aggregation_field_name,
+        slice_field=params.slice_field,
+        slice_values=slice_values_list,
+        values=values,
+        min_value=min_value if min_value else 0.0,
+        max_value=max_value if max_value else 0.0,
+    )

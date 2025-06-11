@@ -16,9 +16,9 @@ class MetadataFieldCategory(Enum):
 class CanonicalMetricsEntry:
     """The canonical metrics entry containing metrics and logs."""
 
-    name: str
-    metadata: Dict[str, Any]
-    metrics: Dict[str, Any]
+    name: str = ""
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    metrics: Dict[str, Any] = field(default_factory=dict)
     # Log files. By default, these are not loaded, and should only be loaded by metrics service when actually needed.
     log_files: List[Dict[str, str]] = field(default_factory=list)
 

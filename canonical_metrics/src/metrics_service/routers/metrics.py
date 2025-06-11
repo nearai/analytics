@@ -8,6 +8,7 @@ from metrics_core.conversions.filter import FilterConversion
 from metrics_core.local_files import load_logs_list_from_disk
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.condition import Condition, parse_condition_list
+from metrics_core.transform_utils import extract_base_field_name
 from pydantic import BaseModel
 
 from metrics_service.config import settings
@@ -41,20 +42,6 @@ class ImportantMetricsRequest(BaseModel):
         json_schema_extra = {"example": {"filters": ["user:in:alomonos.near", "runner:not_in:local"]}}
 
 
-def _extract_base_field_name(field_name: str) -> str:
-    """Extract base field name by removing subfields like /n_samples, /min_value, /max_value."""
-    # Remove subfield suffixes
-    subfields = ["/n_samples", "/min_value", "/max_value"]
-    base_field = field_name
-
-    for subfield in subfields:
-        if base_field.endswith(subfield):
-            base_field = base_field[: -len(subfield)]
-            break
-
-    return base_field
-
-
 def _check_field_presence(entries: List[CanonicalMetricsEntry], field_name: str, additional_filters: List[str]) -> bool:
     """Check if field is present in at least one entry after applying additional filters.
 
@@ -81,7 +68,7 @@ def _check_field_presence(entries: List[CanonicalMetricsEntry], field_name: str,
             elif str(condition.operator) != "not_in":
                 relevant_filters.append(condition)
 
-    field_name = _extract_base_field_name(field_name)
+    field_name = extract_base_field_name(field_name)
 
     # Check for field presences in entries
     for entry in entries:
