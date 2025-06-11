@@ -40,7 +40,7 @@ class MovingAggregationRequest(BaseModel):
                 "moving_aggregation_field_name": "performance/latency/env_run_s_all",
                 "global_filters": ["runner:not_in:local"],
                 "moving_aggregation_filters": ["errors/summary/error_count_all:range::0"],
-                "slice_field": "agent_name"
+                "slice_field": "agent_name",
             }
         }
 
@@ -79,7 +79,6 @@ async def create_time_series_graph(request: MovingAggregationRequest):
             global_filters=request.global_filters,
             moving_aggregation_filters=request.moving_aggregation_filters,
             slice_field=request.slice_field,
-            # Note: round_precision is excluded as per requirements, using default value
         )
 
         # Create moving aggregation
@@ -142,6 +141,6 @@ async def get_schema():
                 "min_value": "minimum value in the dataset",
                 "max_value": "maximum value in the dataset",
                 "filters": "list of applied filters",
-            }
+            },
         }
     }

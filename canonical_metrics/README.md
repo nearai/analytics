@@ -175,6 +175,7 @@ Get information about available options and example values:
 curl "http://localhost:8000/api/v1/table/schema"
 curl "http://localhost:8000/api/v1/logs/schema"
 curl "http://localhost:8000/api/v1/metrics/schema"
+curl "http://localhost:8000/api/v1/graphs/schema"
 ```
 
 ## API Endpoints
@@ -476,15 +477,7 @@ The endpoint checks for these predefined important metrics:
 
 Only metrics that have actual data present in the filtered dataset are returned.
 
-### 4. Get Metrics Schema - GET /api/v1/metrics/schema
-
-Get schema information for the metrics endpoints:
-
-```bash
-curl "http://localhost:8000/api/v1/metrics/schema"
-```
-
-### 5. Create Time Series Graph - POST /api/v1/graphs/time-series
+### 4. Create Time Series Graph - POST /api/v1/graphs/time-series
 
 This endpoint creates time series data for graphing from your metrics data based on moving aggregation parameters. It processes metrics entries to generate time-based aggregated values suitable for visualization.
 
@@ -550,12 +543,6 @@ The response returns time series data with aggregated values:
 - **global_filters** (optional): Filters applied before aggregation
 - **moving_aggregation_filters** (optional): Filters applied during aggregation
 - **slice_field** (optional): Field for data grouping/slicing
-
-**Get Graph Schema**
-
-```bash
-curl "http://localhost:8000/api/v1/graphs/schema"
-```
 
 ## Parameters Reference
 
