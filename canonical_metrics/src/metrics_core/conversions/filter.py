@@ -5,6 +5,13 @@ from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.condition import Condition
 
 
+def check_filters_against_entry(entry: CanonicalMetricsEntry, filters: List[Condition]) -> bool:
+    for condition in filters:
+        if not condition.check(entry.fetch_value(condition.field_name)):
+            return False
+    return True
+
+
 class FilterConversion(BaseConversion):  # noqa: F821
     """Filter entries."""
 
@@ -17,16 +24,7 @@ class FilterConversion(BaseConversion):  # noqa: F821
         filtered_data = []
 
         for entry in data:
-            # Check if entry passes all conditions
-            passes_all_conditions = True
-
-            for condition in self.conditions:
-                if not condition.check(entry.fetch_value(condition.field_name)):
-                    passes_all_conditions = False
-                    break
-
-            # Only include entry if it passes all conditions
-            if passes_all_conditions:
+            if check_filters_against_entry(entry, self.conditions):
                 filtered_data.append(entry)
 
         return filtered_data
