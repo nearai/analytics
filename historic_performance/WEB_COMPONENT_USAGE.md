@@ -6,9 +6,15 @@ The Historic Performance Dashboard can be used as a configurable web component i
 
 To add the analytics dashboard as a dependency to another repository, you have several options:
 
-### Option 1: As an npm package (future)
+### Option 1: As an npm package (recommended)
 ```bash
 npm install @nearai/analytics-dashboard
+```
+
+This installs the pre-built dashboard component that can be imported directly into your React application:
+
+```jsx
+import { Dashboard } from '@nearai/analytics-dashboard';
 ```
 
 ### Option 2: As a git submodule
@@ -16,17 +22,29 @@ npm install @nearai/analytics-dashboard
 git submodule add https://github.com/nearai/analytics historic_performance
 ```
 
+This creates a submodule in your repository pointing to the analytics repo. You can then import from the local source:
+
+```jsx
+import { Dashboard } from './historic_performance/src/components';
+```
+
 ### Option 3: Copy source code
 ```bash
 cp -r analytics/historic_performance/src/components ./src/
 ```
 
-The examples in this guide assume you're using Option 2 or 3 where the source code is available locally.
+This copies the component source files directly into your project, giving you full control over the code:
+
+```jsx
+import { Dashboard } from './src/components';
+```
+
+The examples in this guide use the npm package import syntax unless otherwise specified.
 
 ## Basic Import and Usage
 
 ```jsx
-import { Dashboard } from './components';
+import { Dashboard } from '@nearai/analytics-dashboard';
 
 // Basic usage with default configuration
 function App() {
@@ -307,7 +325,7 @@ The Dashboard component automatically adapts its UI based on configuration:
 The component is fully typed. Import types for better development experience:
 
 ```typescript
-import { Dashboard, DashboardConfig, ViewConfig } from './components';
+import { Dashboard, DashboardConfig, ViewConfig } from '@nearai/analytics-dashboard';
 
 const config: DashboardConfig = {
   views: ['table'],

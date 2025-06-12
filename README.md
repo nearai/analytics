@@ -65,8 +65,12 @@ Will open a dashboard at `http://localhost:3000`
 
 The dashboard can also be used as a web component in other applications:
 
+```bash
+npm install @nearai/analytics-dashboard
+```
+
 ```jsx
-import { Dashboard } from './historic_performance/src/components';
+import { Dashboard } from '@nearai/analytics-dashboard';
 
 // Use with configuration
 <Dashboard config={{

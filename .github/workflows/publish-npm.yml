@@ -31,23 +31,10 @@ jobs:
       
       - name: Update package.json for publishing
         run: |
-          # Update package name and remove private flag for publishing
-          npm pkg set name="@nearai/analytics-dashboard"
-          npm pkg delete private
-          # Set main entry point to the built components
-          npm pkg set main="build/static/js/main.js"
-          npm pkg set types="src/components/index.ts"
-          npm pkg set files='["build", "src/components", "README.md"]'
-          # Add repository and homepage info
-          npm pkg set repository.type="git"
-          npm pkg set repository.url="git+https://github.com/nearai/analytics.git"
-          npm pkg set repository.directory="historic_performance"
-          npm pkg set homepage="https://github.com/nearai/analytics/tree/main/historic_performance"
-          npm pkg set bugs.url="https://github.com/nearai/analytics/issues"
-          # Add keywords for discoverability
-          npm pkg set keywords='["react", "dashboard", "analytics", "performance", "nearai"]'
-          # Set license
-          npm pkg set license="MIT"
+          # The package.json is already configured for publishing
+          # Just ensure the version matches the tag
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          npm pkg set version="$TAG_VERSION"
       
       - name: Publish to NPM
         run: npm publish --access public
