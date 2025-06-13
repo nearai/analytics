@@ -39,15 +39,6 @@ The published package includes:
 - Source TypeScript components in `src/components/`
 - README.md and documentation
 
-## Package Configuration
-
-During publishing, the workflow automatically:
-- Changes package name from `performance-dashboard` to `@nearai/analytics-dashboard`
-- Removes the `private: true` flag
-- Sets appropriate repository and homepage URLs
-- Adds keywords for discoverability
-- Configures the main entry point
-
 ## Manual Publishing (Emergency)
 
 If automatic publishing fails, you can publish manually:
@@ -56,10 +47,6 @@ If automatic publishing fails, you can publish manually:
 cd historic_performance
 npm ci
 npm run build
-
-# Update package.json for publishing
-npm pkg set name="@nearai/analytics-dashboard"
-npm pkg delete private
 
 # Publish (requires NPM_TOKEN environment variable)
 npm publish --access public

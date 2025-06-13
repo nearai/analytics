@@ -59,6 +59,16 @@ function App() {
 
 ## Configuration Options
 
+- **views**: Array of views to show ('table', 'logs'). If single view, hides the Views panel.
+- **globalFilters**: Filters applied to all requests but not shown in the Filters panel.
+- **metricSelection**: CUSTOM, PERFORMANCE, CAL (Cost/Accuracy/Latency), ERROR, FEEDBACK.
+- **defaultView**: Initial view to display.
+- **viewConfigs**: Per-view configuration:
+  - **showParameters**: Which parameters to show in Parameters panel. If empty, hides the panel.
+  - **defaultParameters**: Default values for parameters.
+  - **timeFilterRecommendations**: Time filters to include in recommendations.
+  - **refreshRate**: Refresh interval in seconds (useful for web component usage).
+
 The Dashboard component accepts a `config` prop with the following TypeScript interface:
 
 ```typescript
@@ -69,7 +79,7 @@ interface DashboardConfig {
   // Filters applied to all requests but not shown in UI
   globalFilters?: string[];
   
-  // Metric selection for future use
+  // Metric selection
   metricSelection?: 'CUSTOM' | 'PERFORMANCE' | 'CAL' | 'ERROR' | 'FEEDBACK';
   
   // Per-view configuration

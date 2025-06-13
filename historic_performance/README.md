@@ -41,58 +41,6 @@ http://localhost:3000
 
 For detailed web component usage instructions, see [WEB_COMPONENT_USAGE.md](./WEB_COMPONENT_USAGE.md).
 
-// Basic usage (shows both table and logs views)
-<Dashboard />
-
-// Configured for single view with custom settings
-<Dashboard config={{
-  views: ['table'], // Show only table view (hides Views panel)
-  globalFilters: ['runner:not_in:local'], // Applied to all requests but not shown in UI
-  metricSelection: 'PERFORMANCE', // Metric selection (CUSTOM, PERFORMANCE, CAL, ERROR, FEEDBACK)
-  defaultView: 'table',
-  viewConfigs: {
-    table: {
-      showParameters: ['prune_mode', 'absent_metrics_strategy'], // Show specific parameters
-      defaultParameters: { prune_mode: 'column' }, // Default parameter values
-      timeFilterRecommendations: ['last hour', 'last day'], // Time filter recommendations
-      refreshRate: 30 // Refresh every 30 seconds (for web component usage)
-    },
-    logs: {
-      refreshRate: 60 // Refresh every 60 seconds
-    }
-  }
-}} />
-```
-
-### Configuration Options
-
-- **views**: Array of views to show ('table', 'logs'). If single view, hides the Views panel.
-- **globalFilters**: Filters applied to all requests but not shown in the Filters panel.
-- **metricSelection**: CUSTOM, PERFORMANCE, CAL (Cost/Accuracy/Latency), ERROR, FEEDBACK. Currently unused.
-- **defaultView**: Initial view to display.
-- **viewConfigs**: Per-view configuration:
-  - **showParameters**: Which parameters to show in Parameters panel. If empty, hides the panel.
-  - **defaultParameters**: Default values for parameters.
-  - **timeFilterRecommendations**: Time filters to include in recommendations.
-  - **refreshRate**: Refresh interval in seconds (useful for web component usage).
-
-### Usage Scenarios
-
-**Standalone Web App** (useful parameters):
-- showParameters and defaultParameters (customize parameter visibility and defaults)
-- metricSelection (when implemented)
-- timeFilterRecommendations (customize time filter suggestions)
-
-**Web Component** (useful parameters):
-- views (control which views are available)
-- globalFilters (pre-apply filters without showing them)
-- refreshRate (auto-refresh data)
-- All standalone parameters
-
-**Not useful in Standalone Web App**:
-- globalFilters (filters are already applied by user)
-- refreshRate (no auto-refresh needed in standalone usage)
-
 ## Building for Production
 
 To create a production build:
@@ -142,7 +90,7 @@ The app is built with:
 
 #### 2. Performance Dashboard
 
-**Current implementation**: ✅ Available (almost complete)
+**Current implementation**: ✅ Available (almost)
 - Time granulation: Manual time filters (last hour, day, week, custom ranges).
 - Metrics table with filtering, slicing, performance columns, and custom columns.
 - Stream of log files with chronological ordering.
