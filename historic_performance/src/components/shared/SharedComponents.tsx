@@ -288,3 +288,10 @@ export const getStyleClass = (key: string, filters: string[], slicesOrGroups: st
   if (isSliceKey) return 'text-green-700';
   return '';
 };
+
+// Helper to merge global filters with request filters
+export const mergeGlobalFilters = useCallback((requestFilters?: string[]): string[] => {
+  const globalFilters = finalConfig.globalFilters || [];
+  const filters = requestFilters || [];
+  return [...globalFilters, ...filters];
+}, [finalConfig.globalFilters]);

@@ -44,6 +44,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
     logs?: NodeJS.Timeout;
   }>({});
 
+  // TODO: Refresh is not triggered when request is updated (and should not be triggered when request is updated). Fix and move this into individual components or SharedComponent.
   // Setup refresh intervals when used as web component
   useEffect(() => {
     const tableRefreshRate = finalConfig.viewConfigs?.table?.refreshRate;
@@ -89,42 +90,6 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
     };
   }, [finalConfig.viewConfigs, currentView, tableRequest, logsRequest]);
 
-  // Helper to merge global filters with request filters
-  const mergeGlobalFilters = useCallback((requestFilters?: string[]): string[] => {
-    const globalFilters = finalConfig.globalFilters || [];
-    const filters = requestFilters || [];
-    return [...globalFilters, ...filters];
-  }, [finalConfig.globalFilters]);
-
-  // Enhanced request handlers that include global filters
-  const handleTableRequestChange = useCallback((request: TableRequest) => {
-    const enhancedRequest = {
-      ...request,
-      filters: mergeGlobalFilters(request.filters)
-    };
-    setTableRequest(prev => {
-      // Only update if the request has actually changed
-      if (JSON.stringify(prev) !== JSON.stringify(enhancedRequest)) {
-        return enhancedRequest;
-      }
-      return prev;
-    });
-  }, [mergeGlobalFilters]);
-
-  const handleLogsRequestChange = useCallback((request: LogsRequest) => {
-    const enhancedRequest = {
-      ...request,
-      filters: mergeGlobalFilters(request.filters)
-    };
-    setLogsRequest(prev => {
-      // Only update if the request has actually changed
-      if (JSON.stringify(prev) !== JSON.stringify(enhancedRequest)) {
-        return enhancedRequest;
-      }
-      return prev;
-    });
-  }, [mergeGlobalFilters]);
-
   // Navigation handlers
   const handleNavigateToLogs = () => {
     if (availableViews.includes('logs')) {
@@ -145,7 +110,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
         <TableDashboard
           onNavigateToLogs={handleNavigateToLogs}
           savedRequest={tableRequest}
-          onRequestChange={handleTableRequestChange}
+          onRequestChange={setTableRequest}
           config={finalConfig}
           showViewsPanel={showViewsPanel}
         />
@@ -155,7 +120,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
         <LogsDashboard
           onNavigateToTable={handleNavigateToTable}
           savedRequest={logsRequest}
-          onRequestChange={handleLogsRequestChange}
+          onRequestChange={setLogsRequest}
           config={finalConfig}
           showViewsPanel={showViewsPanel}
         />
@@ -168,7 +133,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
           <TableDashboard
             onNavigateToLogs={handleNavigateToLogs}
             savedRequest={tableRequest}
-            onRequestChange={handleTableRequestChange}
+            onRequestChange={setTableRequest}
             config={finalConfig}
             showViewsPanel={showViewsPanel}
           />
@@ -178,7 +143,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
           <LogsDashboard
             onNavigateToTable={handleNavigateToTable}
             savedRequest={logsRequest}
-            onRequestChange={handleLogsRequestChange}
+            onRequestChange={setLogsRequest}
             config={finalConfig}
             showViewsPanel={showViewsPanel}
           />

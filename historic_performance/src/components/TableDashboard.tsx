@@ -236,7 +236,12 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     });
   };
 
-
+  // Update parent component when request changes
+  useEffect(() => {
+    if (onRequestChange) {
+      onRequestChange(request);
+    }
+  }, [request, onRequestChange]);
 
   // API call
   const fetchTable = useCallback(async (requestData: TableRequest) => {
@@ -244,9 +249,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     
     try {
       setRequest(requestData);
-      if (onRequestChange) {
-        onRequestChange(requestData);
-      }
+      // TODO: call mergeGlobalFilters here
       const res = await fetch('http://localhost:8000/api/v1/table/aggregation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -271,9 +274,6 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
             column_selections_to_remove: []
         };
         setRequest(newRequest);
-        if (onRequestChange) {
-          onRequestChange(newRequest);
-        }
       } else {
         const newRequest = {
             ...requestData,
@@ -281,14 +281,11 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
             slices: data.slices || []
         };
         setRequest(newRequest);
-        if (onRequestChange) {
-          onRequestChange(newRequest);
-        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
-  }, [onRequestChange]);
+  }, []);
 
   // Initial load. Use saved request if present.
   useEffect(() => {
@@ -297,7 +294,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     } else {
       fetchTable(request);
     }
-  }, [savedRequest, request, fetchTable]);
+  }, []);
 
   // Helper function to find node by ID
   const findNodeById = (node: ColumnNode | undefined, targetId: string): ColumnNode | null => {
