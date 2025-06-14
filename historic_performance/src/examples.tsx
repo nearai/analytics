@@ -53,13 +53,38 @@ const CALTrackingConfig = () => (
   }} />
 );
 
-// 4. Full dashboard with both views
+// 4. Time Series dashboard with default configuration
+const TimeSeriesConfig = () => (
+  <Dashboard config={{
+    views: ['timeseries'],
+    defaultView: 'timeseries',
+    metricSelection: 'PERFORMANCE',
+    viewConfigs: {
+      timeseries: {
+        defaultParameters: {
+          time_filter: '1 month',
+          time_granulation: '1 day'
+        },
+        timeFilterRecommendations: ['last hour', 'last day', 'last week', 'last month', 'last year']
+      }
+    }
+  }} />
+);
+
+// 5. Full dashboard with all views
 const FullDashboardConfig = () => (
   <Dashboard config={{
-    views: ['table', 'logs'],
-    defaultView: 'table',
+    views: ['timeseries', 'table', 'logs'],
+    defaultView: 'timeseries',
     metricSelection: 'CUSTOM',
     viewConfigs: {
+      timeseries: {
+        defaultParameters: {
+          time_filter: '1 month',
+          time_granulation: '1 day'
+        },
+        timeFilterRecommendations: ['last hour', 'last day', 'last week', 'last month', 'last year']
+      },
       table: {
         timeFilterRecommendations: ['last hour', 'last day', 'last week']
       },
@@ -75,5 +100,6 @@ export {
   TableOnlyConfig,
   LogsOnlyConfig,
   CALTrackingConfig,
+  TimeSeriesConfig,
   FullDashboardConfig
 };

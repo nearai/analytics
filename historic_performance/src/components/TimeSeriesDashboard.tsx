@@ -662,13 +662,58 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                 <div key={graph.id} className="border border-gray-300 rounded-lg p-4 bg-white">
                   <div className="flex justify-between items-center mb-2">
                     <h3 className="font-semibold">Graph {graphs.indexOf(graph) + 1}</h3>
-                    <button
-                      onClick={() => setShowGraphConfig({ graphId: graph.id })}
-                      className="p-1 text-gray-500 hover:text-gray-700"
-                    >
-                      <Settings size={16} />
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setShowGraphConfig({ graphId: graph.id })}
+                        className="p-1 text-gray-500 hover:text-gray-700"
+                        title="Configure graph"
+                      >
+                        <Settings size={16} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          const newGraphs = graphs.filter(g => g.id !== graph.id);
+                          setGraphs(newGraphs);
+                          setRequest({ ...request, graphs: newGraphs });
+                        }}
+                        className="p-1 text-red-500 hover:text-red-700"
+                        title="Remove graph"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
                   </div>
+                  
+                  {/* Display line configurations */}
+                  {graph.lineConfigurations.length > 0 && (
+                    <div className="mb-2">
+                      <div className="text-xs text-gray-600 mb-1">Lines:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {graph.lineConfigurations.map((lineConfig, idx) => (
+                          <div 
+                            key={idx}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-xs"
+                          >
+                            <div 
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor: lineConfig.color || getLineColor(
+                                  lineConfig.metricName, 
+                                  lineConfig.slice || '', 
+                                  lineConfig.filters || []
+                                )
+                              }}
+                            />
+                            <span>
+                              {lineConfig.metricName.split('/').pop()}
+                              {lineConfig.slice && ` (${lineConfig.slice})`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="h-64 bg-gray-50 rounded">
                     {graph.lineConfigurations.length === 0 ? (
                       <div className="flex items-center justify-center h-full text-gray-500">
