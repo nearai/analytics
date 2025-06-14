@@ -82,21 +82,26 @@ export interface LogsResponse {
 
 // Time Series API types
 export interface LineConfiguration {
+  /** Unique identifier for this line configuration. Generated using `line-${Date.now()}` for internal state management and React keys. */
   id: string;
   metricName: string;
   filters?: string[];
   slice?: string;
-  color?: string;
+  /** Color assignment. If no slice is used, this is a single color string. If slice is used, this should be a map from slice values to colors. */
+  color?: string | Record<string, string>;
 }
 
 export interface GraphConfiguration {
+  /** Unique identifier for this graph configuration. Generated using `graph-${Date.now()}` for internal state management and React keys. */
   id: string;
   lineConfigurations: LineConfiguration[];
 }
 
 export interface TimeSeriesRequest {
+  /** Temporal filter for the time range (e.g., "1 month", "last week"). Different from LineConfiguration.filters which are metric-specific. */
   time_filter?: string;
   time_granulation?: string;
+  /** Array of graph configurations. Position in the grid is determined by array order (2-column grid layout, left-to-right, top-to-bottom). */
   graphs?: GraphConfiguration[];
 }
 
@@ -106,13 +111,16 @@ export interface TimeSeriesDataPoint {
 }
 
 export interface TimeSeriesLine {
+  /** Unique identifier for this rendered line. Generated during data processing from LineConfiguration metadata and slice values. */
   id: string;
   name: string;
   data: TimeSeriesDataPoint[];
+  /** Color for this specific line. Derived from LineConfiguration.color based on slice values or auto-assigned. */
   color: string;
 }
 
 export interface TimeSeriesGraph {
+  /** Unique identifier for this rendered graph. Corresponds to GraphConfiguration.id for associating data with configuration. */
   id: string;
   lines: TimeSeriesLine[];
 }

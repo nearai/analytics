@@ -61,6 +61,25 @@ const getLineColor = (metricName: string, sliceValue: string, filters: string[])
   }
 };
 
+// Helper functions for handling color types
+const getColorForLineConfig = (lineConfig: LineConfiguration): string => {
+  if (!lineConfig.color) {
+    return getLineColor(lineConfig.metricName, lineConfig.slice || '', lineConfig.filters || []);
+  }
+  
+  if (typeof lineConfig.color === 'string') {
+    return lineConfig.color;
+  }
+  
+  // If color is a map and we have a slice, try to get the color for this slice value
+  if (lineConfig.slice && lineConfig.color[lineConfig.slice]) {
+    return lineConfig.color[lineConfig.slice];
+  }
+  
+  // Fallback to auto-generated color
+  return getLineColor(lineConfig.metricName, lineConfig.slice || '', lineConfig.filters || []);
+};
+
 const isSuccessLine = (metricName: string, sliceValue: string, filters: string[]): boolean => {
   // Check if 'success' is in metric name or slice value
   if (metricName.toLowerCase().includes('success') || sliceValue.toLowerCase().includes('success')) {
@@ -303,7 +322,7 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
         <label className="block text-sm font-medium mb-1">Color</label>
         <input
           type="color"
-          value={lineConfig.color || getLineColor(lineConfig.metricName, lineConfig.slice || '', lineConfig.filters || [])}
+          value={getColorForLineConfig(lineConfig)}
           onChange={(e) => onUpdate({ ...lineConfig, color: e.target.value })}
           className="w-16 h-8 border rounded"
         />
@@ -697,11 +716,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                             <div 
                               className="w-3 h-3 rounded-full"
                               style={{
-                                backgroundColor: lineConfig.color || getLineColor(
-                                  lineConfig.metricName, 
-                                  lineConfig.slice || '', 
-                                  lineConfig.filters || []
-                                )
+                                backgroundColor: getColorForLineConfig(lineConfig)
                               }}
                             />
                             <span>
@@ -732,10 +747,10 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                             .filter(key => key !== 'timestamp' && key !== 'time')
                             .map((dataKey, idx) => {
                               const lineConfig = graph.lineConfigurations[idx % graph.lineConfigurations.length];
-                              const color = lineConfig?.color || getLineColor(
-                                lineConfig?.metricName || dataKey, 
-                                lineConfig?.slice || '', 
-                                lineConfig?.filters || []
+                              const color = lineConfig ? getColorForLineConfig(lineConfig) : getLineColor(
+                                dataKey, 
+                                '', 
+                                []
                               );
                               
                               return (
@@ -873,10 +888,20 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
       return;
     }
 
+    // Ensure all valid configurations have colors assigned
+    const configsWithColors = validConfigs.map(config => {
+      if (!config.color) {
+        // Assign a color if none is set
+        const autoColor = getLineColor(config.metricName, config.slice || '', config.filters || []);
+        return { ...config, color: autoColor };
+      }
+      return config;
+    });
+
     // Update the graph in the graphs array
     const updatedGraphs = graphs.map(g => 
       g.id === graphId 
-        ? { ...g, lineConfigurations: validConfigs }
+        ? { ...g, lineConfigurations: configsWithColors }
         : g
     );
     
