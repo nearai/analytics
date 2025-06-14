@@ -27,7 +27,6 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
   
   // Determine available views
   const availableViews = finalConfig.views || ['table', 'logs'];
-  const showViewsPanel = availableViews.length > 1;
   
   // Current view state
   const [currentView, setCurrentView] = useState<ViewType>(
@@ -89,54 +88,32 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
 
   // Render the appropriate view
   const renderCurrentView = () => {
-    if (currentView === 'table' && availableViews.includes('table')) {
+    const viewToRender = availableViews.includes(currentView) ? currentView : availableViews[0];
+    
+    const commonProps = {
+      config: finalConfig,
+    };
+    
+    if (viewToRender === 'table') {
       return (
         <TableDashboard
+          {...commonProps}
           onNavigateToLogs={handleNavigateToLogs}
           savedRequest={tableRequest}
           onRequestChange={setTableRequest}
-          config={finalConfig}
-          showViewsPanel={showViewsPanel}
           refreshTrigger={tableRefreshTrigger}
         />
       );
-    } else if (currentView === 'logs' && availableViews.includes('logs')) {
+    } else {
       return (
         <LogsDashboard
+          {...commonProps}
           onNavigateToTable={handleNavigateToTable}
           savedRequest={logsRequest}
           onRequestChange={setLogsRequest}
-          config={finalConfig}
-          showViewsPanel={showViewsPanel}
           refreshTrigger={logsRefreshTrigger}
         />
       );
-    } else {
-      // Fallback to first available view
-      const fallbackView = availableViews[0];
-      if (fallbackView === 'table') {
-        return (
-          <TableDashboard
-            onNavigateToLogs={handleNavigateToLogs}
-            savedRequest={tableRequest}
-            onRequestChange={setTableRequest}
-            config={finalConfig}
-            showViewsPanel={showViewsPanel}
-            refreshTrigger={tableRefreshTrigger}
-          />
-        );
-      } else {
-        return (
-          <LogsDashboard
-            onNavigateToTable={handleNavigateToTable}
-            savedRequest={logsRequest}
-            onRequestChange={setLogsRequest}
-            config={finalConfig}
-            showViewsPanel={showViewsPanel}
-            refreshTrigger={logsRefreshTrigger}
-          />
-        );
-      }
     }
   };
 

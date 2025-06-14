@@ -144,7 +144,6 @@ interface TableDashboardProps {
   savedRequest?: TableRequest | null;
   onRequestChange?: (request: TableRequest) => void;
   config?: DashboardConfig;
-  showViewsPanel?: boolean;
   refreshTrigger?: number;
 }
 
@@ -153,7 +152,6 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   savedRequest, 
   onRequestChange, 
   config, 
-  showViewsPanel = true,
   refreshTrigger = 0
 }) => {
   // State
@@ -175,6 +173,15 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   const [request, setRequest] = useState<TableRequest>(savedRequest || getInitialRequest());
   
   // Helper functions for configuration
+  const getAvailableViews = (): string[] => {
+    return config?.views || ['table', 'logs'];
+  };
+  
+  const shouldShowViewsPanel = (): boolean => {
+    const availableViews = getAvailableViews();
+    return availableViews.length > 1;
+  };
+
   const getVisibleParameters = (): string[] => {
     const showParameters = config?.viewConfigs?.table?.showParameters;
     if (showParameters === undefined) {
@@ -530,7 +537,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         <h2 className="text-lg font-bold mb-3">Table Controls</h2>
         
         {/* Navigation to Logs */}
-        {showViewsPanel && (
+        {shouldShowViewsPanel() && (
           <CollapsibleSection title="Views" defaultOpen={true}>
             <button
               onClick={onNavigateToLogs}
