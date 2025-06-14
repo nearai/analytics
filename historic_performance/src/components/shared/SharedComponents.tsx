@@ -305,12 +305,62 @@ export const mergeGlobalFilters = (globalFilters: string[] | undefined, requestF
 export const getTimeFilters = (timeFilterRecommendations?: string[]) => {
   const now = new Date();
   
-  // If config provides custom recommendations, use those
+  // Helper function to convert human-readable time periods to hours
+  const parseTimePeriod = (period: string): number | null => {
+    const normalized = period.toLowerCase().trim();
+    
+    if (normalized.includes('minute')) {
+      const match = normalized.match(/(\d+)\s*minute/);
+      if (match) return parseInt(match[1]) / 60; // Convert minutes to hours
+      if (normalized === 'last minute') return 1 / 60;
+    }
+    
+    if (normalized.includes('hour')) {
+      const match = normalized.match(/(\d+)\s*hour/);
+      if (match) return parseInt(match[1]);
+      if (normalized === 'last hour') return 1;
+    }
+    
+    if (normalized.includes('day')) {
+      const match = normalized.match(/(\d+)\s*day/);
+      if (match) return parseInt(match[1]) * 24;
+      if (normalized === 'last day') return 24;
+    }
+    
+    if (normalized.includes('week')) {
+      const match = normalized.match(/(\d+)\s*week/);
+      if (match) return parseInt(match[1]) * 168;
+      if (normalized === 'last week') return 168;
+    }
+    
+    if (normalized.includes('month')) {
+      const match = normalized.match(/(\d+)\s*month/);
+      if (match) return parseInt(match[1]) * 24 * 30; // Approximate
+      if (normalized === 'last month') return 24 * 30;
+    }
+    
+    return null;
+  };
+  
+  // If config provides custom recommendations, convert them to filters
   if (timeFilterRecommendations && timeFilterRecommendations.length > 0) {
-    return timeFilterRecommendations.map(filter => ({
-      label: filter.replace('time_end_utc:range:(', '').replace('):', ''),
-      filter
-    }));
+    return timeFilterRecommendations.map(recommendation => {
+      const hours = parseTimePeriod(recommendation);
+      if (hours !== null) {
+        const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000);
+        const isoString = cutoff.toISOString().replace(/\.\d{3}Z$/, '');
+        return {
+          label: recommendation,
+          filter: `time_end_utc:range:(${isoString}):`
+        };
+      } else {
+        // Fallback for unrecognized formats - just use as label and no filter
+        return {
+          label: recommendation,
+          filter: ''
+        };
+      }
+    });
   }
   
   // Default recommendations
