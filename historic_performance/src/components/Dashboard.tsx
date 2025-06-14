@@ -72,7 +72,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
     return () => {
       intervals.forEach(interval => clearInterval(interval));
     };
-  }, [finalConfig.viewConfigs, currentView]);
+  }, [finalConfig.viewConfigs, currentView, tableRequest, logsRequest]);
 
   // Navigation handlers
   const handleNavigateToLogs = () => {
