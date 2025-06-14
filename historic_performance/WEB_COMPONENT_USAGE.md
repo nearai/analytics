@@ -356,9 +356,9 @@ The Dashboard component automatically adapts its UI based on configuration:
 ```jsx
 // This configuration will show minimal UI with no side panels
 <Dashboard config={{
-  views: ['timeseries'],
+  views: ['table'],
   viewConfigs: {
-    timeseries: {
+    table: {
       showParameters: [] // Hides Parameters panel
     }
   }
