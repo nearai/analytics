@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect} from 'react';
 import TableDashboard from './TableDashboard';
 import LogsDashboard from './LogsDashboard';
 import { DashboardConfig, ViewType, TableRequest, LogsRequest } from './shared/types';

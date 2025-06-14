@@ -405,7 +405,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     } else {
       fetchLogs(request);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle refresh trigger changes
   useEffect(() => {
@@ -416,7 +416,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
         fetchLogs(request);
       }
     }
-  }, [refreshTrigger]);
+  }, [refreshTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handlers
   const handleRemoveFilter = (filter: string) => {

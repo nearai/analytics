@@ -304,7 +304,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     } else {
       fetchTable(request);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle refresh trigger changes
   useEffect(() => {
@@ -315,7 +315,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         fetchTable(request);
       }
     }
-  }, [refreshTrigger]);
+  }, [refreshTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper function to find node by ID
   const findNodeById = (node: ColumnNode | undefined, targetId: string): ColumnNode | null => {
