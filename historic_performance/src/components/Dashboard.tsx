@@ -15,7 +15,6 @@ const DEFAULT_CONFIG: DashboardConfig = {
   viewConfigs: {
     timeseries: {
       refreshRate: undefined,
-      timeFilterRecommendations: [],
       defaultParameters: {
         time_filter: '1 month',
         time_granulation: '1 day'
@@ -25,7 +24,7 @@ const DEFAULT_CONFIG: DashboardConfig = {
       refreshRate: undefined
     },
     logs: {
-      timeFilterRecommendations: [],
+      timeFilterRecommendations: [],  // Default: disable
       refreshRate: undefined
     }
   },
