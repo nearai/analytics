@@ -34,7 +34,7 @@ function App() {
 
 ## Configuration Options
 
-- **views**: Array of views to show ('table', 'logs'). If single view, hides the Views panel.
+- **views**: Array of views to show ('timeseries', 'table', 'logs'). If single view, hides the Views panel.
 - **globalFilters**: Filters applied to all requests but not shown in the Filters panel.
 - **metricSelection**: CUSTOM, PERFORMANCE, CAL (Cost/Accuracy/Latency), ERROR, FEEDBACK.
 - **defaultView**: Initial view to display.
@@ -48,7 +48,7 @@ The Dashboard component accepts a `config` prop with the following TypeScript in
 
 ```typescript
 interface DashboardConfig {
-  // Which views to show ('table', 'logs'). Single view hides Views panel
+  // Which views to show ('timeseries', 'table', 'logs'). Single view hides Views panel
   views?: ViewType[];
   
   // Filters applied to all requests but not shown in UI
@@ -59,12 +59,13 @@ interface DashboardConfig {
   
   // Per-view configuration
   viewConfigs?: {
+    timeseries?: ViewConfig;
     table?: ViewConfig;
     logs?: ViewConfig;
   };
   
   // Initial view to display
-  defaultView?: 'table' | 'logs';
+  defaultView?: 'timeseries' | 'table' | 'logs';
 }
 
 interface ViewConfig {
@@ -84,7 +85,28 @@ interface ViewConfig {
 
 ## Configuration Examples
 
-### 1. Table-Only View with Custom Parameters
+### 1. Time Series Dashboard with Performance Tracking
+
+```jsx
+<Dashboard config={{
+  views: ['timeseries'],
+  globalFilters: ['runner:not_in:local'],
+  metricSelection: 'PERFORMANCE',
+  defaultView: 'timeseries',
+  viewConfigs: {
+    timeseries: {
+      defaultParameters: {
+        time_filter: '1 month',
+        time_granulation: '1 day'
+      },
+      timeFilterRecommendations: ['last hour', 'last day', 'last week', 'last month', 'last year'],
+      refreshRate: 30 // Refresh every 30 seconds
+    }
+  }
+}} />
+```
+
+### 2. Table-Only View with Custom Parameters
 
 ```jsx
 <Dashboard config={{
@@ -105,7 +127,7 @@ interface ViewConfig {
 }} />
 ```
 
-### 2. Logs-Only Monitoring View
+### 3. Logs-Only Monitoring View
 
 ```jsx
 <Dashboard config={{
@@ -123,15 +145,23 @@ interface ViewConfig {
 }} />
 ```
 
-### 3. Full Dashboard with Custom Settings
+### 4. Full Dashboard with Time Series Primary
 
 ```jsx
 <Dashboard config={{
-  views: ['table', 'logs'],
+  views: ['timeseries', 'table', 'logs'],
   globalFilters: ['runner:not_in:local'],
   metricSelection: 'PERFORMANCE',
-  defaultView: 'table',
+  defaultView: 'timeseries',
   viewConfigs: {
+    timeseries: {
+      defaultParameters: {
+        time_filter: '1 week',
+        time_granulation: '1 hour'
+      },
+      timeFilterRecommendations: ['last hour', 'last day', 'last week'],
+      refreshRate: 60
+    },
     table: {
       showParameters: ['prune_mode'],
       defaultParameters: { 
@@ -149,7 +179,7 @@ interface ViewConfig {
 }} />
 ```
 
-### 4. Minimal Configuration (Hidden Panels)
+### 5. Minimal Configuration (Hidden Panels)
 
 ```jsx
 <Dashboard config={{
@@ -202,14 +232,50 @@ function AnalyticsPage() {
       </header>
       
       <Dashboard config={{
-        views: ['table'],
+        views: ['timeseries', 'table'],
         metricSelection: 'PERFORMANCE',
         globalFilters: ['runner:not_in:local'],
+        defaultView: 'timeseries',
         viewConfigs: {
+          timeseries: {
+            defaultParameters: {
+              time_filter: '1 month',
+              time_granulation: '1 day'
+            },
+            refreshRate: 300 // 300 seconds
+          },
           table: {
             showParameters: ['prune_mode'],
             defaultParameters: { prune_mode: 'column' },
-            refreshRate: 300 // 300 seconds
+            refreshRate: 300
+          }
+        }
+      }} />
+    </div>
+  );
+}
+```
+
+### Time Series Monitoring Widget
+
+```jsx
+// Real-time time series monitoring component
+function TimeSeriesMonitor() {
+  return (
+    <div className="monitor-widget">
+      <h3>Performance Trends</h3>
+      <Dashboard config={{
+        views: ['timeseries'],
+        metricSelection: 'PERFORMANCE',
+        defaultView: 'timeseries',
+        viewConfigs: {
+          timeseries: {
+            defaultParameters: {
+              time_filter: 'last day',
+              time_granulation: '1 hour'
+            },
+            timeFilterRecommendations: ['last hour', 'last day'],
+            refreshRate: 30
           }
         }
       }} />
@@ -244,15 +310,22 @@ function ErrorMonitor() {
 ### Performance Report
 
 ```jsx
-// Performance reporting dashboard
+// Performance reporting dashboard with time series primary
 function PerformanceReport() {
   return (
     <Dashboard config={{
-      views: ['table', 'logs'],
+      views: ['timeseries', 'table', 'logs'],
       globalFilters: ['runner:not_in:local'],
       metricSelection: 'PERFORMANCE',
-      defaultView: 'table',
+      defaultView: 'timeseries',
       viewConfigs: {
+        timeseries: {
+          defaultParameters: {
+            time_filter: 'last week',
+            time_granulation: '1 hour'
+          },
+          timeFilterRecommendations: ['last day', 'last week', 'last month']
+        },
         table: {
           showParameters: ['prune_mode', 'absent_metrics_strategy'],
           defaultParameters: { prune_mode: 'column' },
@@ -272,8 +345,8 @@ function PerformanceReport() {
 The Dashboard component automatically adapts its UI based on configuration:
 
 ### Views Panel
-- **Hidden**: When only one view is configured (`views: ['table']`)
-- **Shown**: When multiple views are configured (`views: ['table', 'logs']`)
+- **Hidden**: When only one view is configured (`views: ['timeseries']`)
+- **Shown**: When multiple views are configured (`views: ['timeseries', 'table', 'logs']`)
 
 ### Parameters Panel
 - **Hidden**: When `showParameters` is empty or undefined
@@ -283,9 +356,9 @@ The Dashboard component automatically adapts its UI based on configuration:
 ```jsx
 // This configuration will show minimal UI with no side panels
 <Dashboard config={{
-  views: ['table'],
+  views: ['timeseries'],
   viewConfigs: {
-    table: {
+    timeseries: {
       showParameters: [] // Hides Parameters panel
     }
   }
@@ -300,9 +373,17 @@ The component is fully typed. Import types for better development experience:
 import { Dashboard, DashboardConfig, ViewConfig } from '@nearai/analytics-dashboard';
 
 const config: DashboardConfig = {
-  views: ['table'],
+  views: ['timeseries', 'table'],
   globalFilters: ['runner:not_in:local'],
+  defaultView: 'timeseries',
   viewConfigs: {
+    timeseries: {
+      defaultParameters: {
+        time_filter: '1 week',
+        time_granulation: '1 hour'
+      },
+      refreshRate: 60
+    },
     table: {
       showParameters: ['prune_mode'],
       refreshRate: 60

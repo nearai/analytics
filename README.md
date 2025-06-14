@@ -54,7 +54,7 @@ curl -X POST "http://localhost:8000/api/v1/table/aggregation" \
 
 ### 4. [Run Historic Performance Dashboard](./historic_performance/)
 
-Run a web application for querying and visualizing analytics metrics data. Tools to browse logs, track and visualize agent performance over time.
+Run a web application for querying and visualizing analytics metrics data. Features comprehensive views for time series analysis, data tables, and chronological logs.
 
 ```bash
 cd historic_performance
@@ -74,10 +74,19 @@ import { Dashboard } from '@nearai/analytics-dashboard';
 
 // Use with configuration
 <Dashboard config={{
-  views: ['table'], // Show only table view
+  views: ['timeseries', 'table', 'logs'], // Time Series, Table, and Logs views
+  defaultView: 'timeseries', // Start with Time Series view
   globalFilters: ['runner:not_in:local'], // Applied to all requests
   metricSelection: 'PERFORMANCE', // Metric selection
   viewConfigs: {
+    timeseries: {
+      defaultParameters: {
+        time_filter: '1 month',
+        time_granulation: '1 day'
+      },
+      timeFilterRecommendations: ['last hour', 'last day', 'last week', 'last month', 'last year'],
+      refreshRate: 30 // Refresh every 30 seconds
+    },
     table: {
       showParameters: ['prune_mode'], // Show only specific parameters
       refreshRate: 30 // Refresh every 30 seconds

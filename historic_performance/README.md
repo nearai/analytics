@@ -1,6 +1,6 @@
 # Historic Performance Dashboard
 
-A web application for querying and visualizing analytics metrics data. Tools to browse logs, track and visualize agent performance over time. Can be used as a standalone web app or as a configurable web component in other applications.
+A web application for querying and visualizing analytics metrics data. Features comprehensive views for time series analysis, data tables, and chronological logs. Can be used as a standalone web app or as a configurable web component in other applications.
 
 ## Prerequisites
 
@@ -36,6 +36,47 @@ npm start
 ```
 http://localhost:3000
 ```
+
+## Dashboard Views
+
+The dashboard provides three main views accessible via navigation tabs:
+
+### Time Series View (Primary)
+
+**Interactive time series visualization with comprehensive graph management:**
+
+- **Control Panel**: Configure time filters, granulation, and global filters
+- **Graph Grid**: 2x3 layout supporting up to 6 graphs initially, with unlimited rows capability
+- **Add/Remove Graphs**: Click-to-add placeholders and remove buttons for existing graphs
+- **Graph Configuration Modal**: Pop-up interface for configuring multiple lines per graph
+- **Metric Tree Selection**: Interactive tree for selecting metrics from `/metrics/` paths using table API
+- **Filter Support**: Optional filters with syntax help and recommendations
+- **Slice Support**: Optional slicing with automatic slice value detection via API
+- **Smart Color Management**: Automatic color assignment based on success/error patterns, with manual override
+- **Auto Time Granulation**: Automatically adjusts based on time filter selection:
+  - 1 hour over 1 day/week
+  - 1 day over 1 month  
+  - 1 week over 1 year
+- **Real-time Data**: Uses `/graphs/time-series` endpoint for live data fetching
+
+### Table View
+
+- **Control Panel**: Configure parameters, filters, and slices
+- **Column Tree**: Hierarchical column selection
+- **Data Table**: Interactive table with sorting and filtering
+  - Initially a single row showing overall averages
+  - Dynamically filter and slice the data by any column
+- **Time Filters**: Quick filters for last hour/day/week
+- **Details View**: Click cells to view detailed JSON data
+
+### Chronological Logs View
+
+This view displays individual log entries in chronological order:
+
+- Detailed metadata for each run
+- Quick access to metrics and log files
+- Filtering by date ranges and metadata
+- Grouping
 
 ## Web Component Usage
 
@@ -77,8 +118,9 @@ The app is built with:
 - TypeScript
 - Tailwind CSS
 - Lucide React (for icons)
+- Recharts (for time series visualization)
 
-## TODO: Functions
+## Implementation Status
 
 #### 1. Custom View
 
@@ -88,16 +130,28 @@ The app is built with:
 - Stream of log files with detailed metadata.
 - Configurable through Dashboard component with any combination of parameters.
 
-#### 2. Performance Dashboard
+#### 2. Time Series Dashboard
 
-**Current implementation**: ✅ Available (almost)
+**Current implementation**: ✅ Available
+- Interactive time series visualization with graph management.
+- Time granulation: Auto-adjusting based on time filters and manual override.
+- Graph grid with configurable multiple lines per graph.
+- Metric selection via interactive tree from `/metrics/` paths.
+- Filter and slice support with API integration.
+- Smart color assignment and manual color override.
+- Default parameters optimized for performance tracking.
+- Real-time data fetching from `/graphs/time-series` endpoint.
+
+#### 3. Performance Dashboard
+
+**Current implementation**: ✅ Available
 - Time granulation: Manual time filters (last hour, day, week, custom ranges).
 - Metrics table with filtering, slicing, performance columns, and custom columns.
 - Stream of log files with chronological ordering.
 - Default parameters optimized for performance tracking.
-- Time filter recommendations passed to logs view. Recommended granulation: 1 minute, 1 hour, 1 day, 1 week.
+- Time filter recommendations passed to logs view.
 
-#### 3. Cost/Accuracy/Latency Tracking
+#### 4. Cost/Accuracy/Latency Tracking
 
 **Current implementation**: ❌ Not implemented
 - Metrics table with filtering, slicing, cost/accuracy/latency columns, and custom columns.
@@ -105,7 +159,7 @@ The app is built with:
 - **Note**: Metric selection parameter (CAL) added to configuration but not yet implemented.
 - **Future**: Will include specialized cost, accuracy, and latency column selections.
 
-#### 4. Error Analysis
+#### 5. Error Analysis
 
 **Current implementation**: ❌ Not implemented
 - **Planned**: Metrics table with filtering, slicing, error columns, and custom columns.
@@ -113,7 +167,7 @@ The app is built with:
 - **Future**: Error-specific filters and grouping strategies.
 - **Future**: Error pattern detection and analysis.
 
-#### 5. User Feedback Analysis
+#### 6. User Feedback Analysis
 
 **Current implementation**: ❌ Not implemented
 - **Planned**: Metrics table with filtering, slicing, feedback columns, and custom columns.
