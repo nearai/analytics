@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp, GripVertical, Table, FileText, Eye } from 'lucide-react';
 import { LogsRequest, LogsResponse, LogGroup, LogEntry, LogFile, DashboardConfig } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, formatTimestamp, getStyleClass, isTimestampLike, mergeGlobalFilters } from './shared/SharedComponents';
+import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, FiltersSection, formatTimestamp, getStyleClass, isTimestampLike, mergeGlobalFilters } from './shared/SharedComponents';
 
 // Format metadata/metrics for display
 const formatMetadataValue = (value: any): string => {
@@ -445,6 +445,15 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     }
   };
 
+  const handleTimeFilter = (filter: string) => {
+    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:'));
+    const newRequest = {
+      ...request,
+      filters: [...newFilters, filter]
+    };
+    fetchLogs(newRequest);
+  };
+
   const handleRemoveGroup = (group: string) => {
     const newRequest = {
       ...request,
@@ -542,31 +551,16 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
         )}
 
         {/* Filters */}
-        <CollapsibleSection title="Filters">
-          <FilterManager
-            title="Filters"
-            items={request.filters || []}
-            input={filterInput}
-            setInput={setFilterInput}
-            onAdd={handleAddFilter}
-            onRemove={handleRemoveFilter}
-            placeholder="e.g., runner:not_in:local"
-            itemColor="blue"
-            helpContent={
-              <>
-                <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
-                <p className="mb-1 text-gray-300">• <i>in/not_in</i>:</p>
-                <p className="ml-2 text-gray-400">agent_name:in:agent1,agent2</p>
-                <p className="mb-1 text-gray-300">• <i>range</i>:</p>
-                <p className="ml-2 text-[10px] text-gray-400">value:range:10:100<span className="text-gray-500 ml-1">(between 10 and 100)</span></p>
-                <p className="ml-2 text-[10px] text-gray-400">value:range:10:<span className="text-gray-500 ml-1">(minimum 10)</span></p>
-                <p className="ml-2 text-[10px] text-gray-400">value:range::100<span className="text-gray-500 ml-1">(maximum 100)</span></p>
-                <p className="ml-2 text-[10px] text-gray-400">time_end_utc:range:(2025-05-23T11:48):</p>
-                <p className="ml-4 text-[10px] text-gray-500">(after specified date/time)</p>
-              </>
-            }
-          />
-        </CollapsibleSection>
+        <FiltersSection
+          filters={request.filters || []}
+          filterInput={filterInput}
+          setFilterInput={setFilterInput}
+          onAddFilter={handleAddFilter}
+          onRemoveFilter={handleRemoveFilter}
+          onTimeFilter={handleTimeFilter}
+          timeFilterRecommendations={config?.viewConfigs?.logs?.timeFilterRecommendations}
+          showTimeFilters={true}
+        />
 
         {/* Groups */}
         <CollapsibleSection title="Groups">

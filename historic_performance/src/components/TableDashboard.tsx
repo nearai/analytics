@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical, FileText } from 'lucide-react';
 import { TableRequest, TableResponse, ColumnNode, Column, DashboardConfig } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FilterManager, formatTimestamp, getStyleClass, mergeGlobalFilters } from './shared/SharedComponents';
+import { CollapsibleSection, DetailsPopup, FilterManager, FiltersSection, formatTimestamp, getStyleClass, mergeGlobalFilters } from './shared/SharedComponents';
 
 // Component-specific utility functions
 const formatCellValue = (values: Record<string, any>, unit?: string): React.ReactNode => {
@@ -227,25 +227,6 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     isResizing.current = false;
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
-  };
-
-  // Generate time filter suggestions
-  const getTimeFilters = () => {
-    const now = new Date();
-    const formats = [
-      { label: 'last hour', hours: 1 },
-      { label: 'last day', hours: 24 },
-      { label: 'last week', hours: 168 }
-    ];
-    
-    return formats.map(({ label, hours }) => {
-      const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000);
-      const isoString = cutoff.toISOString().replace(/\.\d{3}Z$/, '');
-      return {
-        label,
-        filter: `time_end_utc:range:(${isoString}):`
-      };
-    });
   };
 
   // Update parent component when request changes
@@ -608,47 +589,16 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         )}
 
         {/* Filters */}
-        <CollapsibleSection title="Filters">
-          <FilterManager
-            title="Filters"
-            items={request.filters || []}
-            input={filterInput}
-            setInput={setFilterInput}
-            onAdd={handleAddFilter}
-            onRemove={handleRemoveFilter}
-            placeholder="e.g., runner:not_in:local"
-            itemColor="blue"
-            helpContent={
-              <>
-                <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
-                <p className="mb-1 text-gray-300">• <i>in/not_in</i>:</p>
-                <p className="ml-2 text-gray-400">agent_name:in:agent1,agent2</p>
-                <p className="mb-1 text-gray-300">• <i>range</i>:</p>
-                <p className="ml-2 text-[10px] text-gray-400">value:range:10:100<span className="text-gray-500 ml-1">(between 10 and 100)</span></p>
-                <p className="ml-2 text-[10px] text-gray-400">value:range:10:<span className="text-gray-500 ml-1">(minimum 10)</span></p>
-                <p className="ml-2 text-[10px] text-gray-400">value:range::100<span className="text-gray-500 ml-1">(maximum 100)</span></p>
-                <p className="ml-2 text-[10px] text-gray-400">time_end_utc:range:(2025-05-23T11:48):</p>
-                <p className="ml-4 text-[10px] text-gray-500">(after specified date/time)</p>
-              </>
-            }
-          />
-
-          {/* Time filters */}
-          <div className="mt-2">
-            <label className="block text-xs font-medium mb-1">Time Filters</label>
-            <div className="flex flex-wrap gap-1">
-              {getTimeFilters().map(({ label, filter }) => (
-                <button
-                  key={label}
-                  onClick={() => handleTimeFilter(filter)}
-                  className="inline-flex items-center px-2 py-1 bg-blue-950 hover:bg-blue-800 rounded-full text-xs"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </CollapsibleSection>
+        <FiltersSection
+          filters={request.filters || []}
+          filterInput={filterInput}
+          setFilterInput={setFilterInput}
+          onAddFilter={handleAddFilter}
+          onRemoveFilter={handleRemoveFilter}
+          onTimeFilter={handleTimeFilter}
+          timeFilterRecommendations={config?.viewConfigs?.table?.timeFilterRecommendations}
+          showTimeFilters={true}
+        />
 
         {/* Slices */}
         <CollapsibleSection title="Slices">
