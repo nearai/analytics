@@ -339,6 +339,12 @@ export const getTimeFilters = (timeFilterRecommendations?: string[]) => {
       if (normalized === 'last month') return 24 * 30;
     }
     
+    if (normalized.includes('year')) {
+      const match = normalized.match(/(\d+)\s*year/);
+      if (match) return parseInt(match[1]) * 24 * 365; // Approximate
+      if (normalized === 'last year') return 24 * 365;
+    }
+    
     return null;
   };
   
@@ -367,7 +373,9 @@ export const getTimeFilters = (timeFilterRecommendations?: string[]) => {
   const formats = [
     { label: 'last hour', hours: 1 },
     { label: 'last day', hours: 24 },
-    { label: 'last week', hours: 168 }
+    { label: 'last week', hours: 168 },
+    { label: 'last month', hours: 24 * 30 },
+    { label: 'last year', hours: 24 * 365 }
   ];
   
   return formats.map(({ label, hours }) => {
