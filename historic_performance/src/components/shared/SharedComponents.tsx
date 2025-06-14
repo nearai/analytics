@@ -343,7 +343,7 @@ export const getTimeFilters = (timeFilterRecommendations?: string[]) => {
   };
   
   // If config provides custom recommendations, convert them to filters
-  if (timeFilterRecommendations && timeFilterRecommendations.length > 0) {
+  if (timeFilterRecommendations) {
     return timeFilterRecommendations.map(recommendation => {
       const hours = parseTimePeriod(recommendation);
       if (hours !== null) {
@@ -402,6 +402,9 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({
   timeFilterRecommendations,
   showTimeFilters = true
 }) => {
+  if (showTimeFilters && timeFilterRecommendations) {
+    showTimeFilters = timeFilterRecommendations.length > 0
+  }
   return (
     <CollapsibleSection title="Filters">
       <FilterManager

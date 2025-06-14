@@ -4,9 +4,8 @@ The Historic Performance Dashboard can be used as a configurable web component i
 
 ## Installation
 
-To add the analytics dashboard as a dependency to another repository, you have several options:
+To add the analytics dashboard as a dependency to another repository:
 
-### Option 1: As an npm package (recommended)
 ```bash
 npm install @nearai/analytics-dashboard
 ```
@@ -16,30 +15,6 @@ This installs the pre-built dashboard component that can be imported directly in
 ```jsx
 import { Dashboard } from '@nearai/analytics-dashboard';
 ```
-
-### Option 2: As a git submodule
-```bash
-git submodule add https://github.com/nearai/analytics historic_performance
-```
-
-This creates a submodule in your repository pointing to the analytics repo. You can then import from the local source:
-
-```jsx
-import { Dashboard } from './historic_performance/src/components';
-```
-
-### Option 3: Copy source code
-```bash
-cp -r analytics/historic_performance/src/components ./src/
-```
-
-This copies the component source files directly into your project, giving you full control over the code:
-
-```jsx
-import { Dashboard } from './src/components';
-```
-
-The examples in this guide use the npm package import syntax unless otherwise specified.
 
 ## Basic Import and Usage
 
@@ -191,21 +166,7 @@ interface ViewConfig {
 
 ## Available Parameters
 
-### Table View Parameters
-
-For a complete list of available parameters, see the [Parameters section in canonical_metrics/README](../canonical_metrics/README.md#parameters).
-
-Key parameters include:
-- **prune_mode**: `'none' | 'column'` - How to handle missing data
-- **absent_metrics_strategy**: `'all_or_nothing' | 'nullify' | 'accept_subset'` - Strategy for missing metrics
-- **slices_recommendation_strategy**: `'none' | 'first_alphabetical' | 'concise'` - How to recommend data slices
-- **sort_by_column**: `string` - Column to sort by
-- **sort_order**: `'asc' | 'desc'` - Sort direction
-
-### Logs View Parameters
-
-- **prune_mode**: `'none' | 'column' | 'all'` - Data pruning strategy
-- **groups_recommendation_strategy**: `'none' | 'first_alphabetical' | 'concise'` - How to recommend groupings
+For a complete list of available parameters, see the [Parameters section in canonical_metrics/README](../canonical_metrics/README.md#parameters-reference).
 
 ## Auto-Refresh Feature
 
@@ -242,6 +203,7 @@ function AnalyticsPage() {
       
       <Dashboard config={{
         views: ['table'],
+        metricSelection: 'PERFORMANCE',
         globalFilters: ['runner:not_in:local'],
         viewConfigs: {
           table: {

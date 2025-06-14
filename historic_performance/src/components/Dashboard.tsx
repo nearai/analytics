@@ -16,6 +16,7 @@ const DEFAULT_CONFIG: DashboardConfig = {
       refreshRate: undefined
     },
     logs: {
+      timeFilterRecommendations: [],
       refreshRate: undefined
     }
   },
