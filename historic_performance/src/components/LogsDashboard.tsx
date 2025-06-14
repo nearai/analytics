@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronDown, ChevronUp, GripVertical, Table, FileText, Eye } from 'lucide-react';
+import { ChevronDown, ChevronUp, GripVertical, Table, FileText, Eye, BarChart3 } from 'lucide-react';
 import { LogsRequest, LogsResponse, LogGroup, LogEntry, LogFile, DashboardConfig } from './shared/types';
 import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, FiltersSection, formatTimestamp, getStyleClass, isTimestampLike, mergeGlobalFilters } from './shared/SharedComponents';
 
@@ -280,6 +280,7 @@ const LogEntryComponent: React.FC<{
 };
 
 interface LogsDashboardProps {
+  onNavigateToTimeSeries?: () => void;
   onNavigateToTable: () => void;
   savedRequest?: LogsRequest | null;
   onRequestChange?: (request: LogsRequest) => void;
@@ -288,6 +289,7 @@ interface LogsDashboardProps {
 }
 
 const LogsDashboard: React.FC<LogsDashboardProps> = ({ 
+  onNavigateToTimeSeries,
   onNavigateToTable, 
   savedRequest, 
   onRequestChange, 
@@ -312,7 +314,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
   
   // Helper functions for configuration
   const getAvailableViews = (): string[] => {
-    return config?.views || ['table', 'logs'];
+    return config?.views || ['timeseries', 'table', 'logs'];
   };
   
   const shouldShowViewsPanel = (): boolean => {
@@ -495,16 +497,29 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
       >
         <h2 className="text-lg font-bold mb-3">Logs Controls</h2>
         
-        {/* Navigation to Table */}
+        {/* Navigation to other views */}
         {shouldShowViewsPanel() && (
           <CollapsibleSection title="Views" defaultOpen={true}>
-            <button
-              onClick={onNavigateToTable}
-              className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-            >
-              <Table size={16} />
-              View Table
-            </button>
+            <div className="space-y-2">
+              {getAvailableViews().includes('timeseries') && onNavigateToTimeSeries && (
+                <button
+                  onClick={onNavigateToTimeSeries}
+                  className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
+                >
+                  <BarChart3 size={16} />
+                  View Time Series
+                </button>
+              )}
+              {getAvailableViews().includes('table') && (
+                <button
+                  onClick={onNavigateToTable}
+                  className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
+                >
+                  <Table size={16} />
+                  View Table
+                </button>
+              )}
+            </div>
           </CollapsibleSection>
         )}
         

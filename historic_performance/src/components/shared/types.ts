@@ -80,9 +80,67 @@ export interface LogsResponse {
   group_recommendations: string[];
 }
 
+// Time Series API types
+export interface LineConfiguration {
+  id: string;
+  metricName: string;
+  filters?: string[];
+  slice?: string;
+  color?: string;
+}
+
+export interface GraphConfiguration {
+  id: string;
+  lineConfigurations: LineConfiguration[];
+}
+
+export interface TimeSeriesRequest {
+  time_filter?: string;
+  time_granulation?: string;
+  graphs?: GraphConfiguration[];
+}
+
+export interface TimeSeriesDataPoint {
+  time: number;
+  value: number;
+}
+
+export interface TimeSeriesLine {
+  id: string;
+  name: string;
+  data: TimeSeriesDataPoint[];
+  color: string;
+}
+
+export interface TimeSeriesGraph {
+  id: string;
+  lines: TimeSeriesLine[];
+}
+
+export interface TimeSeriesApiRequest {
+  time_granulation: number;
+  moving_aggregation_field_name: string;
+  global_filters?: string[];
+  moving_aggregation_filters?: string[];
+  slice_field?: string;
+}
+
+export interface TimeSeriesApiResponse {
+  time_begin: number;
+  time_end: number;
+  time_granulation: number;
+  filters: string[];
+  field_name: string;
+  slice_field: string;
+  slice_values: string[];
+  values: number[][];
+  min_value: number;
+  max_value: number;
+}
+
 // Dashboard Configuration types for web component usage
 export type MetricSelection = 'CUSTOM' | 'PERFORMANCE' | 'CAL' | 'ERROR' | 'FEEDBACK';
-export type ViewType = 'table' | 'logs';
+export type ViewType = 'timeseries' | 'table' | 'logs';
 
 export interface ViewConfig {
   // Which parameters to show and their default values
@@ -103,6 +161,7 @@ export interface DashboardConfig {
   metricSelection?: MetricSelection;
   // Configuration for each view
   viewConfigs?: {
+    timeseries?: ViewConfig;
     table?: ViewConfig;
     logs?: ViewConfig;
   };
