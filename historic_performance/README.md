@@ -126,32 +126,22 @@ The app is built with:
 
 **Current implementation**: ✅ Available
 - Launch on any data as long as it is in canonical metrics format.
+- Interactive time series visualization with graph management.
 - Custom metrics table with full parameter control.
 - Stream of log files with detailed metadata.
 - Configurable through Dashboard component with any combination of parameters.
 
-#### 2. Time Series Dashboard
-
-**Current implementation**: ✅ Available
-- Interactive time series visualization with graph management.
-- Time granulation: Auto-adjusting based on time filters and manual override.
-- Graph grid with configurable multiple lines per graph.
-- Metric selection via interactive tree from `/metrics/` paths.
-- Filter and slice support with API integration.
-- Smart color assignment and manual color override.
-- Default parameters optimized for performance tracking.
-- Real-time data fetching from `/graphs/time-series` endpoint.
-
-#### 3. Performance Dashboard
+#### 2. Performance Dashboard
 
 **Current implementation**: ✅ Available
 - Time granulation: Manual time filters (last hour, day, week, custom ranges).
+- Interactive time series visualization with graph management.
 - Metrics table with filtering, slicing, performance columns, and custom columns.
 - Stream of log files with chronological ordering.
 - Default parameters optimized for performance tracking.
 - Time filter recommendations passed to logs view.
 
-#### 4. Cost/Accuracy/Latency Tracking
+#### 3. Cost/Accuracy/Latency Tracking
 
 **Current implementation**: ❌ Not implemented
 - Metrics table with filtering, slicing, cost/accuracy/latency columns, and custom columns.
@@ -159,7 +149,7 @@ The app is built with:
 - **Note**: Metric selection parameter (CAL) added to configuration but not yet implemented.
 - **Future**: Will include specialized cost, accuracy, and latency column selections.
 
-#### 5. Error Analysis
+#### 4. Error Analysis
 
 **Current implementation**: ❌ Not implemented
 - **Planned**: Metrics table with filtering, slicing, error columns, and custom columns.
@@ -167,7 +157,7 @@ The app is built with:
 - **Future**: Error-specific filters and grouping strategies.
 - **Future**: Error pattern detection and analysis.
 
-#### 6. User Feedback Analysis
+#### 5. User Feedback Analysis
 
 **Current implementation**: ❌ Not implemented
 - **Planned**: Metrics table with filtering, slicing, feedback columns, and custom columns.
