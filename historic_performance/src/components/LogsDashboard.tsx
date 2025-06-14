@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp, GripVertical, Table, FileText, Eye } from 'lucide-react';
 import { LogsRequest, LogsResponse, LogGroup, LogEntry, LogFile, DashboardConfig } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, formatTimestamp, getStyleClass, isTimestampLike } from './shared/SharedComponents';
+import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, formatTimestamp, getStyleClass, isTimestampLike, mergeGlobalFilters } from './shared/SharedComponents';
 
 // Format metadata/metrics for display
 const formatMetadataValue = (value: any): string => {
@@ -285,6 +285,7 @@ interface LogsDashboardProps {
   onRequestChange?: (request: LogsRequest) => void;
   config?: DashboardConfig;
   showViewsPanel?: boolean;
+  refreshTrigger?: number;
 }
 
 const LogsDashboard: React.FC<LogsDashboardProps> = ({ 
@@ -292,7 +293,8 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
   savedRequest, 
   onRequestChange, 
   config, 
-  showViewsPanel = true 
+  showViewsPanel = true,
+  refreshTrigger = 0
 }) => {
   // State
   const defaultRequest: LogsRequest = {
@@ -332,6 +334,9 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
   const [groupInput, setGroupInput] = useState('');
   const [panelWidth, setPanelWidth] = useState(256);
 
+  // Store the last refresh trigger value to detect changes
+  const lastRefreshTrigger = useRef(refreshTrigger);
+
   // Resize panel
   const isResizing = useRef(false);
   
@@ -368,11 +373,16 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     
     try {
       setRequest(requestData);
-      // TODO: call mergeGlobalFilters here
+      // Merge global filters with request filters
+      const mergedFilters = mergeGlobalFilters(config?.globalFilters, requestData.filters);
+      const requestWithGlobalFilters = {
+        ...requestData,
+        filters: mergedFilters
+      };
       const res = await fetch('http://localhost:8000/api/v1/logs/list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData)
+        body: JSON.stringify(requestWithGlobalFilters)
       });
       
       if (!res.ok) {
@@ -386,7 +396,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [config?.globalFilters]);
 
   // Initial load. Use saved request if present.
   useEffect(() => {
@@ -396,6 +406,17 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
       fetchLogs(request);
     }
   }, []);
+
+  // Handle refresh trigger changes
+  useEffect(() => {
+    if (refreshTrigger !== lastRefreshTrigger.current && refreshTrigger > 0) {
+      lastRefreshTrigger.current = refreshTrigger;
+      // Only refresh if we have a request
+      if (request) {
+        fetchLogs(request);
+      }
+    }
+  }, [refreshTrigger]);
 
   // Handlers
   const handleRemoveFilter = (filter: string) => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical, FileText } from 'lucide-react';
 import { TableRequest, TableResponse, ColumnNode, Column, DashboardConfig } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FilterManager, formatTimestamp, getStyleClass } from './shared/SharedComponents';
+import { CollapsibleSection, DetailsPopup, FilterManager, formatTimestamp, getStyleClass, mergeGlobalFilters } from './shared/SharedComponents';
 
 // Component-specific utility functions
 const formatCellValue = (values: Record<string, any>, unit?: string): React.ReactNode => {
@@ -145,6 +145,7 @@ interface TableDashboardProps {
   onRequestChange?: (request: TableRequest) => void;
   config?: DashboardConfig;
   showViewsPanel?: boolean;
+  refreshTrigger?: number;
 }
 
 const TableDashboard: React.FC<TableDashboardProps> = ({ 
@@ -152,7 +153,8 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   savedRequest, 
   onRequestChange, 
   config, 
-  showViewsPanel = true 
+  showViewsPanel = true,
+  refreshTrigger = 0
 }) => {
   // State
   const defaultRequest: TableRequest = {
@@ -194,6 +196,9 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   const [sliceInput, setSliceInput] = useState('');
   const [isColumnTreeOpen, setIsColumnTreeOpen] = useState(true);
   const [panelWidth, setPanelWidth] = useState(256); // 256px = 16rem
+
+  // Store the last refresh trigger value to detect changes
+  const lastRefreshTrigger = useRef(refreshTrigger);
 
   // Resize panel
   const isResizing = useRef(false);
@@ -249,11 +254,16 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     
     try {
       setRequest(requestData);
-      // TODO: call mergeGlobalFilters here
+      // Merge global filters with request filters
+      const mergedFilters = mergeGlobalFilters(config?.globalFilters, requestData.filters);
+      const requestWithGlobalFilters = {
+        ...requestData,
+        filters: mergedFilters
+      };
       const res = await fetch('http://localhost:8000/api/v1/table/aggregation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData)
+        body: JSON.stringify(requestWithGlobalFilters)
       });
       
       if (!res.ok) {
@@ -285,7 +295,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
-  }, []);
+  }, [config?.globalFilters]);
 
   // Initial load. Use saved request if present.
   useEffect(() => {
@@ -295,6 +305,17 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
       fetchTable(request);
     }
   }, []);
+
+  // Handle refresh trigger changes
+  useEffect(() => {
+    if (refreshTrigger !== lastRefreshTrigger.current && refreshTrigger > 0) {
+      lastRefreshTrigger.current = refreshTrigger;
+      // Only refresh if we have a request
+      if (request) {
+        fetchTable(request);
+      }
+    }
+  }, [refreshTrigger]);
 
   // Helper function to find node by ID
   const findNodeById = (node: ColumnNode | undefined, targetId: string): ColumnNode | null => {

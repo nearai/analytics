@@ -37,58 +37,42 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
   // Store requests for each view to maintain state when switching
   const [tableRequest, setTableRequest] = useState<TableRequest | null>(null);
   const [logsRequest, setLogsRequest] = useState<LogsRequest | null>(null);
-  
-  // Refresh intervals for each view (for web component usage)
-  const [refreshIntervals, setRefreshIntervals] = useState<{
-    table?: NodeJS.Timeout;
-    logs?: NodeJS.Timeout;
-  }>({});
 
-  // TODO: Refresh is not triggered when request is updated (and should not be triggered when request is updated). Fix and move this into individual components or SharedComponent.
-  // Setup refresh intervals when used as web component
+  // Refresh triggers - incrementing these will cause child components to refresh
+  const [tableRefreshTrigger, setTableRefreshTrigger] = useState(0);
+  const [logsRefreshTrigger, setLogsRefreshTrigger] = useState(0);
+  
+  // Setup refresh intervals
   useEffect(() => {
-    const tableRefreshRate = finalConfig.viewConfigs?.table?.refreshRate;
-    const logsRefreshRate = finalConfig.viewConfigs?.logs?.refreshRate;
-    
-    // Clear existing intervals
-    setRefreshIntervals(prev => {
-      Object.values(prev).forEach(interval => {
-        if (interval) clearInterval(interval);
-      });
-      return {};
-    });
-    
-    const newIntervals: typeof refreshIntervals = {};
+    const intervals: NodeJS.Timeout[] = [];
     
     // Setup table refresh if specified
+    const tableRefreshRate = finalConfig.viewConfigs?.table?.refreshRate;
     if (tableRefreshRate && tableRefreshRate > 0) {
-      newIntervals.table = setInterval(() => {
+      const tableInterval = setInterval(() => {
         if (currentView === 'table' && tableRequest) {
-          // Trigger refresh by updating request
-          setTableRequest(prev => prev ? { ...prev } : null);
+          setTableRefreshTrigger(prev => prev + 1);
         }
       }, tableRefreshRate * 1000);
+      intervals.push(tableInterval);
     }
     
     // Setup logs refresh if specified
+    const logsRefreshRate = finalConfig.viewConfigs?.logs?.refreshRate;
     if (logsRefreshRate && logsRefreshRate > 0) {
-      newIntervals.logs = setInterval(() => {
+      const logsInterval = setInterval(() => {
         if (currentView === 'logs' && logsRequest) {
-          // Trigger refresh by updating request
-          setLogsRequest(prev => prev ? { ...prev } : null);
+          setLogsRefreshTrigger(prev => prev + 1);
         }
       }, logsRefreshRate * 1000);
+      intervals.push(logsInterval);
     }
     
-    setRefreshIntervals(newIntervals);
-    
-    // Cleanup on unmount
+    // Cleanup on unmount or when dependencies change
     return () => {
-      Object.values(newIntervals).forEach(interval => {
-        if (interval) clearInterval(interval);
-      });
+      intervals.forEach(interval => clearInterval(interval));
     };
-  }, [finalConfig.viewConfigs, currentView, tableRequest, logsRequest]);
+  }, [finalConfig.viewConfigs, currentView]);
 
   // Navigation handlers
   const handleNavigateToLogs = () => {
@@ -113,6 +97,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
           onRequestChange={setTableRequest}
           config={finalConfig}
           showViewsPanel={showViewsPanel}
+          refreshTrigger={tableRefreshTrigger}
         />
       );
     } else if (currentView === 'logs' && availableViews.includes('logs')) {
@@ -123,6 +108,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
           onRequestChange={setLogsRequest}
           config={finalConfig}
           showViewsPanel={showViewsPanel}
+          refreshTrigger={logsRefreshTrigger}
         />
       );
     } else {
@@ -136,6 +122,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
             onRequestChange={setTableRequest}
             config={finalConfig}
             showViewsPanel={showViewsPanel}
+            refreshTrigger={tableRefreshTrigger}
           />
         );
       } else {
@@ -146,6 +133,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
             onRequestChange={setLogsRequest}
             config={finalConfig}
             showViewsPanel={showViewsPanel}
+            refreshTrigger={logsRefreshTrigger}
           />
         );
       }

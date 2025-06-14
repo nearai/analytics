@@ -290,8 +290,13 @@ export const getStyleClass = (key: string, filters: string[], slicesOrGroups: st
 };
 
 // Helper to merge global filters with request filters
-export const mergeGlobalFilters = useCallback((requestFilters?: string[]): string[] => {
-  const globalFilters = finalConfig.globalFilters || [];
-  const filters = requestFilters || [];
-  return [...globalFilters, ...filters];
-}, [finalConfig.globalFilters]);
+export const mergeGlobalFilters = (globalFilters: string[] | undefined, requestFilters: string[] | undefined): string[] => {
+  const global = globalFilters || [];
+  const request = requestFilters || [];
+  
+  // Combine both arrays
+  const combined = [...global, ...request];
+  
+  // Remove duplicates while preserving order
+  return Array.from(new Set(combined));
+};
