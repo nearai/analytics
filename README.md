@@ -63,6 +63,29 @@ npm start
 ```
 Will open a dashboard at `http://localhost:3000`
 
+The dashboard can also be used as a web component in other applications:
+
+```bash
+npm install @nearai/analytics-dashboard
+```
+
+```jsx
+import { Dashboard } from '@nearai/analytics-dashboard';
+
+// Use with configuration
+<Dashboard config={{
+  views: ['table'], // Show only table view
+  globalFilters: ['runner:not_in:local'], // Applied to all requests
+  metricSelection: 'PERFORMANCE', // Metric selection
+  viewConfigs: {
+    table: {
+      showParameters: ['prune_mode'], // Show only specific parameters
+      refreshRate: 30 // Refresh every 30 seconds
+    }
+  }
+}} />
+```
+
 ### 5. Run Benchmarks and Evaluations
 
 Execute popular and user-owned benchmarks to generate performance metrics. Run audit evaluations on agents.

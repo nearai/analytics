@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical, FileText } from 'lucide-react';
-import { TableRequest, TableResponse, ColumnNode, Column } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FilterManager, formatTimestamp, getStyleClass } from './shared/SharedComponents';
+import { TableRequest, TableResponse, ColumnNode, Column, DashboardConfig } from './shared/types';
+import { CollapsibleSection, DetailsPopup, FilterManager, FiltersSection, formatTimestamp, getStyleClass, mergeGlobalFilters } from './shared/SharedComponents';
 
 // Component-specific utility functions
 const formatCellValue = (values: Record<string, any>, unit?: string): React.ReactNode => {
@@ -143,18 +143,58 @@ interface TableDashboardProps {
   onNavigateToLogs: () => void;
   savedRequest?: TableRequest | null;
   onRequestChange?: (request: TableRequest) => void;
+  config?: DashboardConfig;
+  refreshTrigger?: number;
 }
 
-const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, savedRequest, onRequestChange }) => {
+const TableDashboard: React.FC<TableDashboardProps> = ({ 
+  onNavigateToLogs, 
+  savedRequest, 
+  onRequestChange, 
+  config, 
+  refreshTrigger = 0
+}) => {
   // State
-  const [request, setRequest] = useState<TableRequest>(savedRequest || {
+  const defaultRequest: TableRequest = {
     prune_mode: 'column',
     absent_metrics_strategy: 'nullify',
     slices_recommendation_strategy: 'concise',
     filters: [],
     slices: [],
     column_selections: ['/metadata/time_end_utc/max_value', '/metrics/']
-  });
+  };
+  
+  // Apply default parameters from config
+  const getInitialRequest = (): TableRequest => {
+    const configDefaults = config?.viewConfigs?.table?.defaultParameters || {};
+    return { ...defaultRequest, ...configDefaults };
+  };
+  
+  const [request, setRequest] = useState<TableRequest>(savedRequest || getInitialRequest());
+  
+  // Helper functions for configuration
+  const getAvailableViews = (): string[] => {
+    return config?.views || ['table', 'logs'];
+  };
+  
+  const shouldShowViewsPanel = (): boolean => {
+    const availableViews = getAvailableViews();
+    return availableViews.length > 1;
+  };
+
+  const getVisibleParameters = (): string[] => {
+    const showParameters = config?.viewConfigs?.table?.showParameters;
+    if (showParameters === undefined) {
+      // Show all parameters by default
+      return ['prune_mode', 'absent_metrics_strategy', 'slices_recommendation_strategy'];
+    }
+    return showParameters;
+  };
+  
+  const shouldShowParametersPanel = (): boolean => {
+    const visibleParameters = getVisibleParameters();
+    return visibleParameters.length > 0;
+  };
   
   const [response, setResponse] = useState<TableResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -163,6 +203,9 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
   const [sliceInput, setSliceInput] = useState('');
   const [isColumnTreeOpen, setIsColumnTreeOpen] = useState(true);
   const [panelWidth, setPanelWidth] = useState(256); // 256px = 16rem
+
+  // Store the last refresh trigger value to detect changes
+  const lastRefreshTrigger = useRef(refreshTrigger);
 
   // Resize panel
   const isResizing = useRef(false);
@@ -186,25 +229,6 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
     document.removeEventListener('mouseup', handleMouseUp);
   };
 
-  // Generate time filter suggestions
-  const getTimeFilters = () => {
-    const now = new Date();
-    const formats = [
-      { label: 'last hour', hours: 1 },
-      { label: 'last day', hours: 24 },
-      { label: 'last week', hours: 168 }
-    ];
-    
-    return formats.map(({ label, hours }) => {
-      const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000);
-      const isoString = cutoff.toISOString().replace(/\.\d{3}Z$/, '');
-      return {
-        label,
-        filter: `time_end_utc:range:(${isoString}):`
-      };
-    });
-  };
-
   // Update parent component when request changes
   useEffect(() => {
     if (onRequestChange) {
@@ -217,11 +241,17 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
     setError(null);
     
     try {
-      setRequest(requestData)
+      setRequest(requestData);
+      // Merge global filters with request filters
+      const mergedFilters = mergeGlobalFilters(config?.globalFilters, requestData.filters);
+      const requestWithGlobalFilters = {
+        ...requestData,
+        filters: mergedFilters
+      };
       const res = await fetch('http://localhost:8000/api/v1/table/aggregation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData)
+        body: JSON.stringify(requestWithGlobalFilters)
       });
       
       if (!res.ok) {
@@ -233,25 +263,27 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
       
       // Update request with response data
       if (requestData.column_selections_to_remove && requestData.column_selections_to_remove?.length > 0) {
-        setRequest(prev => ({
-            ...prev,
+        const newRequest = {
+            ...requestData,
             filters: data.filters || [],
             slices: data.slices || [],
             column_selections: data.columns.map((col: Column) => col.column_id),
             column_selections_to_add: [],
             column_selections_to_remove: []
-        }));
+        };
+        setRequest(newRequest);
       } else {
-        setRequest(prev => ({
-            ...prev,
+        const newRequest = {
+            ...requestData,
             filters: data.filters || [],
             slices: data.slices || []
-        }));
+        };
+        setRequest(newRequest);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
-  }, []);
+  }, [config?.globalFilters]);
 
   // Initial load. Use saved request if present.
   useEffect(() => {
@@ -260,7 +292,18 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
     } else {
       fetchTable(request);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle refresh trigger changes
+  useEffect(() => {
+    if (refreshTrigger !== lastRefreshTrigger.current && refreshTrigger > 0) {
+      lastRefreshTrigger.current = refreshTrigger;
+      // Only refresh if we have a request
+      if (request) {
+        fetchTable(request);
+      }
+    }
+  }, [refreshTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper function to find node by ID
   const findNodeById = (node: ColumnNode | undefined, targetId: string): ColumnNode | null => {
@@ -475,108 +518,87 @@ const TableDashboard: React.FC<TableDashboardProps> = ({ onNavigateToLogs, saved
         <h2 className="text-lg font-bold mb-3">Table Controls</h2>
         
         {/* Navigation to Logs */}
-        <CollapsibleSection title="Views" defaultOpen={true}>
-          <button
-            onClick={onNavigateToLogs}
-            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-          >
-            <FileText size={16} />
-            View Logs
-          </button>
-        </CollapsibleSection>
+        {shouldShowViewsPanel() && (
+          <CollapsibleSection title="Views" defaultOpen={true}>
+            <button
+              onClick={onNavigateToLogs}
+              className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
+            >
+              <FileText size={16} />
+              View Logs
+            </button>
+          </CollapsibleSection>
+        )}
 
         {/* Parameters */}
-        <CollapsibleSection title="Parameters">
-          <div className="space-y-2">
-            <div>
-              <label className="block text-xs font-medium mb-1" title="Heuristics to remove meaningless columns">
-                prune_mode
-              </label>
-              <select
-                value={request.prune_mode}
-                onChange={(e) => handleParameterChange('prune_mode', e.target.value)}
-                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
-                title="Select pruning strategy"
-              >
-                <option value="none" title="No pruning applied">none</option>
-                <option value="column" title="Remove columns if all column values are determined meaningless">column</option>
-              </select>
+        {shouldShowParametersPanel() && (
+          <CollapsibleSection title="Parameters">
+            <div className="space-y-2">
+              {getVisibleParameters().includes('prune_mode') && (
+                <div>
+                  <label className="block text-xs font-medium mb-1" title="Heuristics to remove meaningless columns">
+                    prune_mode
+                  </label>
+                  <select
+                    value={request.prune_mode}
+                    onChange={(e) => handleParameterChange('prune_mode', e.target.value)}
+                    className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
+                    title="Select pruning strategy"
+                  >
+                    <option value="none" title="No pruning applied">none</option>
+                    <option value="column" title="Remove columns if all column values are determined meaningless">column</option>
+                  </select>
+                </div>
+              )}
+              {getVisibleParameters().includes('absent_metrics_strategy') && (
+                <div>
+                  <label className="block text-xs font-medium mb-1" title="Strategy on how to deal with absent metrics">
+                    absent_metrics_strategy
+                  </label>
+                  <select
+                    value={request.absent_metrics_strategy}
+                    onChange={(e) => handleParameterChange('absent_metrics_strategy', e.target.value)}
+                    className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
+                    title="Select absent metrics strategy"
+                  >
+                    <option value="all_or_nothing" title="Include metric only if present in all entries">all_or_nothing</option>
+                    <option value="nullify" title="Replace missing values with 0">nullify</option>
+                    <option value="accept_subset" title="Include even if only in some entries. Number of samples is recorded in n_samples">accept_subset</option>
+                  </select>
+                </div>
+              )}
+              {getVisibleParameters().includes('slices_recommendation_strategy') && (
+                <div>
+                  <label className="block text-xs font-medium mb-1" title="Strategy for recommending slices">
+                    slices_recommendation_strategy
+                  </label>
+                  <select
+                    value={request.slices_recommendation_strategy}
+                    onChange={(e) => handleParameterChange('slices_recommendation_strategy', e.target.value)}
+                    className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
+                    title="Select slice recommendation strategy"
+                  >
+                    <option value="none" title="No slice recommendations">none</option>
+                    <option value="first_alphabetical" title="Recommend first alphabetical candidates">first_alphabetical</option>
+                    <option value="concise" title="Recommend most concise candidates">concise</option>
+                  </select>
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" title="How to handle metrics that are absent in some entries">
-                absent_metrics_strategy
-              </label>
-              <select
-                value={request.absent_metrics_strategy}
-                onChange={(e) => handleParameterChange('absent_metrics_strategy', e.target.value)}
-                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
-                title="Select strategy for absent metrics"
-              >
-                <option value="all_or_nothing" title="Do aggregation only if present in all slice entries">all_or_nothing</option>
-                <option value="nullify" title="Replace missing values with 0">nullify</option>
-                <option value="accept_subset" title="Include even if only in some entries. Number of samples is recorded in n_samples">accept_subset</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" title="Strategy for recommending slices">
-                slices_recommendation_strategy
-              </label>
-              <select
-                value={request.slices_recommendation_strategy}
-                onChange={(e) => handleParameterChange('slices_recommendation_strategy', e.target.value)}
-                className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
-                title="Select slice recommendation strategy"
-              >
-                <option value="none" title="No slice recommendations">none</option>
-                <option value="first_alphabetical" title="Recommend first alphabetical candidates">first_alphabetical</option>
-                <option value="concise" title="Recommend most concise candidates">concise</option>
-              </select>
-            </div>
-          </div>
-        </CollapsibleSection>
+          </CollapsibleSection>
+        )}
 
         {/* Filters */}
-        <CollapsibleSection title="Filters">
-          <FilterManager
-            title="Filters"
-            items={request.filters || []}
-            input={filterInput}
-            setInput={setFilterInput}
-            onAdd={handleAddFilter}
-            onRemove={handleRemoveFilter}
-            placeholder="e.g., runner:not_in:local"
-            itemColor="blue"
-            helpContent={
-              <>
-                <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
-                <p className="mb-1 text-gray-300">• <i>in/not_in</i>:</p>
-                <p className="ml-2 text-gray-400">agent_name:in:agent1,agent2</p>
-                <p className="mb-1 text-gray-300">• <i>range</i>:</p>
-                <p className="ml-2 text-[10px] text-gray-400">value:range:10:100<span className="text-gray-500 ml-1">(between 10 and 100)</span></p>
-                <p className="ml-2 text-[10px] text-gray-400">value:range:10:<span className="text-gray-500 ml-1">(minimum 10)</span></p>
-                <p className="ml-2 text-[10px] text-gray-400">value:range::100<span className="text-gray-500 ml-1">(maximum 100)</span></p>
-                <p className="ml-2 text-[10px] text-gray-400">time_end_utc:range:(2025-05-23T11:48):</p>
-                <p className="ml-4 text-[10px] text-gray-500">(after specified date/time)</p>
-              </>
-            }
-          />
-
-          {/* Time filters */}
-          <div className="mt-2">
-            <label className="block text-xs font-medium mb-1">Time Filters</label>
-            <div className="flex flex-wrap gap-1">
-              {getTimeFilters().map(({ label, filter }) => (
-                <button
-                  key={label}
-                  onClick={() => handleTimeFilter(filter)}
-                  className="inline-flex items-center px-2 py-1 bg-blue-950 hover:bg-blue-800 rounded-full text-xs"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </CollapsibleSection>
+        <FiltersSection
+          filters={request.filters || []}
+          filterInput={filterInput}
+          setFilterInput={setFilterInput}
+          onAddFilter={handleAddFilter}
+          onRemoveFilter={handleRemoveFilter}
+          onTimeFilter={handleTimeFilter}
+          timeFilterRecommendations={config?.viewConfigs?.table?.timeFilterRecommendations}
+          showTimeFilters={true}
+        />
 
         {/* Slices */}
         <CollapsibleSection title="Slices">

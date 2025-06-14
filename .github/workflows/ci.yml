@@ -55,3 +55,30 @@ jobs:
       run: |
         cd canonical_metrics
         ./scripts/type_check.sh
+
+  test-historic-performance:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: historic_performance/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd historic_performance
+        npm ci
+    
+    - name: Build historic_performance
+      run: |
+        cd historic_performance
+        npm run build
+    
+    - name: Type Check historic_performance
+      run: |
+        cd historic_performance
+        npx tsc --noEmit
