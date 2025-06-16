@@ -1,12 +1,18 @@
 # Evaluation Tools
 
-Tools for visualizing and analyzing agent evaluation metrics.
+Tools for analyzing models, agent, and visualizing metrics.
 
-## Overview
+## Models Evaluations
 
-The Evaluation Dashboard provides a structured view of agent performance metrics, allowing for easy comparison across different agents, models, and configurations.
+TODO
+
+## Agent Evaluations
+
+TODO
 
 ### Evaluation Table
+
+The Evaluation Dashboard provides a structured view of agent performance metrics, allowing for easy comparison across different agents, models, and configurations.
 
 The main component of the dashboard is the Evaluation Table:
 
