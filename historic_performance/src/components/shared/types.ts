@@ -98,8 +98,8 @@ export interface GraphConfiguration {
 }
 
 export interface TimeSeriesRequest {
-  /** Temporal filter for the time range (e.g., "1 month", "last week"). Different from LineConfiguration.filters which are metric-specific. */
-  time_filter?: string;
+  /** Array of filters including temporal and metric-specific filters */
+  filters?: string[];
   time_granulation?: string;
   /** Array of graph configurations. Position in the grid is determined by array order (2-column grid layout, left-to-right, top-to-bottom). */
   graphs?: GraphConfiguration[];

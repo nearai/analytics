@@ -351,8 +351,9 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   // Default request based on config
   const getDefaultRequest = (): TimeSeriesRequest => {
     const defaultParams = config?.viewConfigs?.timeseries?.defaultParameters || {};
+    const defaultTimeFilter = defaultParams.time_filter || '1 month';
     return {
-      time_filter: defaultParams.time_filter || '1 month',
+      filters: [defaultTimeFilter],
       time_granulation: defaultParams.time_granulation || '1 day',
       graphs: []
     };
@@ -380,7 +381,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     try {
       setLoading(true);
       const tableRequest: TableRequest = {
-        filters: mergeGlobalFilters(config?.globalFilters, [request.time_filter || '']),
+        filters: mergeGlobalFilters(config?.globalFilters, request.filters),
         slices: [],
         absent_metrics_strategy: 'accept_subset'
       };
@@ -402,7 +403,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [config?.globalFilters, request.time_filter]);
+  }, [config?.globalFilters, request.filters]);
 
   useEffect(() => {
     fetchColumnTree();
@@ -429,7 +430,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         const apiRequest: TimeSeriesApiRequest = {
           time_granulation: getTimeGranulationMs(request.time_granulation || '1 day'),
           moving_aggregation_field_name: lineConfig.metricName,
-          global_filters: mergeGlobalFilters(config?.globalFilters, [request.time_filter || '']),
+          global_filters: mergeGlobalFilters(config?.globalFilters, request.filters),
           moving_aggregation_filters: lineConfig.filters,
           slice_field: lineConfig.slice
         };
@@ -496,7 +497,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     // Sort by timestamp
     chartData.sort((a, b) => a.timestamp - b.timestamp);
     return chartData;
-  }, [request.time_granulation, request.time_filter, config?.globalFilters]);
+  }, [request.time_granulation, request.filters, config?.globalFilters]);
 
   // Fetch data for all graphs
   const fetchAllGraphData = useCallback(async () => {
@@ -526,10 +527,11 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
 
   // Handle time filter change with auto granulation
   const handleTimeFilterChange = (filter: string) => {
+    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:'));
     const autoGranulation = getAutoTimeGranulation(filter);
     const newRequest = { 
       ...request, 
-      time_filter: filter,
+      filters: [...newFilters, filter],
       time_granulation: autoGranulation
     };
     setRequest(newRequest);
@@ -542,14 +544,17 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
 
   const handleAddFilter = () => {
     if (filterInput.trim()) {
-      // For time series, we might handle global filters differently
-      // For now, we'll store them in the request
+      const newFilters = [...(request.filters || []), filterInput.trim()];
+      const newRequest = { ...request, filters: newFilters };
+      setRequest(newRequest);
       setFilterInput('');
     }
   };
 
   const handleRemoveFilter = (filter: string) => {
-    // Handle filter removal
+    const newFilters = (request.filters || []).filter(f => f !== filter);
+    const newRequest = { ...request, filters: newFilters };
+    setRequest(newRequest);
   };
 
   // Resize panel functionality
@@ -572,17 +577,50 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  // Add empty graph
-  const addGraph = () => {
+  // Add empty graph at specific index
+  const addGraph = (index?: number) => {
     const newGraph: GraphConfiguration = {
       id: `graph-${Date.now()}`,
       lineConfigurations: []
     };
-    const newGraphs = [...graphs, newGraph];
+    
+    let newGraphs: GraphConfiguration[];
+    if (index !== undefined) {
+      // Fill with empty graphs if needed
+      const currentGraphs = [...graphs];
+      while (currentGraphs.length < index) {
+        currentGraphs.push({
+          id: `empty-graph-${Date.now()}-${currentGraphs.length}`,
+          lineConfigurations: []
+        });
+      }
+      // Insert at specific position
+      newGraphs = [...currentGraphs];
+      newGraphs[index] = newGraph;
+    } else {
+      // Add at the end
+      newGraphs = [...graphs, newGraph];
+    }
+    
     setGraphs(newGraphs);
     setRequest({ ...request, graphs: newGraphs });
     setShowGraphConfig({ graphId: newGraph.id });
   };
+
+  // Component for Add Graph placeholder
+  const AddGraphPlaceholder: React.FC<{ onClick: () => void }> = ({ onClick }) => (
+    <div 
+      className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+      onClick={onClick}
+    >
+      <div className="h-64 flex items-center justify-center">
+        <div className="text-center">
+          <Plus size={48} className="mx-auto text-gray-400 mb-2" />
+          <div className="text-gray-500">Add Graph</div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -637,7 +675,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
 
         {/* Filters */}
         <FiltersSection
-          filters={[]} // TODO: Implement filter management for time series
+          filters={request.filters || []}
           filterInput={filterInput}
           setFilterInput={setFilterInput}
           onAddFilter={handleAddFilter}
@@ -773,20 +811,15 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
               ))}
               
               {/* Add new graph placeholders */}
-              {Array.from({ length: Math.max(0, 6 - graphs.length) }, (_, index) => (
-                <div 
-                  key={`placeholder-${index}`}
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
-                  onClick={addGraph}
-                >
-                  <div className="h-64 flex items-center justify-center">
-                    <div className="text-center">
-                      <Plus size={48} className="mx-auto text-gray-400 mb-2" />
-                      <div className="text-gray-500">Add Graph</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {Array.from({ length: Math.max(2, 6 - graphs.length) }, (_, index) => {
+                const placeholderIndex = graphs.length + index;
+                return (
+                  <AddGraphPlaceholder 
+                    key={`placeholder-${index}`}
+                    onClick={() => addGraph(placeholderIndex)}
+                  />
+                );
+              })}
             </div>
           </div>
         )}
