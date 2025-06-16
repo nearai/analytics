@@ -2,7 +2,7 @@
 
 Tools for analyzing models, agent, and visualizing metrics.
 
-## Models Evaluations
+## Model Evaluations
 
 TODO
 
