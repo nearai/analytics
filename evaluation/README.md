@@ -1,8 +1,8 @@
-# Evaluation Dashboard
+# Evaluation Tools
 
-Tools for visualizing and analyzing agent evaluation metrics through an interactive dashboard.
+Tools for visualizing and analyzing agent evaluation metrics.
 
-## Dashboard Overview
+##Overview
 
 The Evaluation Dashboard provides a structured view of agent performance metrics, allowing for easy comparison across different agents, models, and configurations.
 
