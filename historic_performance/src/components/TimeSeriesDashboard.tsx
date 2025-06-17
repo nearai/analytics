@@ -94,7 +94,7 @@ const isSuccessLine = (metricName: string, sliceValue: string, filters: string[]
   for (const filter of filters) {
     if (filter.includes('success') && filter.includes('range:')) {
       const parts = filter.split(':');
-      if (parts.length == 4 && parseFloat(parts[2]) > 0) {
+      if (parts.length === 4 && parseFloat(parts[2]) > 0) {
         return true;
       }
     }
@@ -105,7 +105,7 @@ const isSuccessLine = (metricName: string, sliceValue: string, filters: string[]
   for (const filter of filters) {
     if ((filter.includes('error') || filter.includes('fail')) && filter.includes('range:')) {
       const parts = filter.split(':');
-      if (parts.length == 4 && parseFloat(parts[3]) == 0) {
+      if (parts.length === 4 && parseFloat(parts[3]) === 0) {
         return true;
       }
     }
@@ -126,7 +126,7 @@ const isErrorLine = (metricName: string, sliceValue: string, filters: string[]):
   for (const filter of filters) {
     if (filter.includes('success') && filter.includes('range:')) {
       const parts = filter.split(':');
-      if (parts.length == 4 && parseFloat(parts[3]) == 0) {
+      if (parts.length === 4 && parseFloat(parts[3]) === 0) {
         return true;
       }
     }
@@ -137,7 +137,7 @@ const isErrorLine = (metricName: string, sliceValue: string, filters: string[]):
   for (const filter of filters) {
     if ((filter.includes('error') || filter.includes('fail')) && filter.includes('range:')) {
       const parts = filter.split(':');
-      if (parts.length == 4 && parseFloat(parts[2]) > 0) {
+      if (parts.length === 4 && parseFloat(parts[2]) > 0) {
         return true;
       }
     }
@@ -298,7 +298,7 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
     };
 
     fetchSliceValues();
-  }, [lineConfig.slice, lineConfig.metricName, lineConfig.filters]);
+  }, [lineConfig.slice, lineConfig.metricName, lineConfig.filters]); // eslint-disable-line react-hooks/exhaustive-deps
   
   const handleMetricSelect = (metricName: string) => {
     onUpdate({ ...lineConfig, metricName });
@@ -940,7 +940,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                                   const lineConfig = metadata ? graph.lineConfigurations[metadata.configIndex] : undefined;
 
                                   const color = lineConfig
-                                    ? getColorForLineConfig(lineConfig, metadata?.sliceValue) // ← one-liner
+                                    ? getColorForLineConfig(lineConfig, metadata?.sliceValue)
                                     : DEFAULT_COLORS[0];
 
                                   return (
@@ -1056,7 +1056,7 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
     setLocalLineConfigs(newConfigs);
   };
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     // Validate that all line configurations have a metric selected
     const validConfigs = localLineConfigs.filter(config => config.metricName.trim() !== '');
     
@@ -1064,7 +1064,6 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
       alert('Please add at least one line configuration with a metric selected.');
       return;
     }
-
     // Ensure all valid configurations have colors assigned
     const configsWithColors = validConfigs.map(config => {
       if (!config.color) {
@@ -1074,7 +1073,6 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
       }
       return config;
     });
-
     // Update the graph in the graphs array
     const updatedGraphs = graphs.map(g => 
       g.id === graphId 
@@ -1083,7 +1081,7 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
     );
     
     onSave(updatedGraphs);
-  };
+  }, [localLineConfigs, graphs, graphId, onSave, getLineColor]);
 
   useEffect(() => {
     // Handle Esc key press
