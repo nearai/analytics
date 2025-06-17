@@ -239,6 +239,56 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
   columnTree
 }) => {
   const [filterInput, setFilterInput] = useState('');
+  const [sliceValues, setSliceValues] = useState<string[]>([]);
+  const [loadingSliceValues, setLoadingSliceValues] = useState(false);
+  
+  // Fetch slice values when slice changes
+  useEffect(() => {
+    const fetchSliceValues = async () => {
+      if (!lineConfig.slice || !lineConfig.metricName) {
+        setSliceValues([]);
+        return;
+      }
+      
+      setLoadingSliceValues(true);
+      try {
+        const apiRequest: TimeSeriesApiRequest = {
+          time_granulation: 24 * 60 * 60 * 1000, // Default to 1 day
+          moving_aggregation_field_name: lineConfig.metricName,
+          global_filters: [],
+          moving_aggregation_filters: lineConfig.filters,
+          slice_field: lineConfig.slice
+        };
+
+        const response = await fetch('/api/v1/graphs/time-series', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(apiRequest)
+        });
+
+        if (response.ok) {
+          const data: TimeSeriesApiResponse = await response.json();
+          setSliceValues(data.slice_values);
+          
+          // Initialize color map if needed
+          if (data.slice_values.length > 0 && typeof lineConfig.color !== 'object') {
+            const colorMap: Record<string, string> = {};
+            data.slice_values.forEach((value, index) => {
+              colorMap[value] = getLineColor(lineConfig.metricName, value, lineConfig.filters || []);
+            });
+            onUpdate({ ...lineConfig, color: colorMap });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch slice values:', err);
+        setSliceValues([]);
+      } finally {
+        setLoadingSliceValues(false);
+      }
+    };
+
+    fetchSliceValues();
+  }, [lineConfig.slice, lineConfig.metricName, lineConfig.filters]);
   
   const handleMetricSelect = (metricName: string) => {
     onUpdate({ ...lineConfig, metricName });
@@ -258,7 +308,25 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
   };
   
   const handleSliceChange = (slice: string) => {
-    onUpdate({ ...lineConfig, slice: slice || undefined });
+    if (slice) {
+      // Switching to sliced mode - color should become a map
+      onUpdate({ ...lineConfig, slice, color: {} });
+    } else {
+      // Switching to non-sliced mode - color should become a string
+      const defaultColor = getLineColor(lineConfig.metricName, '', lineConfig.filters || []);
+      onUpdate({ ...lineConfig, slice: undefined, color: defaultColor });
+    }
+  };
+  
+  const handleColorChange = (color: string, sliceValue?: string) => {
+    if (sliceValue && typeof lineConfig.color === 'object') {
+      // Update color for specific slice value
+      const newColorMap = { ...lineConfig.color, [sliceValue]: color };
+      onUpdate({ ...lineConfig, color: newColorMap });
+    } else if (!sliceValue) {
+      // Update single color
+      onUpdate({ ...lineConfig, color });
+    }
   };
 
   return (
@@ -319,17 +387,51 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
           placeholder="e.g., agent_name"
           className="w-full p-1.5 border rounded text-sm"
         />
+        {lineConfig.slice && loadingSliceValues && (
+          <div className="mt-1 text-xs text-gray-500">Loading slice values...</div>
+        )}
       </div>
       
-      {/* Color */}
+      {/* Color(s) */}
       <div>
-        <label className="block text-sm font-medium mb-1">Color</label>
-        <input
-          type="color"
-          value={getColorForLineConfig(lineConfig)}
-          onChange={(e) => onUpdate({ ...lineConfig, color: e.target.value })}
-          className="w-16 h-8 border rounded"
-        />
+        <label className="block text-sm font-medium mb-1">
+          {lineConfig.slice ? 'Colors' : 'Color'}
+        </label>
+        
+        {!lineConfig.slice ? (
+          // Single color picker when no slicing
+          <input
+            type="color"
+            value={typeof lineConfig.color === 'string' ? lineConfig.color : getColorForLineConfig(lineConfig)}
+            onChange={(e) => handleColorChange(e.target.value)}
+            className="w-16 h-8 border rounded"
+          />
+        ) : (
+          // Multiple color pickers for each slice value
+          <div className="space-y-2">
+            {sliceValues.length === 0 && !loadingSliceValues && (
+              <div className="text-xs text-gray-500">
+                Enter metric and slice to see slice values
+              </div>
+            )}
+            {sliceValues.map((sliceValue) => {
+              const colorMap = typeof lineConfig.color === 'object' ? lineConfig.color : {};
+              const currentColor = colorMap[sliceValue] || getLineColor(lineConfig.metricName, sliceValue, lineConfig.filters || []);
+              
+              return (
+                <div key={sliceValue} className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={currentColor}
+                    onChange={(e) => handleColorChange(e.target.value, sliceValue)}
+                    className="w-12 h-6 border rounded"
+                  />
+                  <span className="text-sm">{sliceValue}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -371,7 +473,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   const [showGraphConfig, setShowGraphConfig] = useState<{ graphId: string; lineId?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [graphData, setGraphData] = useState<Record<string, any[]>>({});
+  const [graphData, setGraphData] = useState<Record<string, { chartData: any[]; lineMetadata: Record<string, { configIndex: number; sliceValue?: string }> }>>({});
 
   // Update saved request when request changes
   useEffect(() => {
@@ -426,8 +528,10 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   // Fetch time series data for a graph
   const fetchTimeSeriesData = useCallback(async (graph: GraphConfiguration) => {
     const chartData: any[] = [];
+    const lineMetadata: Record<string, { configIndex: number; sliceValue?: string }> = {};
     
-    for (const lineConfig of graph.lineConfigurations) {
+    for (let configIndex = 0; configIndex < graph.lineConfigurations.length; configIndex++) {
+      const lineConfig = graph.lineConfigurations[configIndex];
       if (!lineConfig.metricName) continue;
       
       try {
@@ -463,6 +567,11 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           data.slice_values.forEach((sliceValue, sliceIndex) => {
             if (sliceIndex < data.values.length) {
               const lineData = data.values[sliceIndex];
+              const lineName = `${lineConfig.metricName.split('/').pop()}_${sliceValue}`;
+              
+              // Store metadata for color lookup
+              lineMetadata[lineName] = { configIndex, sliceValue };
+              
               timePoints.forEach((timestamp, timeIndex) => {
                 if (timeIndex < lineData.length) {
                   let existingPoint = chartData.find(p => p.timestamp === timestamp);
@@ -470,7 +579,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                     existingPoint = { timestamp, time: new Date(timestamp).toLocaleString() };
                     chartData.push(existingPoint);
                   }
-                  const lineName = `${lineConfig.metricName.split('/').pop()}_${sliceValue}`;
                   existingPoint[lineName] = lineData[timeIndex];
                 }
               });
@@ -480,6 +588,11 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           // Single line (no slicing)
           if (data.values.length > 0) {
             const lineData = data.values[0];
+            const lineName = lineConfig.metricName.split('/').pop() || lineConfig.metricName;
+            
+            // Store metadata for color lookup
+            lineMetadata[lineName] = { configIndex };
+            
             timePoints.forEach((timestamp, timeIndex) => {
               if (timeIndex < lineData.length) {
                 let existingPoint = chartData.find(p => p.timestamp === timestamp);
@@ -487,7 +600,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                   existingPoint = { timestamp, time: new Date(timestamp).toLocaleString() };
                   chartData.push(existingPoint);
                 }
-                const lineName = lineConfig.metricName.split('/').pop() || lineConfig.metricName;
                 existingPoint[lineName] = lineData[timeIndex];
               }
             });
@@ -498,9 +610,9 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
       }
     }
     
-    // Sort by timestamp
+    // Sort by timestamp and return both data and metadata
     chartData.sort((a, b) => a.timestamp - b.timestamp);
-    return chartData;
+    return { chartData, lineMetadata };
   }, [request.time_granulation, request.filters, config?.globalFilters]);
 
   // Fetch data for all graphs
@@ -509,11 +621,11 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     
     setLoading(true);
     try {
-      const newGraphData: Record<string, any[]> = {};
+      const newGraphData: Record<string, { chartData: any[]; lineMetadata: Record<string, { configIndex: number; sliceValue?: string }> }> = {};
       
       for (const graph of graphs) {
-        const data = await fetchTimeSeriesData(graph);
-        newGraphData[graph.id] = data;
+        const result = await fetchTimeSeriesData(graph);
+        newGraphData[graph.id] = result;
       }
       
       setGraphData(newGraphData);
@@ -778,22 +890,32 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                       </div>
                     ) : (
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={graphData[graph.id] || []}>
+                        <LineChart data={graphData[graph.id]?.chartData || []}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="time" fontSize={10} />
                           <YAxis fontSize={10} />
                           <Tooltip />
                           <Legend />
                           {/* Render lines based on available data keys */}
-                          {Object.keys(graphData[graph.id]?.[0] || {})
+                          {Object.keys(graphData[graph.id]?.chartData?.[0] || {})
                             .filter(key => key !== 'timestamp' && key !== 'time')
-                            .map((dataKey, idx) => {
-                              const lineConfig = graph.lineConfigurations[idx % graph.lineConfigurations.length];
-                              const color = lineConfig ? getColorForLineConfig(lineConfig) : getLineColor(
-                                dataKey, 
-                                '', 
-                                []
-                              );
+                            .map((dataKey) => {
+                              const metadata = graphData[graph.id]?.lineMetadata?.[dataKey];
+                              const lineConfig = metadata ? graph.lineConfigurations[metadata.configIndex] : undefined;
+                              
+                              let color = DEFAULT_COLORS[0];
+                              if (lineConfig) {
+                                if (metadata?.sliceValue && typeof lineConfig.color === 'object') {
+                                  // Use color from map for this slice value
+                                  color = lineConfig.color[metadata.sliceValue] || getLineColor(lineConfig.metricName, metadata.sliceValue, lineConfig.filters || []);
+                                } else if (typeof lineConfig.color === 'string') {
+                                  // Use single color
+                                  color = lineConfig.color;
+                                } else {
+                                  // Fallback to auto-generated color
+                                  color = getLineColor(lineConfig.metricName, metadata?.sliceValue || '', lineConfig.filters || []);
+                                }
+                              }
                               
                               return (
                                 <Line 
