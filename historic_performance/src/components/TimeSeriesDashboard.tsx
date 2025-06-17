@@ -17,7 +17,8 @@ import {
   FilterHelpContent, 
   FilterManager, 
   FiltersSection, 
-  mergeGlobalFilters 
+  mergeGlobalFilters, 
+  parseTimePeriodToHours
 } from './shared/SharedComponents';
 
 interface TimeSeriesDashboardProps {
@@ -236,12 +237,7 @@ interface LineConfigurationComponentProps {
 
 // Convert time granulation to milliseconds
 const getTimeGranulationMs = (granulation: string): number => {
-  switch (granulation) {
-    case '1 hour': return 60 * 60 * 1000;
-    case '1 day': return 24 * 60 * 60 * 1000;
-    case '1 week': return 7 * 24 * 60 * 60 * 1000;
-    default: return 60 * 60 * 1000;
-  }
+  return (parseTimePeriodToHours(granulation) ?? 1) * 60 * 60 * 1000;
 };
 
 const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
@@ -780,15 +776,20 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         <CollapsibleSection title="Time Granulation">
           <div>
             <label className="block text-xs font-medium mb-1">Granulation</label>
-            <select
+            <input
+              type="text"
               value={request.time_granulation || '1 day'}
               onChange={(e) => handleTimeGranulationChange(e.target.value)}
-              className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600"
-            >
-              <option value="1 hour">1 hour</option>
-              <option value="1 day">1 day</option>
-              <option value="1 week">1 week</option>
-            </select>
+              list="granulation-options"
+              placeholder="e.g., 1 minute, 1 hour, 1 day"
+              className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600 placeholder-gray-400"
+            />
+            <datalist id="granulation-options">
+              <option value="1 minute" />
+              <option value="1 hour" />
+              <option value="1 day" />
+              <option value="1 week" />
+            </datalist>
           </div>
         </CollapsibleSection>
 
@@ -829,115 +830,145 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
 
         {!loading && !error && (
           <div className="p-4">
-            <h1 className="text-2xl font-bold mb-4">Time Series Dashboard</h1>
-            
             {/* Graph Grid */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Existing graphs */}
-              {graphs.map((graph) => (
-                <div key={graph.id} className="border border-gray-300 rounded-lg p-4 bg-white">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold">Graph {graphs.indexOf(graph) + 1}</h3>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => setShowGraphConfig({ graphId: graph.id })}
-                        className="p-1 text-gray-500 hover:text-gray-700"
-                        title="Configure graph"
-                      >
-                        <Settings size={16} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          const newGraphs = graphs.filter(g => g.id !== graph.id);
-                          setGraphs(newGraphs);
-                          setRequest({ ...request, graphs: newGraphs });
-                        }}
-                        className="p-1 text-red-500 hover:text-red-700"
-                        title="Remove graph"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Display line configurations */}
-                  {graph.lineConfigurations.length > 0 && (
-                    <div className="mb-2">
-                      <div className="text-xs text-gray-600 mb-1">Lines:</div>
-                      <div className="flex flex-wrap gap-1">
-                        {graph.lineConfigurations.map((lineConfig, idx) => (
-                          <div 
-                            key={idx}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-xs"
+              {Array.from({ length: Math.max(6, 2 + graphs.length) }).map((_, slotIdx) => {
+                const graph = graphs[slotIdx];
+                const isPlaceholder = !graph || graph.id.startsWith('empty-graph');
+
+                /* ───── 1. A true graph card ───── */
+                if (!isPlaceholder) {
+                  return (
+                    <div key={graph.id} className="border border-gray-300 rounded-lg p-4 bg-white">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="font-semibold">Graph {graphs.indexOf(graph) + 1}</h3>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => setShowGraphConfig({ graphId: graph.id })}
+                            className="p-1 text-gray-500 hover:text-gray-700"
+                            title="Configure graph"
                           >
-                            <div 
-                              className="w-3 h-3 rounded-full"
-                              style={{
-                                backgroundColor: getColorForLineConfig(lineConfig)
-                              }}
-                            />
-                            <span>
-                              {lineConfig.metricName.split('/').pop()}
-                              {lineConfig.slice && ` (${lineConfig.slice})`}
-                            </span>
+                            <Settings size={16} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const newGraphs = graphs.filter(g => g.id !== graph.id);
+                              setGraphs(newGraphs);
+                              setRequest({ ...request, graphs: newGraphs });
+                            }}
+                            className="p-1 text-red-500 hover:text-red-700"
+                            title="Remove graph"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Display line configurations */}
+                      {graph.lineConfigurations.length > 0 && (
+                        <div className="mb-2">
+                          <div className="text-xs text-gray-600 mb-1">Lines:</div>
+                          <div className="flex flex-wrap gap-1">
+                            {graph.lineConfigurations.map((lineConfig, idx) => {
+                              // collect distinct slice values (if any) that belong to this config in the chart data
+                              const sliceDots =
+                                lineConfig.slice
+                                  ? Object.values(graphData[graph.id]?.lineMetadata || {})
+                                      .filter((m: any) => m.configIndex === idx)          // only this lineConfig
+                                      .reduce<(readonly [string, string])[]>((acc, m) => { // [sliceValue, color]
+                                        if (!acc.some(([v]) => v === m.sliceValue)) {
+                                          acc.push([m.sliceValue || "", getColorForLineConfig(lineConfig, m.sliceValue)]);
+                                        }
+                                        return acc;
+                                      }, [])
+                                  : [];
+
+                              return (
+                                <div
+                                  key={idx}
+                                  onClick={() => setShowGraphConfig({ graphId: graph.id })}
+                                  className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-xs
+                                            cursor-pointer hover:bg-gray-200"
+                                >
+                                  {/* one dot per slice, or a single dot if no slice */}
+                                  {sliceDots.length > 0
+                                    ? sliceDots.map(([val, col]) => (
+                                        <div
+                                          key={val}
+                                          className="w-3 h-3 rounded-full"
+                                          style={{ backgroundColor: col }}
+                                          title={val}                           // tooltip shows slice value
+                                        />
+                                      ))
+                                    : (
+                                      <div
+                                        className="w-3 h-3 rounded-full"
+                                        style={{ backgroundColor: getColorForLineConfig(lineConfig) }}
+                                      />
+                                    )
+                                  }
+
+                                  <span>
+                                    {lineConfig.metricName.split('/').pop()}
+                                    {lineConfig.slice && ` (${lineConfig.slice})`}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
-                        ))}
+                        </div>
+                      )}
+                      
+                      <div className="h-64 bg-gray-50 rounded">
+                        {graph.lineConfigurations.length === 0 ? (
+                          <div className="flex items-center justify-center h-full text-gray-500">
+                            No lines configured
+                          </div>
+                        ) : (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={graphData[graph.id]?.chartData || []}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="time" fontSize={10} />
+                              <YAxis fontSize={10} />
+                              <Tooltip />
+                              <Legend />
+                              {/* Render lines based on available data keys */}
+                              {Object.keys(graphData[graph.id]?.chartData?.[0] || {})
+                                .filter(k => k !== 'timestamp' && k !== 'time')
+                                .map(dataKey => {
+                                  const metadata   = graphData[graph.id]?.lineMetadata?.[dataKey];
+                                  const lineConfig = metadata ? graph.lineConfigurations[metadata.configIndex] : undefined;
+
+                                  const color = lineConfig
+                                    ? getColorForLineConfig(lineConfig, metadata?.sliceValue) // ← one-liner
+                                    : DEFAULT_COLORS[0];
+
+                                  return (
+                                    <Line
+                                      key={dataKey}
+                                      type="monotone"
+                                      dataKey={dataKey}
+                                      stroke={color}
+                                      strokeWidth={2}
+                                      dot={false}
+                                    />
+                                  );
+                                })}
+                            </LineChart>
+                          </ResponsiveContainer>
+                        )}
                       </div>
                     </div>
                   )}
-                  
-                  <div className="h-64 bg-gray-50 rounded">
-                    {graph.lineConfigurations.length === 0 ? (
-                      <div className="flex items-center justify-center h-full text-gray-500">
-                        No lines configured
-                      </div>
-                    ) : (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={graphData[graph.id]?.chartData || []}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="time" fontSize={10} />
-                          <YAxis fontSize={10} />
-                          <Tooltip />
-                          <Legend />
-                          {/* Render lines based on available data keys */}
-                          {Object.keys(graphData[graph.id]?.chartData?.[0] || {})
-                            .filter(k => k !== 'timestamp' && k !== 'time')
-                            .map(dataKey => {
-                              const metadata   = graphData[graph.id]?.lineMetadata?.[dataKey];
-                              const lineConfig = metadata ? graph.lineConfigurations[metadata.configIndex] : undefined;
-
-                              const color = lineConfig
-                                ? getColorForLineConfig(lineConfig, metadata?.sliceValue) // ← one-liner
-                                : DEFAULT_COLORS[0];
-
-                              return (
-                                <Line
-                                  key={dataKey}
-                                  type="monotone"
-                                  dataKey={dataKey}
-                                  stroke={color}
-                                  strokeWidth={2}
-                                  dot={false}
-                                />
-                              );
-                            })}
-                        </LineChart>
-                      </ResponsiveContainer>
-                    )}
-                  </div>
-                </div>
-              ))}
-              
-              {/* Add new graph placeholders */}
-              {Array.from({ length: Math.max(2, 6 - graphs.length) }, (_, index) => {
-                const placeholderIndex = graphs.length + index;
+                
+                /* ───── 2. Empty slot → “Add Graph” placeholder ───── */
                 return (
-                  <AddGraphPlaceholder 
-                    key={`placeholder-${index}`}
-                    onClick={() => addGraph(placeholderIndex)}
+                  <AddGraphPlaceholder
+                    key={`placeholder-${slotIdx}`}
+                    onClick={() => addGraph(slotIdx)}
                   />
                 );
-              })}
+              })}  
             </div>
           </div>
         )}
@@ -1003,17 +1034,6 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
     return existing;
   });
 
-  useEffect(() => {
-    // Handle Esc key press
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', handleEsc);
-    return () => document.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
-
   const addLineConfiguration = () => {
     const newLineConfig: LineConfiguration = {
       id: `line-${Date.now()}`,
@@ -1064,6 +1084,17 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
     
     onSave(updatedGraphs);
   };
+
+  useEffect(() => {
+    // Handle Esc key press
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleSave();
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [handleSave]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

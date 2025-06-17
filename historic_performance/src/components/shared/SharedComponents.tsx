@@ -301,57 +301,63 @@ export const mergeGlobalFilters = (globalFilters: string[] | undefined, requestF
   return Array.from(new Set(combined));
 };
 
+// Helper function to convert human-readable time periods to hours
+export const parseTimePeriodToHours = (period: string): number | null => {
+  const normalized = period.toLowerCase().trim();
+
+  if (normalized.includes('second')) {
+    const match = normalized.match(/(\d+)\s*second/);
+    if (match) return parseInt(match[1]) / 60 / 60;
+    if (normalized.endsWith('second')) return 1 / 60 / 60;
+  }
+  
+  if (normalized.includes('minute')) {
+    const match = normalized.match(/(\d+)\s*minute/);
+    if (match) return parseInt(match[1]) / 60;
+    if (normalized.endsWith('minute')) return 1 / 60;
+  }
+  
+  if (normalized.includes('hour')) {
+    const match = normalized.match(/(\d+)\s*hour/);
+    if (match) return parseInt(match[1]);
+    if (normalized.endsWith('hour')) return 1;
+  }
+  
+  if (normalized.includes('day')) {
+    const match = normalized.match(/(\d+)\s*day/);
+    if (match) return parseInt(match[1]) * 24;
+    if (normalized.endsWith('day')) return 24;
+  }
+  
+  if (normalized.includes('week')) {
+    const match = normalized.match(/(\d+)\s*week/);
+    if (match) return parseInt(match[1]) * 168;
+    if (normalized.endsWith('week')) return 168;
+  }
+  
+  if (normalized.includes('month')) {
+    const match = normalized.match(/(\d+)\s*month/);
+    if (match) return parseInt(match[1]) * 24 * 30; // Approximate
+    if (normalized.endsWith('month')) return 24 * 30;
+  }
+  
+  if (normalized.includes('year')) {
+    const match = normalized.match(/(\d+)\s*year/);
+    if (match) return parseInt(match[1]) * 24 * 365; // Approximate
+    if (normalized.endsWith('year')) return 24 * 365;
+  }
+  
+  return null;
+};
+
 // Generate time filter suggestions
 export const getTimeFilters = (timeFilterRecommendations?: string[]) => {
   const now = new Date();
   
-  // Helper function to convert human-readable time periods to hours
-  const parseTimePeriod = (period: string): number | null => {
-    const normalized = period.toLowerCase().trim();
-    
-    if (normalized.includes('minute')) {
-      const match = normalized.match(/(\d+)\s*minute/);
-      if (match) return parseInt(match[1]) / 60; // Convert minutes to hours
-      if (normalized === 'last minute') return 1 / 60;
-    }
-    
-    if (normalized.includes('hour')) {
-      const match = normalized.match(/(\d+)\s*hour/);
-      if (match) return parseInt(match[1]);
-      if (normalized === 'last hour') return 1;
-    }
-    
-    if (normalized.includes('day')) {
-      const match = normalized.match(/(\d+)\s*day/);
-      if (match) return parseInt(match[1]) * 24;
-      if (normalized === 'last day') return 24;
-    }
-    
-    if (normalized.includes('week')) {
-      const match = normalized.match(/(\d+)\s*week/);
-      if (match) return parseInt(match[1]) * 168;
-      if (normalized === 'last week') return 168;
-    }
-    
-    if (normalized.includes('month')) {
-      const match = normalized.match(/(\d+)\s*month/);
-      if (match) return parseInt(match[1]) * 24 * 30; // Approximate
-      if (normalized === 'last month') return 24 * 30;
-    }
-    
-    if (normalized.includes('year')) {
-      const match = normalized.match(/(\d+)\s*year/);
-      if (match) return parseInt(match[1]) * 24 * 365; // Approximate
-      if (normalized === 'last year') return 24 * 365;
-    }
-    
-    return null;
-  };
-  
   // If config provides custom recommendations, convert them to filters
   if (timeFilterRecommendations) {
     return timeFilterRecommendations.map(recommendation => {
-      const hours = parseTimePeriod(recommendation);
+      const hours = parseTimePeriodToHours(recommendation);
       if (hours !== null) {
         const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000);
         const isoString = cutoff.toISOString().replace(/\.\d{3}Z$/, '');
