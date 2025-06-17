@@ -1081,7 +1081,7 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
     );
     
     onSave(updatedGraphs);
-  }, [localLineConfigs, graphs, graphId, onSave, getLineColor]);
+  }, [localLineConfigs, graphs, graphId, onSave]);
 
   useEffect(() => {
     // Handle Esc key press
