@@ -98,7 +98,7 @@ export interface GraphConfiguration {
 }
 
 export interface TimeSeriesRequest {
-  /** Array of filters including temporal and metric-specific filters */
+  /** Array of filters from control panel including the temporal filter */
   filters?: string[];
   time_granulation?: string;
   /** Array of graph configurations. Position in the grid is determined by array order (2-column grid layout, left-to-right, top-to-bottom). */

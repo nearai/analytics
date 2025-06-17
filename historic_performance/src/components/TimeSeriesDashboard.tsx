@@ -14,6 +14,8 @@ import {
 } from './shared/types';
 import { 
   CollapsibleSection, 
+  FilterHelpContent, 
+  FilterManager, 
   FiltersSection, 
   mergeGlobalFilters 
 } from './shared/SharedComponents';
@@ -29,15 +31,15 @@ interface TimeSeriesDashboardProps {
 
 // Helper functions for time granulation
 const getAutoTimeGranulation = (timeFilter: string): string => {
-  if (timeFilter.includes('last hour') || timeFilter.includes('1 hour')) {
+  if (timeFilter.includes('hour')) {
+    return '1 minute';
+  } else if (timeFilter.includes('day')) {
     return '1 hour';
-  } else if (timeFilter.includes('last day') || timeFilter.includes('1 day')) {
+  } else if (timeFilter.includes('week')) {
     return '1 hour';
-  } else if (timeFilter.includes('last week') || timeFilter.includes('1 week')) {
-    return '1 hour';
-  } else if (timeFilter.includes('last month') || timeFilter.includes('1 month')) {
+  } else if (timeFilter.includes('month')) {
     return '1 day';
-  } else if (timeFilter.includes('last year') || timeFilter.includes('1 year')) {
+  } else if (timeFilter.includes('year')) {
     return '1 week';
   }
   return '1 day'; // default
@@ -62,22 +64,22 @@ const getLineColor = (metricName: string, sliceValue: string, filters: string[])
 };
 
 // Helper functions for handling color types
-const getColorForLineConfig = (lineConfig: LineConfiguration): string => {
+const getColorForLineConfig = (lineConfig: LineConfiguration, sliceValue?: string): string => {
   if (!lineConfig.color) {
-    return getLineColor(lineConfig.metricName, lineConfig.slice || '', lineConfig.filters || []);
+    return getLineColor(lineConfig.metricName, sliceValue || '', lineConfig.filters || []);
   }
   
   if (typeof lineConfig.color === 'string') {
     return lineConfig.color;
   }
-  
+
   // If color is a map and we have a slice, try to get the color for this slice value
-  if (lineConfig.slice && lineConfig.color[lineConfig.slice]) {
-    return lineConfig.color[lineConfig.slice];
+  if (sliceValue && lineConfig.color[sliceValue]) {
+    return lineConfig.color[sliceValue];
   }
   
   // Fallback to auto-generated color
-  return getLineColor(lineConfig.metricName, lineConfig.slice || '', lineConfig.filters || []);
+  return getLineColor(lineConfig.metricName, sliceValue || '', lineConfig.filters || []);
 };
 
 const isSuccessLine = (metricName: string, sliceValue: string, filters: string[]): boolean => {
@@ -87,19 +89,24 @@ const isSuccessLine = (metricName: string, sliceValue: string, filters: string[]
   }
   
   // Check filters for success with lower bound > 0
+  // Example: "api_call/summary/completion_calls_success:range:1:"
   for (const filter of filters) {
-    if (filter.includes('success') && filter.includes('range:') && filter.includes(':')) {
+    if (filter.includes('success') && filter.includes('range:')) {
       const parts = filter.split(':');
-      if (parts.length >= 4 && parseFloat(parts[3]) > 0) {
+      if (parts.length == 4 && parseFloat(parts[2]) > 0) {
         return true;
       }
     }
   }
   
   // Check filters for error/fail with upper bound = 0
+  // Example: "errors/summary/error_count_all:range::0.0"
   for (const filter of filters) {
-    if ((filter.includes('error') || filter.includes('fail')) && filter.includes('range:') && filter.includes('::0')) {
-      return true;
+    if ((filter.includes('error') || filter.includes('fail')) && filter.includes('range:')) {
+      const parts = filter.split(':');
+      if (parts.length == 4 && parseFloat(parts[3]) == 0) {
+        return true;
+      }
     }
   }
   
@@ -112,19 +119,24 @@ const isErrorLine = (metricName: string, sliceValue: string, filters: string[]):
       sliceValue.toLowerCase().includes('fail') || sliceValue.toLowerCase().includes('error')) {
     return true;
   }
-  
+
   // Check filters for success with upper bound = 0
+  // Example: "api_call/summary/completion_calls_success:range::0"
   for (const filter of filters) {
-    if (filter.includes('success') && filter.includes('range:') && filter.includes('::0')) {
-      return true;
+    if (filter.includes('success') && filter.includes('range:')) {
+      const parts = filter.split(':');
+      if (parts.length == 4 && parseFloat(parts[3]) == 0) {
+        return true;
+      }
     }
   }
   
   // Check filters for error/fail with lower bound > 0
+  // Example: "errors/summary/error_count_all:range:1:"
   for (const filter of filters) {
-    if ((filter.includes('error') || filter.includes('fail')) && filter.includes('range:') && filter.includes(':')) {
+    if ((filter.includes('error') || filter.includes('fail')) && filter.includes('range:')) {
       const parts = filter.split(':');
-      if (parts.length >= 4 && parseFloat(parts[3]) > 0) {
+      if (parts.length == 4 && parseFloat(parts[2]) > 0) {
         return true;
       }
     }
@@ -144,12 +156,12 @@ interface MetricTreeProps {
 const MetricTree: React.FC<MetricTreeProps> = ({ node, selectedPath, onSelectMetric, level = 0 }) => {
   const [isExpanded, setIsExpanded] = useState(level < 2); // Auto-expand first 2 levels
   const hasChildren = node.children && node.children.length > 0;
-  const isSelected = selectedPath === node.name;
+  const isSelected = selectedPath === node.column_node_id;
   
-  // Only show metrics (leaf nodes under '/metrics/')
-  const isMetric = !hasChildren && node.name.startsWith('metrics/');
+  // Check if this is a leaf node (column_node_id doesn't end with '/')
+  const isLeaf = !node.column_node_id.endsWith('/');
   
-  if (!node.name.startsWith('metrics/') && level === 0) {
+  if (!node.column_node_id.startsWith('/metrics') && level === 0) {
     // If this is the root and doesn't start with metrics/, look for metrics/ children
     const metricsChild = node.children?.find(child => child.name === 'metrics');
     if (metricsChild) {
@@ -157,34 +169,49 @@ const MetricTree: React.FC<MetricTreeProps> = ({ node, selectedPath, onSelectMet
     }
     return null;
   }
-
+  
   return (
     <div className={`${level > 0 ? 'ml-4' : ''}`}>
       <div 
         className={`flex items-center gap-1 py-1 px-2 rounded cursor-pointer hover:bg-gray-100 ${
-          isSelected ? 'bg-blue-100' : ''
+          isSelected && isLeaf ? 'bg-blue-100' : ''
         }`}
         onClick={() => {
-          if (hasChildren) {
-            setIsExpanded(!isExpanded);
-          } else if (isMetric) {
+          if (isLeaf) {
             onSelectMetric(node.name);
+          } else if (hasChildren) {
+            setIsExpanded(!isExpanded);
           }
         }}
       >
         {hasChildren && (
-          isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
+            className="p-0"
+          >
+            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
         )}
-        <span className={`text-sm ${isMetric ? 'font-medium' : ''}`}>
-          {node.name.split('/').pop()} {/* Show only the last part of the path */}
-        </span>
+        <div className="flex-1">
+          <span className={`text-sm ${isLeaf ? 'font-medium' : ''}`}>
+            {node.name.split('/').pop()} {/* Show only the last part of the path */}
+          </span>
+          {node.description && (
+            <span className="text-xs text-gray-500 ml-2" title={node.description}>
+              {node.description}
+            </span>
+          )}
+        </div>
       </div>
       
       {hasChildren && isExpanded && (
         <div>
           {node.children!.map((child, idx) => (
             <MetricTree 
-              key={idx} 
+              key={child.column_node_id} 
               node={child} 
               selectedPath={selectedPath} 
               onSelectMetric={onSelectMetric} 
@@ -245,6 +272,21 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
           <X size={16} />
         </button>
       </div>
+
+      {/* Filters */}
+      <div className="mb-3">
+        <FilterManager
+          title="Filters"
+          items={lineConfig.filters || []}
+          input={filterInput}
+          setInput={setFilterInput}
+          onAdd={handleAddFilter}
+          onRemove={handleRemoveFilter}
+          placeholder="e.g., runner:not_in:local"
+          itemColor="blue"
+          helpContent={<FilterHelpContent />}
+        />
+      </div>
       
       {/* Metric Selection */}
       <div className="mb-3">
@@ -265,44 +307,6 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
             Selected: {lineConfig.metricName}
           </div>
         )}
-      </div>
-      
-      {/* Filters */}
-      <div className="mb-3">
-        <label className="block text-sm font-medium mb-1">Filters</label>
-        {lineConfig.filters && lineConfig.filters.length > 0 && (
-          <div className="mb-2">
-            <div className="flex flex-wrap gap-1">
-              {lineConfig.filters.map((filter, idx) => (
-                <div key={idx} className="inline-flex items-center bg-blue-100 px-2 py-1 rounded-full">
-                  <button
-                    onClick={() => handleRemoveFilter(filter)}
-                    className="text-red-400 hover:text-red-600 mr-1"
-                  >
-                    <X size={10} />
-                  </button>
-                  <span className="text-xs">{filter}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={filterInput}
-            onChange={(e) => setFilterInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleAddFilter()}
-            placeholder="e.g., runner:not_in:local"
-            className="flex-1 p-1.5 border rounded text-sm"
-          />
-          <button
-            onClick={handleAddFilter}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-          >
-            Add
-          </button>
-        </div>
       </div>
       
       {/* Slice */}

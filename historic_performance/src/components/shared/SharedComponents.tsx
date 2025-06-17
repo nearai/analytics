@@ -400,6 +400,21 @@ interface FiltersSectionProps {
   showTimeFilters?: boolean;
 }
 
+// Filter Help Content Component
+export const FilterHelpContent: React.FC = () => (
+  <>
+    <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
+    <p className="mb-1 text-gray-300">• <i>in/not_in</i>:</p>
+    <p className="ml-2 text-gray-400">agent_name:in:agent1,agent2</p>
+    <p className="mb-1 text-gray-300">• <i>range</i>:</p>
+    <p className="ml-2 text-[10px] text-gray-400">value:range:10:100<span className="text-gray-500 ml-1">(between 10 and 100)</span></p>
+    <p className="ml-2 text-[10px] text-gray-400">value:range:10:<span className="text-gray-500 ml-1">(minimum 10)</span></p>
+    <p className="ml-2 text-[10px] text-gray-400">value:range::100<span className="text-gray-500 ml-1">(maximum 100)</span></p>
+    <p className="ml-2 text-[10px] text-gray-400">time_end_utc:range:(2025-05-23T11:48):</p>
+    <p className="ml-4 text-[10px] text-gray-500">(after specified date/time)</p>
+  </>
+);
+
 export const FiltersSection: React.FC<FiltersSectionProps> = ({
   filters,
   filterInput,
@@ -424,19 +439,7 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({
         onRemove={onRemoveFilter}
         placeholder="e.g., runner:not_in:local"
         itemColor="blue"
-        helpContent={
-          <>
-            <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
-            <p className="mb-1 text-gray-300">• <i>in/not_in</i>:</p>
-            <p className="ml-2 text-gray-400">agent_name:in:agent1,agent2</p>
-            <p className="mb-1 text-gray-300">• <i>range</i>:</p>
-            <p className="ml-2 text-[10px] text-gray-400">value:range:10:100<span className="text-gray-500 ml-1">(between 10 and 100)</span></p>
-            <p className="ml-2 text-[10px] text-gray-400">value:range:10:<span className="text-gray-500 ml-1">(minimum 10)</span></p>
-            <p className="ml-2 text-[10px] text-gray-400">value:range::100<span className="text-gray-500 ml-1">(maximum 100)</span></p>
-            <p className="ml-2 text-[10px] text-gray-400">time_end_utc:range:(2025-05-23T11:48):</p>
-            <p className="ml-4 text-[10px] text-gray-500">(after specified date/time)</p>
-          </>
-        }
+        helpContent={<FilterHelpContent />}
       />
 
       {/* Time filters */}
