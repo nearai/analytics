@@ -230,13 +230,27 @@ interface LineConfigurationComponentProps {
   onUpdate: (config: LineConfiguration) => void;
   onRemove: () => void;
   columnTree: ColumnNode | null;
+  request: TimeSeriesRequest;
+  config?: DashboardConfig;
 }
+
+// Convert time granulation to milliseconds
+const getTimeGranulationMs = (granulation: string): number => {
+  switch (granulation) {
+    case '1 hour': return 60 * 60 * 1000;
+    case '1 day': return 24 * 60 * 60 * 1000;
+    case '1 week': return 7 * 24 * 60 * 60 * 1000;
+    default: return 60 * 60 * 1000;
+  }
+};
 
 const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
   lineConfig,
   onUpdate,
   onRemove,
-  columnTree
+  columnTree,
+  request,
+  config
 }) => {
   const [filterInput, setFilterInput] = useState('');
   const [sliceValues, setSliceValues] = useState<string[]>([]);
@@ -253,9 +267,9 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
       setLoadingSliceValues(true);
       try {
         const apiRequest: TimeSeriesApiRequest = {
-          time_granulation: 24 * 60 * 60 * 1000, // Default to 1 day
+          time_granulation: getTimeGranulationMs(request.time_granulation || '1 day'),
           moving_aggregation_field_name: lineConfig.metricName,
-          global_filters: [],
+          global_filters: mergeGlobalFilters(config?.globalFilters, request.filters),
           moving_aggregation_filters: lineConfig.filters,
           slice_field: lineConfig.slice
         };
@@ -313,7 +327,7 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
       onUpdate({ ...lineConfig, slice, color: {} });
     } else {
       // Switching to non-sliced mode - color should become a string
-      const defaultColor = getLineColor(lineConfig.metricName, '', lineConfig.filters || []);
+      const defaultColor = getColorForLineConfig(lineConfig);
       onUpdate({ ...lineConfig, slice: undefined, color: defaultColor });
     }
   };
@@ -402,7 +416,7 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
           // Single color picker when no slicing
           <input
             type="color"
-            value={typeof lineConfig.color === 'string' ? lineConfig.color : getColorForLineConfig(lineConfig)}
+            value={getColorForLineConfig(lineConfig)}
             onChange={(e) => handleColorChange(e.target.value)}
             className="w-16 h-8 border rounded"
           />
@@ -414,16 +428,15 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
                 Enter metric and slice to see slice values
               </div>
             )}
-            {sliceValues.map((sliceValue) => {
-              const colorMap = typeof lineConfig.color === 'object' ? lineConfig.color : {};
-              const currentColor = colorMap[sliceValue] || getLineColor(lineConfig.metricName, sliceValue, lineConfig.filters || []);
-              
+            {sliceValues.map(sliceValue => {
+              const currentColor = getColorForLineConfig(lineConfig, sliceValue);
+
               return (
                 <div key={sliceValue} className="flex items-center gap-2">
                   <input
                     type="color"
                     value={currentColor}
-                    onChange={(e) => handleColorChange(e.target.value, sliceValue)}
+                    onChange={e => handleColorChange(e.target.value, sliceValue)}
                     className="w-12 h-6 border rounded"
                   />
                   <span className="text-sm">{sliceValue}</span>
@@ -514,16 +527,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   useEffect(() => {
     fetchColumnTree();
   }, [fetchColumnTree, refreshTrigger]);
-
-  // Convert time granulation to milliseconds
-  const getTimeGranulationMs = (granulation: string): number => {
-    switch (granulation) {
-      case '1 hour': return 60 * 60 * 1000;
-      case '1 day': return 24 * 60 * 60 * 1000;
-      case '1 week': return 7 * 24 * 60 * 60 * 1000;
-      default: return 60 * 60 * 1000;
-    }
-  };
 
   // Fetch time series data for a graph
   const fetchTimeSeriesData = useCallback(async (graph: GraphConfiguration) => {
@@ -898,37 +901,26 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                           <Legend />
                           {/* Render lines based on available data keys */}
                           {Object.keys(graphData[graph.id]?.chartData?.[0] || {})
-                            .filter(key => key !== 'timestamp' && key !== 'time')
-                            .map((dataKey) => {
-                              const metadata = graphData[graph.id]?.lineMetadata?.[dataKey];
+                            .filter(k => k !== 'timestamp' && k !== 'time')
+                            .map(dataKey => {
+                              const metadata   = graphData[graph.id]?.lineMetadata?.[dataKey];
                               const lineConfig = metadata ? graph.lineConfigurations[metadata.configIndex] : undefined;
-                              
-                              let color = DEFAULT_COLORS[0];
-                              if (lineConfig) {
-                                if (metadata?.sliceValue && typeof lineConfig.color === 'object') {
-                                  // Use color from map for this slice value
-                                  color = lineConfig.color[metadata.sliceValue] || getLineColor(lineConfig.metricName, metadata.sliceValue, lineConfig.filters || []);
-                                } else if (typeof lineConfig.color === 'string') {
-                                  // Use single color
-                                  color = lineConfig.color;
-                                } else {
-                                  // Fallback to auto-generated color
-                                  color = getLineColor(lineConfig.metricName, metadata?.sliceValue || '', lineConfig.filters || []);
-                                }
-                              }
-                              
+
+                              const color = lineConfig
+                                ? getColorForLineConfig(lineConfig, metadata?.sliceValue) // ← one-liner
+                                : DEFAULT_COLORS[0];
+
                               return (
-                                <Line 
+                                <Line
                                   key={dataKey}
-                                  type="monotone" 
-                                  dataKey={dataKey} 
+                                  type="monotone"
+                                  dataKey={dataKey}
                                   stroke={color}
                                   strokeWidth={2}
                                   dot={false}
                                 />
                               );
-                            })
-                          }
+                            })}
                         </LineChart>
                       </ResponsiveContainer>
                     )}
@@ -958,6 +950,8 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           graphs={graphs}
           setGraphs={setGraphs}
           columnTree={columnTree}
+          request={request}
+          config={config}
           onClose={() => setShowGraphConfig(null)}
           onSave={(updatedGraphs) => {
             setGraphs(updatedGraphs);
@@ -976,6 +970,8 @@ interface GraphConfigModalProps {
   graphs: GraphConfiguration[];
   setGraphs: (graphs: GraphConfiguration[]) => void;
   columnTree: ColumnNode | null;
+  request: TimeSeriesRequest;
+  config?: DashboardConfig;
   onClose: () => void;
   onSave: (graphs: GraphConfiguration[]) => void;
 }
@@ -985,6 +981,8 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
   graphs,
   setGraphs,
   columnTree,
+  request,
+  config,
   onClose,
   onSave
 }) => {
@@ -1080,6 +1078,8 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
               onUpdate={(config) => updateLineConfiguration(index, config)}
               onRemove={() => removeLineConfiguration(index)}
               columnTree={columnTree}
+              request={request}
+              config={config}
             />
           ))}
           
