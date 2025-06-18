@@ -50,37 +50,54 @@ const getAutoTimeGranulation = (timeFilter: string): string => {
 // Color schemes for lines
 const SUCCESS_COLORS = ['#10b981', '#059669', '#047857', '#065f46'];
 const ERROR_COLORS = ['#ef4444', '#dc2626', '#b91c1c', '#991b1b'];
-const DEFAULT_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#84cc16', '#f97316'];
+const DEFAULT_COLORS = ['#f59e0b', '#8b5cf6', '#3b82f6', '#06b6d4', '#84cc16', '#f97316'];
+
+// Simple hash function to generate deterministic color selection
+const hashString = (str: string): number => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash);
+};
 
 const getLineColor = (metricName: string, sliceValue: string, filters: string[]): string => {
   const isSuccess = isSuccessLine(metricName, sliceValue, filters);
   const isError = isErrorLine(metricName, sliceValue, filters);
   
+  // Create a deterministic key from the inputs
+  const key = `${metricName}|${sliceValue}|${filters.join(',')}`;
+  const hash = hashString(key);
+  
   if (isSuccess) {
-    return SUCCESS_COLORS[Math.floor(Math.random() * SUCCESS_COLORS.length)];
+    return SUCCESS_COLORS[hash % SUCCESS_COLORS.length];
   } else if (isError) {
-    return ERROR_COLORS[Math.floor(Math.random() * ERROR_COLORS.length)];
+    return ERROR_COLORS[hash % ERROR_COLORS.length];
   } else {
-    return DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)];
+    return DEFAULT_COLORS[hash % DEFAULT_COLORS.length];
   }
 };
 
 // Helper functions for handling color types
 const getColorForLineConfig = (lineConfig: LineConfiguration, sliceValue?: string): string => {
-  if (!lineConfig.color) {
-    return getLineColor(lineConfig.metricName, sliceValue || '', lineConfig.filters || []);
+  // Check if user has manually set this color
+  const hasUserSetColor = sliceValue 
+    ? (typeof lineConfig.userSetColor === 'object' && lineConfig.userSetColor?.[sliceValue])
+    : (typeof lineConfig.userSetColor === 'boolean' && lineConfig.userSetColor);
+  
+  // If user set the color, return it
+  if (hasUserSetColor && lineConfig.color) {
+    if (typeof lineConfig.color === 'string') {
+      return lineConfig.color;
+    }
+    if (sliceValue && lineConfig.color[sliceValue]) {
+      return lineConfig.color[sliceValue];
+    }
   }
   
-  if (typeof lineConfig.color === 'string') {
-    return lineConfig.color;
-  }
-
-  // If color is a map and we have a slice, try to get the color for this slice value
-  if (sliceValue && lineConfig.color[sliceValue]) {
-    return lineConfig.color[sliceValue];
-  }
-  
-  // Fallback to auto-generated color
+  // Auto-generate color based on current category
   return getLineColor(lineConfig.metricName, sliceValue || '', lineConfig.filters || []);
 };
 
@@ -272,13 +289,15 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
           const data: TimeSeriesApiResponse = await response.json();
           setSliceValues(data.slice_values);
           
-          // Initialize color map if needed
+          // Initialize color map if needed, but don't overwrite user-set colors
           if (data.slice_values.length > 0 && typeof lineConfig.color !== 'object') {
             const colorMap: Record<string, string> = {};
+            const userSetColorMap: Record<string, boolean> = {};
             data.slice_values.forEach((value, index) => {
               colorMap[value] = getLineColor(lineConfig.metricName, value, lineConfig.filters || []);
+              userSetColorMap[value] = false; // Mark as auto-generated
             });
-            onUpdate({ ...lineConfig, color: colorMap });
+            onUpdate({ ...lineConfig, color: colorMap, userSetColor: userSetColorMap });
           }
         }
       } catch (err) {
@@ -312,22 +331,26 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
   const handleSliceChange = (slice: string) => {
     if (slice) {
       // Switching to sliced mode - color should become a map
-      onUpdate({ ...lineConfig, slice, color: {} });
+      onUpdate({ ...lineConfig, slice, color: {}, userSetColor: {} });
     } else {
       // Switching to non-sliced mode - color should become a string
-      const defaultColor = getColorForLineConfig(lineConfig);
-      onUpdate({ ...lineConfig, slice: undefined, color: defaultColor });
+      const defaultColor = getLineColor(lineConfig.metricName, '', lineConfig.filters || []);
+      onUpdate({ ...lineConfig, slice: undefined, color: defaultColor, userSetColor: false });
     }
   };
   
   const handleColorChange = (color: string, sliceValue?: string) => {
     if (sliceValue && typeof lineConfig.color === 'object') {
-      // Update color for specific slice value
+      // Update color for specific slice value and mark as user-set
       const newColorMap = { ...lineConfig.color, [sliceValue]: color };
-      onUpdate({ ...lineConfig, color: newColorMap });
+      const newUserSetColorMap = { 
+        ...(typeof lineConfig.userSetColor === 'object' ? lineConfig.userSetColor : {}), 
+        [sliceValue]: true 
+      };
+      onUpdate({ ...lineConfig, color: newColorMap, userSetColor: newUserSetColorMap });
     } else if (!sliceValue) {
-      // Update single color
-      onUpdate({ ...lineConfig, color });
+      // Update single color and mark as user-set
+      onUpdate({ ...lineConfig, color, userSetColor: true });
     }
   };
 
@@ -924,8 +947,18 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="time" fontSize={10} />
                               <YAxis fontSize={10} />
-                              <Tooltip />
-                              <Legend />
+                              <Tooltip 
+                                contentStyle={{ 
+                                  fontSize: '7px',
+                                  padding: '2px',
+                                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                  border: '1px solid #ccc',
+                                  borderRadius: '2px',
+                                  lineHeight: '0.6'
+                                }}
+                                labelStyle={{ fontSize: '7px' }}
+                              />
+                              <Legend wrapperStyle={{ fontSize: '8px' }} />
                               {/* Render lines based on available data keys */}
                               {Object.keys(graphData[graph.id]?.chartData?.[0] || {})
                                 .filter(k => k !== 'timestamp' && k !== 'time')
@@ -1023,7 +1056,8 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
         metricName: '',
         filters: [],
         slice: undefined,
-        color: undefined
+        color: undefined,
+        userSetColor: undefined
       }];
     }
     return existing;
@@ -1035,7 +1069,8 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
       metricName: '',
       filters: [],
       slice: undefined,
-      color: undefined
+      color: undefined,
+      userSetColor: undefined
     };
     setLocalLineConfigs([...localLineConfigs, newLineConfig]);
   };
@@ -1064,7 +1099,7 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
       if (!config.color) {
         // Assign a color if none is set
         const autoColor = getLineColor(config.metricName, config.slice || '', config.filters || []);
-        return { ...config, color: autoColor };
+        return { ...config, color: autoColor, userSetColor: false };
       }
       return config;
     });

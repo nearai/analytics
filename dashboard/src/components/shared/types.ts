@@ -89,6 +89,8 @@ export interface LineConfiguration {
   slice?: string;
   /** Color assignment. If no slice is used, this is a single color string. If slice is used, this should be a map from slice values to colors. */
   color?: string | Record<string, string>;
+  /** Track which colors were manually set by the user vs auto-generated. For single colors: boolean. For slice colors: map from slice values to boolean. */
+  userSetColor?: boolean | Record<string, boolean>;
 }
 
 export interface GraphConfiguration {
