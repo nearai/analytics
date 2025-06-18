@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical } from 'lucide-react';
 import { TableRequest, TableResponse, ColumnNode, Column, DashboardConfig } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FilterManager, FiltersSection, ViewNavigation, formatTimestamp, getStyleClass, getTimeFilter as sharedGetTimeFilter, mergeGlobalFilters } from './shared/SharedComponents';
+import { CollapsibleSection, DetailsPopup, FilterManager, FiltersSection, ViewNavigation, formatTimestamp, getStyleClass, getTimeFilter as sharedGetTimeFilter, mergeGlobalFilters, getApiUrl } from './shared/SharedComponents';
 
 // Component-specific utility functions
 const formatCellValue = (values: Record<string, any>, unit?: string): React.ReactNode => {
@@ -259,8 +259,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         ...requestData,
         filters: mergedFilters
       };
-      const baseUrl = config?.metrics_service_url || 'http://localhost:8000/api/v1/';
-      const url = baseUrl.endsWith('/') ? baseUrl + 'table/aggregation' : baseUrl + '/table/aggregation';
+      const url = getApiUrl(config, 'table/aggregation');
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -296,7 +295,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
-  }, [config?.globalFilters, config?.metrics_service_url]);
+  }, [config]);  // Use entire config object since we use config in getApiUrl
 
   // Initial load. Use saved request if present.
   useEffect(() => {

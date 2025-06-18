@@ -20,7 +20,8 @@ import {
   ViewNavigation,
   getTimeFilter, 
   mergeGlobalFilters, 
-  parseTimePeriodToHours
+  parseTimePeriodToHours,
+  getApiUrl
 } from './shared/SharedComponents';
 
 interface TimeSeriesDashboardProps {
@@ -281,8 +282,7 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
           slice_field: lineConfig.slice
         };
 
-        const baseUrl = config?.metrics_service_url || 'http://localhost:8000/api/v1/';
-        const timeSeriesUrl = baseUrl.endsWith('/') ? baseUrl + 'graphs/time-series' : baseUrl + '/graphs/time-series';
+        const timeSeriesUrl = getApiUrl(config, 'graphs/time-series');
         const response = await fetch(timeSeriesUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -516,8 +516,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         absent_metrics_strategy: 'accept_subset'
       };
 
-      const baseUrl = config?.metrics_service_url || 'http://localhost:8000/api/v1/';
-      const tableUrl = baseUrl.endsWith('/') ? baseUrl + 'table/aggregation' : baseUrl + '/table/aggregation';
+      const tableUrl = getApiUrl(config, 'table/aggregation');
       const response = await fetch(tableUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -535,7 +534,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [config?.globalFilters, config?.metrics_service_url, request.filters]);
+  }, [config, request.filters]);  // Use entire config object since we use config in getApiUrl
 
   useEffect(() => {
     fetchColumnTree();
@@ -559,8 +558,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           slice_field: lineConfig.slice
         };
 
-        const baseUrl = config?.metrics_service_url || 'http://localhost:8000/api/v1/';
-        const timeSeriesUrl = baseUrl.endsWith('/') ? baseUrl + 'graphs/time-series' : baseUrl + '/graphs/time-series';
+        const timeSeriesUrl = getApiUrl(config, 'graphs/time-series');
         const response = await fetch(timeSeriesUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -633,7 +631,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     // Sort by timestamp and return both data and metadata
     chartData.sort((a, b) => a.timestamp - b.timestamp);
     return { chartData, lineMetadata };
-  }, [request.time_granulation, request.filters, config?.globalFilters, config?.metrics_service_url]);
+  }, [request.time_granulation, request.filters, config]);  // Use entire config object since we use config in getApiUrl
 
   // Fetch data for all graphs
   const fetchAllGraphData = useCallback(async () => {

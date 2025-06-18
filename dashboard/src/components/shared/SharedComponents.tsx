@@ -552,3 +552,9 @@ export const ViewNavigation: React.FC<ViewNavigationProps> = ({
     </CollapsibleSection>
   );
 };
+
+// API URL construction helper
+export const getApiUrl = (config: DashboardConfig | undefined, apiCall: string): string => {
+  const baseUrl = config?.metrics_service_url || 'http://localhost:8000/api/v1/';
+  return baseUrl.endsWith('/') ? baseUrl + apiCall : baseUrl + '/' + apiCall;
+};

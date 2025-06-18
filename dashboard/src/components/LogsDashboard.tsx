@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp, GripVertical, Eye, FileText } from 'lucide-react';
 import { LogsRequest, LogsResponse, LogGroup, LogEntry, LogFile, DashboardConfig } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, FiltersSection, ViewNavigation, formatTimestamp, getStyleClass, getTimeFilter as sharedGetTimeFilter, isTimestampLike, mergeGlobalFilters } from './shared/SharedComponents';
+import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, FiltersSection, ViewNavigation, formatTimestamp, getStyleClass, getTimeFilter as sharedGetTimeFilter, isTimestampLike, mergeGlobalFilters, getApiUrl } from './shared/SharedComponents';
 
 // Format metadata/metrics for display
 const formatMetadataValue = (value: any): string => {
@@ -397,8 +397,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
         ...requestData,
         filters: mergedFilters
       };
-      const baseUrl = config?.metrics_service_url || 'http://localhost:8000/api/v1/';
-      const url = baseUrl.endsWith('/') ? baseUrl + 'logs/list' : baseUrl + '/logs/list';
+      const url = getApiUrl(config, 'logs/list');
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -416,7 +415,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [config?.globalFilters, config?.metrics_service_url]);
+  }, [config]);  // Use entire config object since we use config in getApiUrl
 
   // Initial load. Use saved request if present.
   useEffect(() => {
