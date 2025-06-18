@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp, GripVertical, Table, FileText, Eye, BarChart3 } from 'lucide-react';
 import { LogsRequest, LogsResponse, LogGroup, LogEntry, LogFile, DashboardConfig } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, FiltersSection, formatTimestamp, getStyleClass, isTimestampLike, mergeGlobalFilters } from './shared/SharedComponents';
+import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, FiltersSection, formatTimestamp, getStyleClass, getTimeFilter as sharedGetTimeFilter, isTimestampLike, mergeGlobalFilters } from './shared/SharedComponents';
 
 // Format metadata/metrics for display
 const formatMetadataValue = (value: any): string => {
@@ -306,10 +306,22 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     groups: []
   };
   
-  // Apply default parameters from config
+  // Apply default parameters from view config including time_filter
   const getInitialRequest = (): LogsRequest => {
-    const configDefaults = config?.viewConfigs?.logs?.defaultParameters || {};
-    return { ...defaultRequest, ...configDefaults };
+    const configDefaults = viewConfig?.defaultParameters || {};
+    const defaultFilters = [];
+    
+    // Add time filter if specified in config
+    if (configDefaults.time_filter) {
+      const timeFilter = sharedGetTimeFilter(String(configDefaults.time_filter));
+      defaultFilters.push(timeFilter);
+    }
+    
+    return { 
+      ...defaultRequest, 
+      ...configDefaults,
+      filters: [...defaultFilters, ...(configDefaults.filters || [])]
+    };
   };
   
   const [request, setRequest] = useState<LogsRequest>(savedRequest || getInitialRequest());
@@ -409,7 +421,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [config?.globalFilters]);
+  }, [config?.globalFilters, config?.metrics_service_url]);
 
   // Initial load. Use saved request if present.
   useEffect(() => {

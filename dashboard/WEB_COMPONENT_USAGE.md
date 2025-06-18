@@ -34,13 +34,16 @@ function App() {
 
 ## Configuration Options
 
-- **views**: Array of views to show ('timeseries', 'table', 'logs'). If single view, hides the Views panel.
+- **views**: Array of view IDs to show. Each view ID must have a corresponding entry in viewConfigs. If single view, hides the Views panel.
 - **globalFilters**: Filters applied to all requests but not shown in the Filters panel.
-- **metricSelection**: CUSTOM, PERFORMANCE, CAL (Cost/Accuracy/Latency), ERROR, FEEDBACK.
-- **defaultView**: Initial view to display.
-- **viewConfigs**: Per-view configuration:
+- **metrics_service_url**: Base URL for the metrics API service (default: 'http://localhost:8000/api/v1/').
+- **defaultView**: Initial view ID to display.
+- **viewConfigs**: Per-view configuration keyed by view ID:
+  - **view_type**: Type of view component ('timeseries', 'table', 'logs').
+  - **view_name**: Display name for the view (shown in navigation buttons).
+  - **metricSelection**: CUSTOM, PERFORMANCE, CAL (Cost/Accuracy/Latency), ERROR, FEEDBACK.
   - **showParameters**: Which parameters to show in Parameters panel. If empty, hides the panel.
-  - **defaultParameters**: Default values for parameters.
+  - **defaultParameters**: Default values for parameters including time_filter support.
   - **timeFilterRecommendations**: Time filters to include in recommendations.
   - **refreshRate**: Refresh interval in seconds (useful for web component usage).
 
@@ -48,31 +51,36 @@ The Dashboard component accepts a `config` prop with the following TypeScript in
 
 ```typescript
 interface DashboardConfig {
-  // Which views to show ('timeseries', 'table', 'logs'). Single view hides Views panel
-  views?: ViewType[];
+  // Which view IDs to show. Each ID must have a corresponding viewConfigs entry
+  views?: string[];
   
   // Filters applied to all requests but not shown in UI
   globalFilters?: string[];
   
-  // Metric selection
-  metricSelection?: 'CUSTOM' | 'PERFORMANCE' | 'CAL' | 'ERROR' | 'FEEDBACK';
+  // Base URL for metrics API service
+  metrics_service_url?: string;
   
-  // Per-view configuration
-  viewConfigs?: {
-    timeseries?: ViewConfig;
-    table?: ViewConfig;
-    logs?: ViewConfig;
-  };
+  // Per-view configuration keyed by view ID
+  viewConfigs?: Record<string, ViewConfig>;
   
-  // Initial view to display
-  defaultView?: 'timeseries' | 'table' | 'logs';
+  // Initial view ID to display
+  defaultView?: string;
 }
 
 interface ViewConfig {
+  // Type of view component to render
+  view_type: 'timeseries' | 'table' | 'logs';
+  
+  // Display name for the view
+  view_name: string;
+  
+  // Metric selection for this specific view
+  metricSelection: 'CUSTOM' | 'PERFORMANCE' | 'CAL' | 'ERROR' | 'FEEDBACK';
+  
   // Which parameters to show in Parameters panel (hides panel if empty)
   showParameters?: string[];
   
-  // Default values for parameters
+  // Default values for parameters (supports time_filter for all view types)
   defaultParameters?: Record<string, any>;
   
   // Time filter recommendations
@@ -91,10 +99,12 @@ interface ViewConfig {
 <Dashboard config={{
   views: ['timeseries'],
   globalFilters: ['runner:not_in:local'],
-  metricSelection: 'PERFORMANCE',
   defaultView: 'timeseries',
   viewConfigs: {
     timeseries: {
+      view_type: 'timeseries',
+      view_name: 'Performance Metrics',
+      metricSelection: 'PERFORMANCE',
       defaultParameters: {
         time_filter: '1 month',
         time_granulation: '1 day'
@@ -112,9 +122,11 @@ interface ViewConfig {
 <Dashboard config={{
   views: ['table'],
   globalFilters: ['runner:not_in:local'],
-  metricSelection: 'PERFORMANCE',
   viewConfigs: {
     table: {
+      view_type: 'table',
+      view_name: 'Data Table',
+      metricSelection: 'PERFORMANCE',
       showParameters: ['prune_mode', 'absent_metrics_strategy'],
       defaultParameters: { 
         prune_mode: 'column',
@@ -133,10 +145,12 @@ interface ViewConfig {
 <Dashboard config={{
   views: ['logs'],
   globalFilters: ['runner:not_in:local'],
-  metricSelection: 'ERROR',
   defaultView: 'logs',
   viewConfigs: {
     logs: {
+      view_type: 'logs',
+      view_name: 'Error Logs',
+      metricSelection: 'ERROR',
       showParameters: ['groups_recommendation_strategy'],
       defaultParameters: { groups_recommendation_strategy: 'concise' },
       refreshRate: 10 // Refresh every 10 seconds for monitoring
@@ -151,10 +165,12 @@ interface ViewConfig {
 <Dashboard config={{
   views: ['timeseries', 'table', 'logs'],
   globalFilters: ['runner:not_in:local'],
-  metricSelection: 'PERFORMANCE',
   defaultView: 'timeseries',
   viewConfigs: {
     timeseries: {
+      view_type: 'timeseries',
+      view_name: 'Time Series',
+      metricSelection: 'PERFORMANCE',
       defaultParameters: {
         time_filter: '1 week',
         time_granulation: '1 hour'
@@ -163,17 +179,71 @@ interface ViewConfig {
       refreshRate: 60
     },
     table: {
+      view_type: 'table',
+      view_name: 'Table',
+      metricSelection: 'PERFORMANCE',
       showParameters: ['prune_mode'],
       defaultParameters: { 
-        prune_mode: 'column'
+        prune_mode: 'column',
+        time_filter: '1 week'
       },
       timeFilterRecommendations: ['last hour', 'last 6 hours', 'last day'],
       refreshRate: 60
     },
     logs: {
+      view_type: 'logs',
+      view_name: 'Logs',
+      metricSelection: 'PERFORMANCE',
       showParameters: ['groups_recommendation_strategy'],
-      defaultParameters: { groups_recommendation_strategy: 'first_alphabetical' },
+      defaultParameters: { 
+        groups_recommendation_strategy: 'first_alphabetical',
+        time_filter: '1 week'
+      },
       refreshRate: 120
+    }
+  }
+}} />
+```
+
+### 5. Multiple Views of Same Type (New Feature)
+
+```jsx
+<Dashboard config={{
+  views: ['timeseries_performance', 'table_performance', 'logs_all', 'logs_errors'],
+  globalFilters: [],
+  metrics_service_url: 'http://localhost:8000/api/v1/',
+  defaultView: 'timeseries_performance',
+  viewConfigs: {
+    timeseries_performance: {
+      view_type: 'timeseries',
+      view_name: 'Performance',
+      metricSelection: 'PERFORMANCE',
+      defaultParameters: {
+        time_filter: '1 month',
+        time_granulation: '1 day'
+      }
+    },
+    table_performance: {
+      view_type: 'table',
+      view_name: 'Performance Table',
+      metricSelection: 'PERFORMANCE',
+      defaultParameters: {
+        time_filter: '1 month'
+      }
+    },
+    logs_all: {
+      view_type: 'logs',
+      view_name: 'All Logs',
+      metricSelection: 'PERFORMANCE',
+      defaultParameters: {
+        time_filter: '1 month'
+      }
+    },
+    logs_errors: {
+      view_type: 'logs',
+      view_name: 'Error Logs',
+      metricSelection: 'ERROR',
+      timeFilterRecommendations: []  // Disable time filter recommendations
     }
   }
 }} />

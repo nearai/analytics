@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical, FileText, BarChart3 } from 'lucide-react';
 import { TableRequest, TableResponse, ColumnNode, Column, DashboardConfig } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FilterManager, FiltersSection, formatTimestamp, getStyleClass, mergeGlobalFilters } from './shared/SharedComponents';
+import { CollapsibleSection, DetailsPopup, FilterManager, FiltersSection, formatTimestamp, getStyleClass, getTimeFilter as sharedGetTimeFilter, mergeGlobalFilters } from './shared/SharedComponents';
 
 // Component-specific utility functions
 const formatCellValue = (values: Record<string, any>, unit?: string): React.ReactNode => {
@@ -168,10 +168,22 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     column_selections: ['/metadata/time_end_utc/max_value', '/metrics/']
   };
   
-  // Apply default parameters from config
+  // Apply default parameters from view config including time_filter
   const getInitialRequest = (): TableRequest => {
-    const configDefaults = config?.viewConfigs?.table?.defaultParameters || {};
-    return { ...defaultRequest, ...configDefaults };
+    const configDefaults = viewConfig?.defaultParameters || {};
+    const defaultFilters = [];
+    
+    // Add time filter if specified in config
+    if (configDefaults.time_filter) {
+      const timeFilter = sharedGetTimeFilter(String(configDefaults.time_filter));
+      defaultFilters.push(timeFilter);
+    }
+    
+    return { 
+      ...defaultRequest, 
+      ...configDefaults,
+      filters: [...defaultFilters, ...(configDefaults.filters || [])]
+    };
   };
   
   const [request, setRequest] = useState<TableRequest>(savedRequest || getInitialRequest());
@@ -289,7 +301,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
-  }, [config?.globalFilters]);
+  }, [config?.globalFilters, config?.metrics_service_url]);
 
   // Initial load. Use saved request if present.
   useEffect(() => {

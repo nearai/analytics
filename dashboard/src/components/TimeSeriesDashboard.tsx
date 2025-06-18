@@ -280,7 +280,9 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
           slice_field: lineConfig.slice
         };
 
-        const response = await fetch('http://localhost:8000/api/v1/graphs/time-series', {
+        const baseUrl = config?.metrics_service_url || 'http://localhost:8000/api/v1/';
+        const timeSeriesUrl = baseUrl.endsWith('/') ? baseUrl + 'graphs/time-series' : baseUrl + '/graphs/time-series';
+        const response = await fetch(timeSeriesUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(apiRequest)
@@ -518,7 +520,9 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         absent_metrics_strategy: 'accept_subset'
       };
 
-      const response = await fetch('http://localhost:8000/api/v1/table/aggregation', {
+      const baseUrl = config?.metrics_service_url || 'http://localhost:8000/api/v1/';
+      const tableUrl = baseUrl.endsWith('/') ? baseUrl + 'table/aggregation' : baseUrl + '/table/aggregation';
+      const response = await fetch(tableUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tableRequest)
@@ -535,7 +539,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [config?.globalFilters, request.filters]);
+  }, [config?.globalFilters, config?.metrics_service_url, request.filters]);
 
   useEffect(() => {
     fetchColumnTree();
@@ -559,7 +563,9 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           slice_field: lineConfig.slice
         };
 
-        const response = await fetch('http://localhost:8000/api/v1/graphs/time-series', {
+        const baseUrl = config?.metrics_service_url || 'http://localhost:8000/api/v1/';
+        const timeSeriesUrl = baseUrl.endsWith('/') ? baseUrl + 'graphs/time-series' : baseUrl + '/graphs/time-series';
+        const response = await fetch(timeSeriesUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(apiRequest)
@@ -631,7 +637,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     // Sort by timestamp and return both data and metadata
     chartData.sort((a, b) => a.timestamp - b.timestamp);
     return { chartData, lineMetadata };
-  }, [request.time_granulation, request.filters, config?.globalFilters]);
+  }, [request.time_granulation, request.filters, config?.globalFilters, config?.metrics_service_url]);
 
   // Fetch data for all graphs
   const fetchAllGraphData = useCallback(async () => {
