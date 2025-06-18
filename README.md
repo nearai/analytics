@@ -52,7 +52,7 @@ curl -X POST "http://localhost:8000/api/v1/table/aggregation" \
   }'
 ```
 
-### 4. [Run Historic Performance Dashboard](./dashboard/)
+### 4. [Run Dashboard](./dashboard/)
 
 Run a web application for querying and visualizing analytics metrics data. Features comprehensive views for time series analysis, data tables, and chronological logs.
 
