@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Settings, Table, FileText, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Settings, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { 
   TimeSeriesRequest, 
@@ -17,6 +17,7 @@ import {
   FilterHelpContent, 
   FilterManager, 
   FiltersSection,
+  ViewNavigation,
   getTimeFilter, 
   mergeGlobalFilters, 
   parseTimePeriodToHours
@@ -476,11 +477,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   const getAvailableViews = (): string[] => {
     return config?.views || ['timeseries', 'table', 'logs'];
   };
-  
-  const shouldShowViewsPanel = (): boolean => {
-    const availableViews = getAvailableViews();
-    return availableViews.length > 1;
-  };
 
   // Default request based on view config
   const getDefaultRequest = (): TimeSeriesRequest => {
@@ -772,38 +768,12 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         <h2 className="text-lg font-bold mb-3">Time Series Controls</h2>
         
         {/* Navigation to other views */}
-        {shouldShowViewsPanel() && (
-          <CollapsibleSection title="Views" defaultOpen={true}>
-            <div className="space-y-2">
-              {getAvailableViews().filter(viewId => {
-                const vConfig = config?.viewConfigs?.[viewId];
-                return vConfig?.view_type === 'table';
-              }).map(tableViewId => (
-                <button
-                  key={tableViewId}
-                  onClick={() => onNavigateToView?.(tableViewId)}
-                  className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-                >
-                  <Table size={16} />
-                  {config?.viewConfigs?.[tableViewId]?.view_name || 'View Table'}
-                </button>
-              ))}
-              {getAvailableViews().filter(viewId => {
-                const vConfig = config?.viewConfigs?.[viewId];
-                return vConfig?.view_type === 'logs';
-              }).map(logsViewId => (
-                <button
-                  key={logsViewId}
-                  onClick={() => onNavigateToView?.(logsViewId)}
-                  className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-                >
-                  <FileText size={16} />
-                  {config?.viewConfigs?.[logsViewId]?.view_name || 'View Logs'}
-                </button>
-              ))}
-            </div>
-          </CollapsibleSection>
-        )}
+        <ViewNavigation
+          availableViews={getAvailableViews()}
+          currentViewId={viewId || 'timeseries'}
+          config={config || {}}
+          onNavigateToView={onNavigateToView || (() => {})}
+        />
 
         {/* Time Granulation */}
         <CollapsibleSection title="Time Granulation">

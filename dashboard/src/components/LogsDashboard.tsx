@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronDown, ChevronUp, GripVertical, Table, FileText, Eye, BarChart3 } from 'lucide-react';
+import { ChevronDown, ChevronUp, GripVertical, Eye, FileText } from 'lucide-react';
 import { LogsRequest, LogsResponse, LogGroup, LogEntry, LogFile, DashboardConfig } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, FiltersSection, formatTimestamp, getStyleClass, getTimeFilter as sharedGetTimeFilter, isTimestampLike, mergeGlobalFilters } from './shared/SharedComponents';
+import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, FiltersSection, ViewNavigation, formatTimestamp, getStyleClass, getTimeFilter as sharedGetTimeFilter, isTimestampLike, mergeGlobalFilters } from './shared/SharedComponents';
 
 // Format metadata/metrics for display
 const formatMetadataValue = (value: any): string => {
@@ -330,11 +330,6 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
   const getAvailableViews = (): string[] => {
     return config?.views || ['timeseries', 'table', 'logs'];
   };
-  
-  const shouldShowViewsPanel = (): boolean => {
-    const availableViews = getAvailableViews();
-    return availableViews.length > 1;
-  };
 
   const getVisibleParameters = (): string[] => {
     const showParameters = viewConfig?.showParameters;
@@ -514,38 +509,12 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
         <h2 className="text-lg font-bold mb-3">Logs Controls</h2>
         
         {/* Navigation to other views */}
-        {shouldShowViewsPanel() && (
-          <CollapsibleSection title="Views" defaultOpen={true}>
-            <div className="space-y-2">
-              {getAvailableViews().filter(viewId => {
-                const vConfig = config?.viewConfigs?.[viewId];
-                return vConfig?.view_type === 'timeseries';
-              }).map(timeseriesViewId => (
-                <button
-                  key={timeseriesViewId}
-                  onClick={() => onNavigateToView?.(timeseriesViewId)}
-                  className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-                >
-                  <BarChart3 size={16} />
-                  {config?.viewConfigs?.[timeseriesViewId]?.view_name || 'View Time Series'}
-                </button>
-              ))}
-              {getAvailableViews().filter(viewId => {
-                const vConfig = config?.viewConfigs?.[viewId];
-                return vConfig?.view_type === 'table';
-              }).map(tableViewId => (
-                <button
-                  key={tableViewId}
-                  onClick={() => onNavigateToView?.(tableViewId)}
-                  className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-                >
-                  <Table size={16} />
-                  {config?.viewConfigs?.[tableViewId]?.view_name || 'View Table'}
-                </button>
-              ))}
-            </div>
-          </CollapsibleSection>
-        )}
+        <ViewNavigation
+          availableViews={getAvailableViews()}
+          currentViewId={viewId || 'logs'}
+          config={config || {}}
+          onNavigateToView={onNavigateToView || (() => {})}
+        />
         
         {/* Parameters */}
         {shouldShowParametersPanel() && (
