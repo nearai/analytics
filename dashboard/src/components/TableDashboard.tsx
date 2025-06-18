@@ -140,20 +140,22 @@ const ColumnTreeNode: React.FC<{
 };
 
 interface TableDashboardProps {
-  onNavigateToTimeSeries?: () => void;
-  onNavigateToLogs: () => void;
+  onNavigateToView?: (viewId: string) => void;
   savedRequest?: TableRequest | null;
   onRequestChange?: (request: TableRequest) => void;
   config?: DashboardConfig;
+  viewId?: string;
+  viewConfig?: import('./shared/types').ViewConfig;
   refreshTrigger?: number;
 }
 
 const TableDashboard: React.FC<TableDashboardProps> = ({ 
-  onNavigateToTimeSeries,
-  onNavigateToLogs, 
+  onNavigateToView,
   savedRequest, 
   onRequestChange, 
   config, 
+  viewId,
+  viewConfig,
   refreshTrigger = 0
 }) => {
   // State
@@ -185,7 +187,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   };
 
   const getVisibleParameters = (): string[] => {
-    const showParameters = config?.viewConfigs?.table?.showParameters;
+    const showParameters = viewConfig?.showParameters;
     if (showParameters === undefined) {
       // Show all parameters by default
       return ['prune_mode', 'absent_metrics_strategy', 'slices_recommendation_strategy'];
@@ -250,7 +252,9 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         ...requestData,
         filters: mergedFilters
       };
-      const res = await fetch('http://localhost:8000/api/v1/table/aggregation', {
+      const baseUrl = config?.metrics_service_url || 'http://localhost:8000/api/v1/';
+      const url = baseUrl.endsWith('/') ? baseUrl + 'table/aggregation' : baseUrl + '/table/aggregation';
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestWithGlobalFilters)
@@ -523,24 +527,32 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         {shouldShowViewsPanel() && (
           <CollapsibleSection title="Views" defaultOpen={true}>
             <div className="space-y-2">
-              {getAvailableViews().includes('timeseries') && onNavigateToTimeSeries && (
+              {getAvailableViews().filter(viewId => {
+                const vConfig = config?.viewConfigs?.[viewId];
+                return vConfig?.view_type === 'timeseries';
+              }).map(timeseriesViewId => (
                 <button
-                  onClick={onNavigateToTimeSeries}
+                  key={timeseriesViewId}
+                  onClick={() => onNavigateToView?.(timeseriesViewId)}
                   className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
                 >
                   <BarChart3 size={16} />
-                  View Time Series
+                  {config?.viewConfigs?.[timeseriesViewId]?.view_name || 'View Time Series'}
                 </button>
-              )}
-              {getAvailableViews().includes('logs') && (
+              ))}
+              {getAvailableViews().filter(viewId => {
+                const vConfig = config?.viewConfigs?.[viewId];
+                return vConfig?.view_type === 'logs';
+              }).map(logsViewId => (
                 <button
-                  onClick={onNavigateToLogs}
+                  key={logsViewId}
+                  onClick={() => onNavigateToView?.(logsViewId)}
                   className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
                 >
                   <FileText size={16} />
-                  View Logs
+                  {config?.viewConfigs?.[logsViewId]?.view_name || 'View Logs'}
                 </button>
-              )}
+              ))}
             </div>
           </CollapsibleSection>
         )}

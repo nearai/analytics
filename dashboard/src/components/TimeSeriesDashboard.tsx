@@ -23,11 +23,12 @@ import {
 } from './shared/SharedComponents';
 
 interface TimeSeriesDashboardProps {
-  onNavigateToTable: () => void;
-  onNavigateToLogs: () => void;
+  onNavigateToView?: (viewId: string) => void;
   savedRequest?: TimeSeriesRequest | null;
   onRequestChange?: (request: TimeSeriesRequest) => void;
   config?: DashboardConfig;
+  viewId?: string;
+  viewConfig?: import('./shared/types').ViewConfig;
   refreshTrigger?: number;
 }
 
@@ -462,11 +463,12 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
 };
 
 const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
-  onNavigateToTable,
-  onNavigateToLogs,
+  onNavigateToView,
   savedRequest,
   onRequestChange,
   config,
+  viewId,
+  viewConfig,
   refreshTrigger
 }) => {
   const getAvailableViews = (): string[] => {
@@ -478,9 +480,9 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     return availableViews.length > 1;
   };
 
-  // Default request based on config
+  // Default request based on view config
   const getDefaultRequest = (): TimeSeriesRequest => {
-    const defaultParams = config?.viewConfigs?.timeseries?.defaultParameters || {};
+    const defaultParams = viewConfig?.defaultParameters || {};
     const defaultTimeFilter = getTimeFilter(defaultParams.time_filter || '1 month');
     return {
       filters: [defaultTimeFilter],
@@ -767,24 +769,32 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         {shouldShowViewsPanel() && (
           <CollapsibleSection title="Views" defaultOpen={true}>
             <div className="space-y-2">
-              {getAvailableViews().includes('table') && (
+              {getAvailableViews().filter(viewId => {
+                const vConfig = config?.viewConfigs?.[viewId];
+                return vConfig?.view_type === 'table';
+              }).map(tableViewId => (
                 <button
-                  onClick={onNavigateToTable}
+                  key={tableViewId}
+                  onClick={() => onNavigateToView?.(tableViewId)}
                   className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
                 >
                   <Table size={16} />
-                  View Table
+                  {config?.viewConfigs?.[tableViewId]?.view_name || 'View Table'}
                 </button>
-              )}
-              {getAvailableViews().includes('logs') && (
+              ))}
+              {getAvailableViews().filter(viewId => {
+                const vConfig = config?.viewConfigs?.[viewId];
+                return vConfig?.view_type === 'logs';
+              }).map(logsViewId => (
                 <button
-                  onClick={onNavigateToLogs}
+                  key={logsViewId}
+                  onClick={() => onNavigateToView?.(logsViewId)}
                   className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
                 >
                   <FileText size={16} />
-                  View Logs
+                  {config?.viewConfigs?.[logsViewId]?.view_name || 'View Logs'}
                 </button>
-              )}
+              ))}
             </div>
           </CollapsibleSection>
         )}

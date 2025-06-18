@@ -153,6 +153,12 @@ export type MetricSelection = 'CUSTOM' | 'PERFORMANCE' | 'CAL' | 'ERROR' | 'FEED
 export type ViewType = 'timeseries' | 'table' | 'logs';
 
 export interface ViewConfig {
+  // Type of view component to render
+  view_type: ViewType;
+  // Display name for the view
+  view_name: string;
+  // Metric selection for this specific view
+  metricSelection: MetricSelection;
   // Which parameters to show and their default values
   showParameters?: string[];
   defaultParameters?: Record<string, any>;
@@ -163,18 +169,14 @@ export interface ViewConfig {
 }
 
 export interface DashboardConfig {
-  // Which views to show - if single view, don't show 'Views' panel
-  views?: ViewType[];
+  // Which views to show by their unique IDs - if single view, don't show 'Views' panel
+  views?: string[];
   // Global filters - not shown in 'Filters' panel but passed in each request
   globalFilters?: string[];
-  // Metric selection - keep as unused param for now
-  metricSelection?: MetricSelection;
-  // Configuration for each view
-  viewConfigs?: {
-    timeseries?: ViewConfig;
-    table?: ViewConfig;
-    logs?: ViewConfig;
-  };
-  // Default view to show
-  defaultView?: ViewType;
+  // Metrics service URL
+  metrics_service_url?: string;
+  // Configuration for each view, keyed by view ID
+  viewConfigs?: Record<string, ViewConfig>;
+  // Default view to show by view ID
+  defaultView?: string;
 }

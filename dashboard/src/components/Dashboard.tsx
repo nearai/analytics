@@ -1,8 +1,8 @@
-import React, { useState, useEffect} from 'react';
+import React, { useState, useEffect, useCallback, useMemo} from 'react';
 import TimeSeriesDashboard from './TimeSeriesDashboard';
 import TableDashboard from './TableDashboard';
 import LogsDashboard from './LogsDashboard';
-import { DashboardConfig, ViewType, TimeSeriesRequest, TableRequest, LogsRequest } from './shared/types';
+import { DashboardConfig, ViewConfig, TimeSeriesRequest, TableRequest, LogsRequest } from './shared/types';
 
 interface DashboardProps {
   config?: DashboardConfig;
@@ -11,9 +11,12 @@ interface DashboardProps {
 const DEFAULT_CONFIG: DashboardConfig = {
   views: ['timeseries', 'table', 'logs'],
   globalFilters: [],
-  metricSelection: 'CUSTOM',
+  metrics_service_url: 'http://localhost:8000/api/v1/',
   viewConfigs: {
     timeseries: {
+      view_type: 'timeseries',
+      view_name: 'Time Series',
+      metricSelection: 'CUSTOM',
       refreshRate: undefined,
       defaultParameters: {
         time_filter: '1 month',
@@ -21,9 +24,15 @@ const DEFAULT_CONFIG: DashboardConfig = {
       }
     },
     table: {
+      view_type: 'table',
+      view_name: 'Table',
+      metricSelection: 'CUSTOM',
       refreshRate: undefined
     },
     logs: {
+      view_type: 'logs',
+      view_name: 'Logs',
+      metricSelection: 'CUSTOM',
       timeFilterRecommendations: [],  // Default: disable
       refreshRate: undefined
     }
@@ -35,126 +44,131 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
   const finalConfig = { ...DEFAULT_CONFIG, ...config };
   
   // Determine available views
-  const availableViews = finalConfig.views || ['timeseries', 'table', 'logs'];
+  const availableViews = useMemo(() => {
+    return finalConfig.views || ['timeseries', 'table', 'logs'];
+  }, [finalConfig.views]);
   
   // Current view state
-  const [currentView, setCurrentView] = useState<ViewType>(
+  const [currentView, setCurrentView] = useState<string>(
     finalConfig.defaultView || availableViews[0] || 'timeseries'
   );
   
   // Store requests for each view to maintain state when switching
-  const [timeSeriesRequest, setTimeSeriesRequest] = useState<TimeSeriesRequest | null>(null);
-  const [tableRequest, setTableRequest] = useState<TableRequest | null>(null);
-  const [logsRequest, setLogsRequest] = useState<LogsRequest | null>(null);
+  const [viewRequests, setViewRequests] = useState<Record<string, TimeSeriesRequest | TableRequest | LogsRequest>>({});
 
   // Refresh triggers - incrementing these will cause child components to refresh
-  const [timeSeriesRefreshTrigger, setTimeSeriesRefreshTrigger] = useState(0);
-  const [tableRefreshTrigger, setTableRefreshTrigger] = useState(0);
-  const [logsRefreshTrigger, setLogsRefreshTrigger] = useState(0);
+  const [refreshTriggers, setRefreshTriggers] = useState<Record<string, number>>({});
+  
+  // Helper function to get view config by view ID
+  const getViewConfig = useCallback((viewId: string): ViewConfig | undefined => {
+    return finalConfig.viewConfigs?.[viewId];
+  }, [finalConfig.viewConfigs]);
+  
+  // Helper function to trigger refresh for a specific view
+  const triggerRefresh = (viewId: string) => {
+    setRefreshTriggers(prev => ({
+      ...prev,
+      [viewId]: (prev[viewId] || 0) + 1
+    }));
+  };
   
   // Setup refresh intervals
   useEffect(() => {
     const intervals: NodeJS.Timeout[] = [];
     
-    // Setup time series refresh if specified
-    const timeSeriesRefreshRate = finalConfig.viewConfigs?.timeseries?.refreshRate;
-    if (timeSeriesRefreshRate && timeSeriesRefreshRate > 0) {
-      const timeSeriesInterval = setInterval(() => {
-        if (currentView === 'timeseries' && timeSeriesRequest) {
-          setTimeSeriesRefreshTrigger(prev => prev + 1);
-        }
-      }, timeSeriesRefreshRate * 1000);
-      intervals.push(timeSeriesInterval);
-    }
-    
-    // Setup table refresh if specified
-    const tableRefreshRate = finalConfig.viewConfigs?.table?.refreshRate;
-    if (tableRefreshRate && tableRefreshRate > 0) {
-      const tableInterval = setInterval(() => {
-        if (currentView === 'table' && tableRequest) {
-          setTableRefreshTrigger(prev => prev + 1);
-        }
-      }, tableRefreshRate * 1000);
-      intervals.push(tableInterval);
-    }
-    
-    // Setup logs refresh if specified
-    const logsRefreshRate = finalConfig.viewConfigs?.logs?.refreshRate;
-    if (logsRefreshRate && logsRefreshRate > 0) {
-      const logsInterval = setInterval(() => {
-        if (currentView === 'logs' && logsRequest) {
-          setLogsRefreshTrigger(prev => prev + 1);
-        }
-      }, logsRefreshRate * 1000);
-      intervals.push(logsInterval);
-    }
+    // Setup refresh intervals for all views that have refreshRate configured
+    availableViews.forEach(viewId => {
+      const viewConfig = getViewConfig(viewId);
+      const refreshRate = viewConfig?.refreshRate;
+      
+      if (refreshRate && refreshRate > 0) {
+        const interval = setInterval(() => {
+          if (currentView === viewId && viewRequests[viewId]) {
+            triggerRefresh(viewId);
+          }
+        }, refreshRate * 1000);
+        intervals.push(interval);
+      }
+    });
     
     // Cleanup on unmount or when dependencies change
     return () => {
       intervals.forEach(interval => clearInterval(interval));
     };
-  }, [finalConfig.viewConfigs, currentView, timeSeriesRequest, tableRequest, logsRequest]);
+  }, [finalConfig.viewConfigs, currentView, viewRequests, availableViews, getViewConfig]);
 
   // Navigation handlers
-  const handleNavigateToTimeSeries = () => {
-    if (availableViews.includes('timeseries')) {
-      setCurrentView('timeseries');
-    }
-  };
-
-  const handleNavigateToLogs = () => {
-    if (availableViews.includes('logs')) {
-      setCurrentView('logs');
-    }
-  };
-
-  const handleNavigateToTable = () => {
-    if (availableViews.includes('table')) {
-      setCurrentView('table');
+  const handleNavigateToView = (viewId: string) => {
+    if (availableViews.includes(viewId)) {
+      setCurrentView(viewId);
     }
   };
 
   // Render the appropriate view
   const renderCurrentView = () => {
     const viewToRender = availableViews.includes(currentView) ? currentView : availableViews[0];
+    const viewConfig = getViewConfig(viewToRender);
+    
+    if (!viewConfig) {
+      return <div>Error: View configuration not found for {viewToRender}</div>;
+    }
     
     const commonProps = {
       config: finalConfig,
+      viewId: viewToRender,
+      viewConfig: viewConfig,
+      onNavigateToView: handleNavigateToView,
+      savedRequest: viewRequests[viewToRender] || null,
+      onRequestChange: (request: TimeSeriesRequest | TableRequest | LogsRequest) => {
+        setViewRequests(prev => ({
+          ...prev,
+          [viewToRender]: request
+        }));
+      },
+      refreshTrigger: refreshTriggers[viewToRender] || 0
     };
     
-    if (viewToRender === 'timeseries') {
+    if (viewConfig.view_type === 'timeseries') {
       return (
         <TimeSeriesDashboard
           {...commonProps}
-          onNavigateToTable={handleNavigateToTable}
-          onNavigateToLogs={handleNavigateToLogs}
-          savedRequest={timeSeriesRequest}
-          onRequestChange={setTimeSeriesRequest}
-          refreshTrigger={timeSeriesRefreshTrigger}
+          savedRequest={viewRequests[viewToRender] as TimeSeriesRequest || null}
+          onRequestChange={(request: TimeSeriesRequest) => {
+            setViewRequests(prev => ({
+              ...prev,
+              [viewToRender]: request
+            }));
+          }}
         />
       );
-    } else if (viewToRender === 'table') {
+    } else if (viewConfig.view_type === 'table') {
       return (
         <TableDashboard
           {...commonProps}
-          onNavigateToTimeSeries={handleNavigateToTimeSeries}
-          onNavigateToLogs={handleNavigateToLogs}
-          savedRequest={tableRequest}
-          onRequestChange={setTableRequest}
-          refreshTrigger={tableRefreshTrigger}
+          savedRequest={viewRequests[viewToRender] as TableRequest || null}
+          onRequestChange={(request: TableRequest) => {
+            setViewRequests(prev => ({
+              ...prev,
+              [viewToRender]: request
+            }));
+          }}
         />
       );
-    } else {
+    } else if (viewConfig.view_type === 'logs') {
       return (
         <LogsDashboard
           {...commonProps}
-          onNavigateToTimeSeries={handleNavigateToTimeSeries}
-          onNavigateToTable={handleNavigateToTable}
-          savedRequest={logsRequest}
-          onRequestChange={setLogsRequest}
-          refreshTrigger={logsRefreshTrigger}
+          savedRequest={viewRequests[viewToRender] as LogsRequest || null}
+          onRequestChange={(request: LogsRequest) => {
+            setViewRequests(prev => ({
+              ...prev,
+              [viewToRender]: request
+            }));
+          }}
         />
       );
+    } else {
+      return <div>Error: Unknown view type {viewConfig.view_type}</div>;
     }
   };
 
