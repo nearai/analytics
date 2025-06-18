@@ -205,7 +205,7 @@ interface ViewConfig {
 }} />
 ```
 
-### 5. Multiple Views of Same Type (New Feature)
+### 5. Multiple Views of Same Type
 
 ```jsx
 <Dashboard config={{
@@ -244,21 +244,6 @@ interface ViewConfig {
       view_name: 'Error Logs',
       metricSelection: 'ERROR',
       timeFilterRecommendations: []  // Disable time filter recommendations
-    }
-  }
-}} />
-```
-
-### 5. Minimal Configuration (Hidden Panels)
-
-```jsx
-<Dashboard config={{
-  views: ['table'],
-  globalFilters: ['runner:not_in:local'],
-  viewConfigs: {
-    table: {
-      showParameters: [], // Hides Parameters panel
-      refreshRate: 45
     }
   }
 }} />
