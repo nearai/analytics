@@ -1,14 +1,14 @@
-name: Historic Performance CI
+name: Dashboard CI
 
 on:
   push:
     branches: [ "main" ]
     paths: 
-      - 'historic_performance/**'
+      - 'dashboard/**'
   pull_request:
     branches: [ "main" ]
     paths:
-      - 'historic_performance/**'
+      - 'dashboard/**'
 
 jobs:
   test-dashboard:
@@ -16,7 +16,7 @@ jobs:
     
     defaults:
       run:
-        working-directory: ./historic_performance
+        working-directory: ./dashboard
     
     steps:
       - name: Checkout code
@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: historic_performance/package-lock.json
+          cache-dependency-path: dashboard/package-lock.json
       
       - name: Install dependencies
         run: npm ci

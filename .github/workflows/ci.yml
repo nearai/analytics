@@ -66,19 +66,19 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: historic_performance/package-lock.json
+        cache-dependency-path: dashboard/package-lock.json
     
     - name: Install dependencies
       run: |
-        cd historic_performance
+        cd dashboard
         npm ci
     
-    - name: Build historic_performance
+    - name: Build dashboard
       run: |
-        cd historic_performance
+        cd dashboard
         npm run build
     
-    - name: Type Check historic_performance
+    - name: Type Check dashboard
       run: |
-        cd historic_performance
+        cd dashboard
         npx tsc --noEmit
