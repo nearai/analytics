@@ -50,7 +50,7 @@ const getAutoTimeGranulation = (timeFilter: string): string => {
 // Color schemes for lines
 const SUCCESS_COLORS = ['#10b981', '#059669', '#047857', '#065f46'];
 const ERROR_COLORS = ['#ef4444', '#dc2626', '#b91c1c', '#991b1b'];
-const DEFAULT_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#84cc16', '#f97316'];
+const DEFAULT_COLORS = ['#f59e0b', '#8b5cf6', '#3b82f6', '#06b6d4', '#84cc16', '#f97316'];
 
 // Simple hash function to generate deterministic color selection
 const hashString = (str: string): number => {
@@ -947,8 +947,18 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="time" fontSize={10} />
                               <YAxis fontSize={10} />
-                              <Tooltip />
-                              <Legend />
+                              <Tooltip 
+                                contentStyle={{ 
+                                  fontSize: '7px',
+                                  padding: '2px',
+                                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                  border: '1px solid #ccc',
+                                  borderRadius: '2px',
+                                  lineHeight: '0.6'
+                                }}
+                                labelStyle={{ fontSize: '7px' }}
+                              />
+                              <Legend wrapperStyle={{ fontSize: '8px' }} />
                               {/* Render lines based on available data keys */}
                               {Object.keys(graphData[graph.id]?.chartData?.[0] || {})
                                 .filter(k => k !== 'timestamp' && k !== 'time')
