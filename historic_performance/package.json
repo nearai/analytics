@@ -8,7 +8,14 @@
     "src/components",
     "src/index.css"
   ],
-  "keywords": ["react", "dashboard", "analytics", "performance", "logs", "web-component"],
+  "keywords": [
+    "react",
+    "dashboard",
+    "analytics",
+    "performance",
+    "logs",
+    "web-component"
+  ],
   "author": "NearAI",
   "license": "MIT",
   "repository": {
@@ -22,7 +29,8 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "lucide-react": "^0.321.0"
+    "lucide-react": "^0.321.0",
+    "recharts": "^2.15.3"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -48,10 +56,10 @@
     ]
   },
   "devDependencies": {
+    "@tailwindcss/forms": "^0.5.7",
     "@types/node": "^20.11.0",
     "@types/react": "^18.2.47",
     "@types/react-dom": "^18.2.18",
-    "@tailwindcss/forms": "^0.5.7",
     "autoprefixer": "^10.4.17",
     "postcss": "^8.4.33",
     "react": "^18.2.0",

@@ -301,73 +301,88 @@ export const mergeGlobalFilters = (globalFilters: string[] | undefined, requestF
   return Array.from(new Set(combined));
 };
 
+// Helper function to convert human-readable time periods to hours
+export const parseTimePeriodToHours = (period: string): number | null => {
+  const normalized = period.toLowerCase().trim();
+
+  if (normalized.includes('second')) {
+    const match = normalized.match(/(\d+)\s*second/);
+    if (match) return parseInt(match[1]) / 60 / 60;
+    if (normalized.endsWith('second')) return 1 / 60 / 60;
+  }
+  
+  if (normalized.includes('minute')) {
+    const match = normalized.match(/(\d+)\s*minute/);
+    if (match) return parseInt(match[1]) / 60;
+    if (normalized.endsWith('minute')) return 1 / 60;
+  }
+  
+  if (normalized.includes('hour')) {
+    const match = normalized.match(/(\d+)\s*hour/);
+    if (match) return parseInt(match[1]);
+    if (normalized.endsWith('hour')) return 1;
+  }
+  
+  if (normalized.includes('day')) {
+    const match = normalized.match(/(\d+)\s*day/);
+    if (match) return parseInt(match[1]) * 24;
+    if (normalized.endsWith('day')) return 24;
+  }
+  
+  if (normalized.includes('week')) {
+    const match = normalized.match(/(\d+)\s*week/);
+    if (match) return parseInt(match[1]) * 168;
+    if (normalized.endsWith('week')) return 168;
+  }
+  
+  if (normalized.includes('month')) {
+    const match = normalized.match(/(\d+)\s*month/);
+    if (match) return parseInt(match[1]) * 24 * 30; // Approximate
+    if (normalized.endsWith('month')) return 24 * 30;
+  }
+  
+  if (normalized.includes('year')) {
+    const match = normalized.match(/(\d+)\s*year/);
+    if (match) return parseInt(match[1]) * 24 * 365; // Approximate
+    if (normalized.endsWith('year')) return 24 * 365;
+  }
+  
+  return null;
+};
+
+export const getTimeFilter = (filter_label: string) => {
+  const now = new Date();
+  const hours = parseTimePeriodToHours(filter_label);
+  if (hours !== null) {
+    const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000);
+    const isoString = cutoff.toISOString().replace(/\.\d{3}Z$/, '');
+    return `time_end_utc:range:(${isoString}):`
+  } else {
+    return ''
+  }
+}
+
 // Generate time filter suggestions
 export const getTimeFilters = (timeFilterRecommendations?: string[]) => {
-  const now = new Date();
-  
-  // Helper function to convert human-readable time periods to hours
-  const parseTimePeriod = (period: string): number | null => {
-    const normalized = period.toLowerCase().trim();
-    
-    if (normalized.includes('minute')) {
-      const match = normalized.match(/(\d+)\s*minute/);
-      if (match) return parseInt(match[1]) / 60; // Convert minutes to hours
-      if (normalized === 'last minute') return 1 / 60;
-    }
-    
-    if (normalized.includes('hour')) {
-      const match = normalized.match(/(\d+)\s*hour/);
-      if (match) return parseInt(match[1]);
-      if (normalized === 'last hour') return 1;
-    }
-    
-    if (normalized.includes('day')) {
-      const match = normalized.match(/(\d+)\s*day/);
-      if (match) return parseInt(match[1]) * 24;
-      if (normalized === 'last day') return 24;
-    }
-    
-    if (normalized.includes('week')) {
-      const match = normalized.match(/(\d+)\s*week/);
-      if (match) return parseInt(match[1]) * 168;
-      if (normalized === 'last week') return 168;
-    }
-    
-    if (normalized.includes('month')) {
-      const match = normalized.match(/(\d+)\s*month/);
-      if (match) return parseInt(match[1]) * 24 * 30; // Approximate
-      if (normalized === 'last month') return 24 * 30;
-    }
-    
-    return null;
-  };
-  
   // If config provides custom recommendations, convert them to filters
   if (timeFilterRecommendations) {
     return timeFilterRecommendations.map(recommendation => {
-      const hours = parseTimePeriod(recommendation);
-      if (hours !== null) {
-        const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000);
-        const isoString = cutoff.toISOString().replace(/\.\d{3}Z$/, '');
-        return {
-          label: recommendation,
-          filter: `time_end_utc:range:(${isoString}):`
-        };
-      } else {
-        // Fallback for unrecognized formats - just use as label and no filter
-        return {
-          label: recommendation,
-          filter: ''
-        };
+      return {
+        label: recommendation,
+        filter: getTimeFilter(recommendation)
       }
     });
   }
+
+  const now = new Date();
   
   // Default recommendations
   const formats = [
     { label: 'last hour', hours: 1 },
     { label: 'last day', hours: 24 },
-    { label: 'last week', hours: 168 }
+    { label: 'last week', hours: 168 },
+    { label: 'last month', hours: 24 * 30 },
+    { label: 'last year', hours: 24 * 365 }
   ];
   
   return formats.map(({ label, hours }) => {
@@ -391,6 +406,21 @@ interface FiltersSectionProps {
   timeFilterRecommendations?: string[];
   showTimeFilters?: boolean;
 }
+
+// Filter Help Content Component
+export const FilterHelpContent: React.FC = () => (
+  <>
+    <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
+    <p className="mb-1 text-gray-300">• <i>in/not_in</i>:</p>
+    <p className="ml-2 text-gray-400">agent_name:in:agent1,agent2</p>
+    <p className="mb-1 text-gray-300">• <i>range</i>:</p>
+    <p className="ml-2 text-[10px] text-gray-400">value:range:10:100<span className="text-gray-500 ml-1">(between 10 and 100)</span></p>
+    <p className="ml-2 text-[10px] text-gray-400">value:range:10:<span className="text-gray-500 ml-1">(minimum 10)</span></p>
+    <p className="ml-2 text-[10px] text-gray-400">value:range::100<span className="text-gray-500 ml-1">(maximum 100)</span></p>
+    <p className="ml-2 text-[10px] text-gray-400">time_end_utc:range:(2025-05-23T11:48):</p>
+    <p className="ml-4 text-[10px] text-gray-500">(after specified date/time)</p>
+  </>
+);
 
 export const FiltersSection: React.FC<FiltersSectionProps> = ({
   filters,
@@ -416,19 +446,7 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({
         onRemove={onRemoveFilter}
         placeholder="e.g., runner:not_in:local"
         itemColor="blue"
-        helpContent={
-          <>
-            <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
-            <p className="mb-1 text-gray-300">• <i>in/not_in</i>:</p>
-            <p className="ml-2 text-gray-400">agent_name:in:agent1,agent2</p>
-            <p className="mb-1 text-gray-300">• <i>range</i>:</p>
-            <p className="ml-2 text-[10px] text-gray-400">value:range:10:100<span className="text-gray-500 ml-1">(between 10 and 100)</span></p>
-            <p className="ml-2 text-[10px] text-gray-400">value:range:10:<span className="text-gray-500 ml-1">(minimum 10)</span></p>
-            <p className="ml-2 text-[10px] text-gray-400">value:range::100<span className="text-gray-500 ml-1">(maximum 100)</span></p>
-            <p className="ml-2 text-[10px] text-gray-400">time_end_utc:range:(2025-05-23T11:48):</p>
-            <p className="ml-4 text-[10px] text-gray-500">(after specified date/time)</p>
-          </>
-        }
+        helpContent={<FilterHelpContent />}
       />
 
       {/* Time filters */}
