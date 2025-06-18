@@ -11,7 +11,7 @@ A web application for querying and visualizing analytics metrics data. Features 
 
 1. Navigate to the project directory:
 ```bash
-cd analytics/historic_performance
+cd analytics/dashboard
 ```
 
 2. Install dependencies:

@@ -17,7 +17,7 @@ Publishing is automated via GitHub Actions. To publish a new version:
 
 1. **Update the version** in `package.json`:
    ```bash
-   cd historic_performance
+   cd dashboard
    npm version patch|minor|major
    ```
 
@@ -44,7 +44,7 @@ The published package includes:
 If automatic publishing fails, you can publish manually:
 
 ```bash
-cd historic_performance
+cd dashboard
 npm ci
 npm run build
 

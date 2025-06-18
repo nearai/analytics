@@ -8,7 +8,7 @@ A collection of tools for benchmarking, evaluating, and analyzing agent performa
 - [`/canonical_metrics`](./canonical_metrics/): Standard formats and tools for metrics collection, including:
   - Metrics CLI for processing and transforming metrics
   - Metrics Service API for querying and visualizing metrics data
-- [`/historic_performance`](./historic_performance/): Dashboard for tracking performance over time
+- [`/dashboard`](./dashboard/): Dashboard for tracking performance over time
 - [`/evaluation`](./evaluation/): Dashboard and tools for evaluating agent or model performance
 
 ## Primary Use Cases
@@ -52,12 +52,12 @@ curl -X POST "http://localhost:8000/api/v1/table/aggregation" \
   }'
 ```
 
-### 4. [Run Historic Performance Dashboard](./historic_performance/)
+### 4. [Run Historic Performance Dashboard](./dashboard/)
 
 Run a web application for querying and visualizing analytics metrics data. Features comprehensive views for time series analysis, data tables, and chronological logs.
 
 ```bash
-cd historic_performance
+cd dashboard
 npm install
 npm start
 ```
