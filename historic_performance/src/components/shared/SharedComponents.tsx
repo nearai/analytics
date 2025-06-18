@@ -350,30 +350,31 @@ export const parseTimePeriodToHours = (period: string): number | null => {
   return null;
 };
 
+export const getTimeFilter = (filter_label: string) => {
+  const now = new Date();
+  const hours = parseTimePeriodToHours(filter_label);
+  if (hours !== null) {
+    const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000);
+    const isoString = cutoff.toISOString().replace(/\.\d{3}Z$/, '');
+    return `time_end_utc:range:(${isoString}):`
+  } else {
+    return ''
+  }
+}
+
 // Generate time filter suggestions
 export const getTimeFilters = (timeFilterRecommendations?: string[]) => {
-  const now = new Date();
-  
   // If config provides custom recommendations, convert them to filters
   if (timeFilterRecommendations) {
     return timeFilterRecommendations.map(recommendation => {
-      const hours = parseTimePeriodToHours(recommendation);
-      if (hours !== null) {
-        const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000);
-        const isoString = cutoff.toISOString().replace(/\.\d{3}Z$/, '');
-        return {
-          label: recommendation,
-          filter: `time_end_utc:range:(${isoString}):`
-        };
-      } else {
-        // Fallback for unrecognized formats - just use as label and no filter
-        return {
-          label: recommendation,
-          filter: ''
-        };
+      return {
+        label: recommendation,
+        filter: getTimeFilter(recommendation)
       }
     });
   }
+
+  const now = new Date();
   
   // Default recommendations
   const formats = [

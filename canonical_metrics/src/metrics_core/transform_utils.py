@@ -624,6 +624,7 @@ def create_moving_aggregation(
     if filter_conditions:
         preprocess_conversions.append(FilterConversion(filter_conditions))
     preprocess_conversions.append(SortByTimestampConversion())
+    preprocess_conversions.append(CategorizeMetadataConversion())
     entries = ChainConversion(preprocess_conversions).convert(entries)
 
     no_result = MovingAggregation(

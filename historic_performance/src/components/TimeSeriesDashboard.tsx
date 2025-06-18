@@ -16,7 +16,8 @@ import {
   CollapsibleSection, 
   FilterHelpContent, 
   FilterManager, 
-  FiltersSection, 
+  FiltersSection,
+  getTimeFilter, 
   mergeGlobalFilters, 
   parseTimePeriodToHours
 } from './shared/SharedComponents';
@@ -155,21 +156,12 @@ interface MetricTreeProps {
 }
 
 const MetricTree: React.FC<MetricTreeProps> = ({ node, selectedPath, onSelectMetric, level = 0 }) => {
-  const [isExpanded, setIsExpanded] = useState(level < 2); // Auto-expand first 2 levels
+  const [isExpanded, setIsExpanded] = useState(level < 2 && !node.column_node_id.startsWith('/metadata'));
   const hasChildren = node.children && node.children.length > 0;
   const isSelected = selectedPath === node.column_node_id;
   
   // Check if this is a leaf node (column_node_id doesn't end with '/')
   const isLeaf = !node.column_node_id.endsWith('/');
-  
-  if (!node.column_node_id.startsWith('/metrics') && level === 0) {
-    // If this is the root and doesn't start with metrics/, look for metrics/ children
-    const metricsChild = node.children?.find(child => child.name === 'metrics');
-    if (metricsChild) {
-      return <MetricTree node={metricsChild} selectedPath={selectedPath} onSelectMetric={onSelectMetric} level={level} />;
-    }
-    return null;
-  }
   
   return (
     <div className={`${level > 0 ? 'ml-4' : ''}`}>
@@ -179,7 +171,7 @@ const MetricTree: React.FC<MetricTreeProps> = ({ node, selectedPath, onSelectMet
         }`}
         onClick={() => {
           if (isLeaf) {
-            onSelectMetric(node.name);
+            onSelectMetric(node.column_node_id.replace(/^\/(?:metrics|metadata)\//, ''));
           } else if (hasChildren) {
             setIsExpanded(!isExpanded);
           }
@@ -270,7 +262,7 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
           slice_field: lineConfig.slice
         };
 
-        const response = await fetch('/api/v1/graphs/time-series', {
+        const response = await fetch('http://localhost:8000/api/v1/graphs/time-series', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(apiRequest)
@@ -466,7 +458,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   // Default request based on config
   const getDefaultRequest = (): TimeSeriesRequest => {
     const defaultParams = config?.viewConfigs?.timeseries?.defaultParameters || {};
-    const defaultTimeFilter = defaultParams.time_filter || '1 month';
+    const defaultTimeFilter = getTimeFilter(defaultParams.time_filter || '1 month');
     return {
       filters: [defaultTimeFilter],
       time_granulation: defaultParams.time_granulation || '1 day',
@@ -501,7 +493,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         absent_metrics_strategy: 'accept_subset'
       };
 
-      const response = await fetch('/api/v1/table/aggregation', {
+      const response = await fetch('http://localhost:8000/api/v1/table/aggregation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tableRequest)
@@ -542,7 +534,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           slice_field: lineConfig.slice
         };
 
-        const response = await fetch('/api/v1/graphs/time-series', {
+        const response = await fetch('http://localhost:8000/api/v1/graphs/time-series', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(apiRequest)
@@ -566,7 +558,8 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           data.slice_values.forEach((sliceValue, sliceIndex) => {
             if (sliceIndex < data.values.length) {
               const lineData = data.values[sliceIndex];
-              const lineName = `${lineConfig.metricName.split('/').pop()}_${sliceValue}`;
+              const baseName = lineConfig.metricName.split('/').pop() || lineConfig.metricName;
+              const lineName = `${baseName}_${configIndex}_${sliceValue}`;
               
               // Store metadata for color lookup
               lineMetadata[lineName] = { configIndex, sliceValue };
@@ -587,7 +580,8 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           // Single line (no slicing)
           if (data.values.length > 0) {
             const lineData = data.values[0];
-            const lineName = lineConfig.metricName.split('/').pop() || lineConfig.metricName;
+            const baseName = lineConfig.metricName.split('/').pop() || lineConfig.metricName;
+            const lineName = `${baseName}_${configIndex}`;
             
             // Store metadata for color lookup
             lineMetadata[lineName] = { configIndex };
@@ -972,6 +966,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
             </div>
           </div>
         )}
+        
       </div>
 
       {/* Graph Configuration Modal */}
