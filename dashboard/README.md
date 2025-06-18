@@ -1,4 +1,4 @@
-# Historic Performance Dashboard
+# Analytics Dashboard
 
 A web application for querying and visualizing analytics metrics data. Features comprehensive views for time series analysis, data tables, and chronological logs. Can be used as a standalone web app or as a configurable web component in other applications.
 
