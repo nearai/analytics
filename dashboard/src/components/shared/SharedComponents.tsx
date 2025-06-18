@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, X, Info } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Info, Plus } from 'lucide-react';
 
 // Collapsible Section Component
 export const CollapsibleSection: React.FC<{
@@ -158,14 +158,23 @@ export const FilterManager: React.FC<FilterManagerProps> = ({
       {/* Add item */}
       <div>
         <label className="block text-xs font-medium mb-1">Add {title.slice(0, -1)}</label>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && onAdd()}
-          placeholder={placeholder}
-          className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600 placeholder-gray-400"
-        />
+        <div className="flex gap-1">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && onAdd()}
+            placeholder={placeholder}
+            className="flex-1 p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600 placeholder-gray-400"
+          />
+          <button
+            onClick={onAdd}
+            className="px-2 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs flex items-center justify-center"
+            title="Add filter"
+          >
+            <Plus size={12} />
+          </button>
+        </div>
       </div>
 
       {/* Help */}
