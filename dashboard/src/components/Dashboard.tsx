@@ -36,8 +36,7 @@ const DEFAULT_CONFIG: DashboardConfig = {
       timeFilterRecommendations: [],  // Default: disable
       refreshRate: undefined
     }
-  },
-  defaultView: 'timeseries'
+  }
 };
 
 const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
