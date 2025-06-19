@@ -245,6 +245,7 @@ interface LineConfigurationComponentProps {
   columnTree: ColumnNode | null;
   request: TimeSeriesRequest;
   config?: DashboardConfig;
+  totalLineConfigsCount?: number;
 }
 
 // Convert time granulation to milliseconds
@@ -258,7 +259,8 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
   onRemove,
   columnTree,
   request,
-  config
+  config,
+  totalLineConfigsCount = 1
 }) => {
   const [filterInput, setFilterInput] = useState('');
   const [sliceValues, setSliceValues] = useState<string[]>([]);
@@ -471,7 +473,11 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
                         displayNamesForSliceLines: Object.keys(newDisplayNames).length > 0 ? newDisplayNames : undefined 
                       });
                     }}
-                    placeholder={`${lineConfig.displayName || lineConfig.metricName.split('/').pop() || lineConfig.metricName}_${sliceValue}`}
+                    placeholder={
+                      totalLineConfigsCount === 1 
+                        ? sliceValue 
+                        : `${lineConfig.displayName || lineConfig.metricName.split('/').pop() || lineConfig.metricName}_${sliceValue}`
+                    }
                     className="flex-1 p-1.5 border rounded text-sm"
                   />
                 </div>
@@ -653,6 +659,9 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
               
               if (customSliceName) {
                 lineName = `${customSliceName}`;
+              } else if (graph.lineConfigurations.length === 1) {
+                // If only single lineConfig, use slice value as display name
+                lineName = sliceValue;
               } else {
                 const baseName = lineConfig.displayName || `${lineConfig.metricName.split('/').pop() || lineConfig.metricName}_${configIndex}`;
                 lineName = `${baseName}_${sliceValue}`;
@@ -1232,6 +1241,7 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
               columnTree={columnTree}
               request={request}
               config={config}
+              totalLineConfigsCount={localLineConfigs.length}
             />
           ))}
           
