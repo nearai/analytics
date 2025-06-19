@@ -504,7 +504,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     if (onRequestChange) {
       onRequestChange(request);
     }
-  }, [request]);
+  }, [request]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch column tree for metric selection
   const fetchColumnTree = useCallback(async () => {

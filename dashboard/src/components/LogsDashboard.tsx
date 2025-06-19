@@ -382,7 +382,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     if (onRequestChange) {
       onRequestChange(request);
     }
-  }, [request]);
+  }, [request]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // API call
   const fetchLogs = useCallback(async (requestData: LogsRequest) => {

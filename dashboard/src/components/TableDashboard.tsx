@@ -245,7 +245,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     if (onRequestChange) {
       onRequestChange(request);
     }
-  }, [request]);
+  }, [request]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // API call
   const fetchTable = useCallback(async (requestData: TableRequest) => {
