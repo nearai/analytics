@@ -895,12 +895,12 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         <CollapsibleSection title="Time Granulation">
           <div>
             <div className="mb-2">
-              <label className="flex items-center text-xs">
+              <label className="flex items-center text-xs text-white">
                 <input
                   type="checkbox"
                   checked={autoTimeGranulation}
                   onChange={(e) => setAutoTimeGranulation(e.target.checked)}
-                  className="mr-2 rounded"
+                  className="mr-2 rounded bg-gray-700 border-gray-600"
                 />
                 Auto determine from time filter
               </label>
