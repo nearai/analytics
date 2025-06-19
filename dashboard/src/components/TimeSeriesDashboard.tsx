@@ -773,11 +773,10 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   // Handle time filter change with auto granulation
   const handleTimeFilterChange = (filter: string) => {
     const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:'));
-    const autoGranulation = getAutoTimeGranulation(filter);
     const newRequest = { 
       ...request, 
       filters: [...newFilters, filter],
-      time_granulation: autoGranulation
+      ...(autoTimeGranulation && { time_granulation: getAutoTimeGranulation(filter) })
     };
     setRequest(newRequest);
   };
@@ -868,6 +867,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   );
 
   const [localTimeGranulation, setLocalTimeGranulation] = useState(request.time_granulation || '1 day');
+  const [autoTimeGranulation, setAutoTimeGranulation] = useState(true);
 
   // Sync local state when request.time_granulation changes from external sources
   useEffect(() => {
@@ -894,6 +894,17 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         {/* Time Granulation */}
         <CollapsibleSection title="Time Granulation">
           <div>
+            <div className="mb-2">
+              <label className="flex items-center text-xs text-white">
+                <input
+                  type="checkbox"
+                  checked={autoTimeGranulation}
+                  onChange={(e) => setAutoTimeGranulation(e.target.checked)}
+                  className="mr-2 rounded bg-gray-700 border-gray-600"
+                />
+                Auto determine from time filter
+              </label>
+            </div>
             <label className="block text-xs font-medium mb-1">Granulation</label>
             <input
               type="text"
