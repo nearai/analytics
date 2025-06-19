@@ -337,9 +337,15 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
       // Switching to sliced mode - color should become a map
       onUpdate({ ...lineConfig, slice, color: {}, userSetColor: {} });
     } else {
-      // Switching to non-sliced mode - color should become a string
+      // Switching to non-sliced mode - color should become a string and clear slice line names
       const defaultColor = getLineColor(lineConfig.metricName, '', lineConfig.filters || []);
-      onUpdate({ ...lineConfig, slice: undefined, color: defaultColor, userSetColor: false });
+      onUpdate({ 
+        ...lineConfig, 
+        slice: undefined, 
+        color: defaultColor, 
+        userSetColor: false, 
+        displayNamesForSliceLines: undefined 
+      });
     }
   };
   
@@ -406,6 +412,21 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
         )}
       </div>
       
+      {/* Display Name */}
+      <div className="mb-3">
+        <label className="block text-sm font-medium mb-1">Display Name</label>
+        <input
+          type="text"
+          value={lineConfig.displayName || ''}
+          onChange={(e) => onUpdate({ ...lineConfig, displayName: e.target.value || undefined })}
+          placeholder="Optional custom name for this line"
+          className="w-full p-1.5 border rounded text-sm"
+        />
+        <div className="mt-1 text-xs text-gray-500">
+          Leave empty to use auto-generated name
+        </div>
+      </div>
+      
       {/* Slice */}
       <div className="mb-3">
         <label className="block text-sm font-medium mb-1">Slice</label>
@@ -421,6 +442,48 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
         )}
       </div>
       
+      {/* Slice Line Names (only shown when slice is configured and slice values are loaded) */}
+      {lineConfig.slice && sliceValues.length > 0 && (
+        <div className="mb-3">
+          <label className="block text-sm font-medium mb-1">Slice Line Display Names</label>
+          <div className="space-y-2">
+            {sliceValues.map(sliceValue => {
+              const currentDisplayName = lineConfig.displayNamesForSliceLines?.[sliceValue] || '';
+              
+              return (
+                <div key={sliceValue} className="flex items-center gap-2">
+                  <span className="text-sm font-medium w-24 flex-shrink-0">{sliceValue}:</span>
+                  <input
+                    type="text"
+                    value={currentDisplayName}
+                    onChange={(e) => {
+                      const newValue = e.target.value.trim();
+                      const newDisplayNames = { ...(lineConfig.displayNamesForSliceLines || {}) };
+                      
+                      if (newValue) {
+                        newDisplayNames[sliceValue] = newValue;
+                      } else {
+                        delete newDisplayNames[sliceValue];
+                      }
+                      
+                      onUpdate({ 
+                        ...lineConfig, 
+                        displayNamesForSliceLines: Object.keys(newDisplayNames).length > 0 ? newDisplayNames : undefined 
+                      });
+                    }}
+                    placeholder={`${lineConfig.displayName || lineConfig.metricName.split('/').pop() || lineConfig.metricName}_${sliceValue}`}
+                    className="flex-1 p-1.5 border rounded text-sm"
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-1 text-xs text-gray-500">
+            Leave empty to use auto-generated names
+          </div>
+        </div>
+      )}
+
       {/* Color(s) */}
       <div>
         <label className="block text-sm font-medium mb-1">
@@ -583,8 +646,17 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           data.slice_values.forEach((sliceValue, sliceIndex) => {
             if (sliceIndex < data.values.length) {
               const lineData = data.values[sliceIndex];
-              const baseName = lineConfig.metricName.split('/').pop() || lineConfig.metricName;
-              const lineName = `${baseName}_${configIndex}_${sliceValue}`;
+              
+              // Use custom slice line name if provided, otherwise use auto-generated name
+              const customSliceName = lineConfig.displayNamesForSliceLines?.[sliceValue];
+              let lineName: string;
+              
+              if (customSliceName) {
+                lineName = `${customSliceName}`;
+              } else {
+                const baseName = lineConfig.displayName || `${lineConfig.metricName.split('/').pop() || lineConfig.metricName}_${configIndex}`;
+                lineName = `${baseName}_${sliceValue}`;
+              }
               
               // Store metadata for color lookup
               lineMetadata[lineName] = { configIndex, sliceValue };
@@ -605,8 +677,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           // Single line (no slicing)
           if (data.values.length > 0) {
             const lineData = data.values[0];
-            const baseName = lineConfig.metricName.split('/').pop() || lineConfig.metricName;
-            const lineName = `${baseName}_${configIndex}`;
+            const lineName = lineConfig.displayName || `${lineConfig.metricName.split('/').pop() || lineConfig.metricName}_${configIndex}`;
             
             // Store metadata for color lookup
             lineMetadata[lineName] = { configIndex };
@@ -858,7 +929,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                   return (
                     <div key={graph.id} className="border border-gray-300 rounded-lg p-4 bg-white">
                       <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-semibold">Graph {graphs.indexOf(graph) + 1}</h3>
+                        <h3 className="font-semibold">{graph.name || `Graph ${graphs.indexOf(graph) + 1}`}</h3>
                         <div className="flex gap-1">
                           <button
                             onClick={() => setShowGraphConfig({ graphId: graph.id })}
@@ -926,7 +997,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                                   }
 
                                   <span>
-                                    {lineConfig.metricName.split('/').pop()}
+                                    {lineConfig.displayName || lineConfig.metricName.split('/').pop()}
                                     {lineConfig.slice && ` (${lineConfig.slice})`}
                                   </span>
                                 </div>
@@ -1057,11 +1128,16 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
         filters: [],
         slice: undefined,
         color: undefined,
-        userSetColor: undefined
+        userSetColor: undefined,
+        displayName: undefined,
+        displayNamesForSliceLines: undefined
       }];
     }
     return existing;
   });
+
+  // Initialize graph name state
+  const [graphName, setGraphName] = useState<string>(graph?.name || '');
 
   const addLineConfiguration = () => {
     const newLineConfig: LineConfiguration = {
@@ -1070,7 +1146,9 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
       filters: [],
       slice: undefined,
       color: undefined,
-      userSetColor: undefined
+      userSetColor: undefined,
+      displayName: undefined,
+      displayNamesForSliceLines: undefined
     };
     setLocalLineConfigs([...localLineConfigs, newLineConfig]);
   };
@@ -1106,12 +1184,12 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
     // Update the graph in the graphs array
     const updatedGraphs = graphs.map(g => 
       g.id === graphId 
-        ? { ...g, lineConfigurations: configsWithColors }
+        ? { ...g, lineConfigurations: configsWithColors, name: graphName || undefined }
         : g
     );
     
     onSave(updatedGraphs);
-  }, [localLineConfigs, graphs, graphId, onSave]);
+  }, [localLineConfigs, graphs, graphId, graphName, onSave]);
 
   useEffect(() => {
     // Handle Esc key press
@@ -1127,7 +1205,22 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-auto">
-        <h3 className="text-lg font-semibold mb-4">Configure Graph Lines</h3>
+        <h3 className="text-lg font-semibold mb-4">Configure Graph</h3>
+        
+        {/* Graph Name */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Graph Name</label>
+          <input
+            type="text"
+            value={graphName}
+            onChange={(e) => setGraphName(e.target.value)}
+            placeholder="Optional custom name for this graph"
+            className="w-full p-2 border rounded"
+          />
+          <div className="mt-1 text-xs text-gray-500">
+            Leave empty to use auto-generated name (Graph 1, Graph 2, etc.)
+          </div>
+        </div>
         
         <div className="mb-4">
           {localLineConfigs.map((lineConfig, index) => (
