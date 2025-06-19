@@ -353,7 +353,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
   const [panelWidth, setPanelWidth] = useState(256);
 
   // Store the last refresh trigger value to detect changes
-  const lastRefreshTrigger = useRef(refreshTrigger);
+  const lastRefreshTrigger = useRef(refreshTrigger || 0);
 
   // Resize panel
   const isResizing = useRef(false);
@@ -385,8 +385,10 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
   }, [request]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // API call
-  const fetchLogs = useCallback(async (requestData: LogsRequest) => {
-    setLoading(true);
+  const fetchLogs = useCallback(async (requestData: LogsRequest, isRefresh = false) => {
+    if (!isRefresh) {
+      setLoading(true);
+    }
     setError(null);
     
     try {
@@ -413,7 +415,9 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      setLoading(false);
+      if (!isRefresh) {
+        setLoading(false);
+      }
     }
   }, [config?.globalFilters, config?.metrics_service_url]);
 
@@ -428,11 +432,11 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
 
   // Handle refresh trigger changes
   useEffect(() => {
-    if (refreshTrigger !== lastRefreshTrigger.current && refreshTrigger > 0) {
+    if (refreshTrigger !== undefined && refreshTrigger !== lastRefreshTrigger.current && refreshTrigger > 0) {
       lastRefreshTrigger.current = refreshTrigger;
       // Only refresh if we have a request
       if (request) {
-        fetchLogs(request);
+        fetchLogs(request, true); // Pass true to indicate this is a refresh
       }
     }
   }, [refreshTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -601,8 +605,9 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
       </div>
 
       {/* Main Window */}
-      <div className="flex-1 overflow-auto p-4 custom-scrollbar">
-        {loading && <div className="text-center py-4 text-gray-600">Loading...</div>}
+      <div className="flex-1 overflow-auto p-4 custom-scrollbar relative">
+        {/* Show loading only for initial loads (when no previous response exists) */}
+        {loading && !response && <div className="text-center py-4 text-gray-600">Loading...</div>}
         {error && <div className="text-red-600 text-center py-2 text-xs">Error: {error}</div>}
         
         {response && response.groups.length === 0 && (

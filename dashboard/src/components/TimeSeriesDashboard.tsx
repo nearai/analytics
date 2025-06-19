@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Settings, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { 
@@ -499,6 +499,9 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [graphData, setGraphData] = useState<Record<string, { chartData: any[]; lineMetadata: Record<string, { configIndex: number; sliceValue?: string }> }>>({});
 
+  // Store the last refresh trigger value to detect changes
+  const lastRefreshTrigger = useRef(refreshTrigger || 0);
+
   // Update saved request when request changes
   useEffect(() => {
     if (onRequestChange) {
@@ -509,7 +512,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   // Fetch column tree for metric selection
   const fetchColumnTree = useCallback(async () => {
     try {
-      setLoading(true);
       const tableRequest: TableRequest = {
         filters: mergeGlobalFilters(config?.globalFilters, request.filters),
         slices: [],
@@ -531,8 +533,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
       setColumnTree(data.column_tree);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch column tree');
-    } finally {
-      setLoading(false);
     }
   }, [config?.globalFilters, config?.metrics_service_url, request.filters]);
 
@@ -634,10 +634,12 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   }, [request.time_granulation, request.filters, config?.globalFilters, config?.metrics_service_url]);
 
   // Fetch data for all graphs
-  const fetchAllGraphData = useCallback(async () => {
+  const fetchAllGraphData = useCallback(async (isRefresh = false) => {
     if (graphs.length === 0) return;
     
-    setLoading(true);
+    if (!isRefresh) {
+      setLoading(true);
+    }
     try {
       const newGraphData: Record<string, { chartData: any[]; lineMetadata: Record<string, { configIndex: number; sliceValue?: string }> }> = {};
       
@@ -650,14 +652,27 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch graph data');
     } finally {
-      setLoading(false);
+      if (!isRefresh) {
+        setLoading(false);
+      }
     }
   }, [graphs, fetchTimeSeriesData]);
 
-  // Fetch graph data when graphs change or refresh is triggered
+  // Fetch graph data when graphs change
   useEffect(() => {
     fetchAllGraphData();
-  }, [fetchAllGraphData, refreshTrigger]);
+  }, [fetchAllGraphData]);
+
+  // Handle refresh trigger changes separately
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger !== lastRefreshTrigger.current && refreshTrigger > 0) {
+      lastRefreshTrigger.current = refreshTrigger;
+      // Only refresh if we have graphs
+      if (graphs.length > 0) {
+        fetchAllGraphData(true); // Pass true to indicate this is a refresh
+      }
+    }
+  }, [refreshTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle time filter change with auto granulation
   const handleTimeFilterChange = (filter: string) => {
@@ -816,8 +831,9 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        {loading && (
+      <div className="flex-1 overflow-auto relative">
+        {/* Show loading only for initial loads (when no previous graph data exists) */}
+        {loading && Object.keys(graphData).length === 0 && (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-600">Loading...</div>
           </div>
@@ -829,7 +845,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           </div>
         )}
 
-        {!loading && !error && (
+        {(!loading || Object.keys(graphData).length > 0) && !error && (
           <div className="p-4">
             {/* Graph Grid */}
             <div className="grid grid-cols-2 gap-4">

@@ -216,7 +216,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   const [panelWidth, setPanelWidth] = useState(256); // 256px = 16rem
 
   // Store the last refresh trigger value to detect changes
-  const lastRefreshTrigger = useRef(refreshTrigger);
+  const lastRefreshTrigger = useRef(refreshTrigger || 0);
 
   // Resize panel
   const isResizing = useRef(false);
@@ -248,7 +248,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   }, [request]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // API call
-  const fetchTable = useCallback(async (requestData: TableRequest) => {
+  const fetchTable = useCallback(async (requestData: TableRequest, isRefresh = false) => {
     setError(null);
     
     try {
@@ -308,11 +308,11 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
 
   // Handle refresh trigger changes
   useEffect(() => {
-    if (refreshTrigger !== lastRefreshTrigger.current && refreshTrigger > 0) {
+    if (refreshTrigger !== undefined && refreshTrigger !== lastRefreshTrigger.current && refreshTrigger > 0) {
       lastRefreshTrigger.current = refreshTrigger;
       // Only refresh if we have a request
       if (request) {
-        fetchTable(request);
+        fetchTable(request, true); // Pass true to indicate this is a refresh
       }
     }
   }, [refreshTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -639,7 +639,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
       </div>
 
       {/* Main Window */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
+      <div className="flex-1 flex flex-col overflow-hidden bg-gray-50 relative">
         {/* Column Tree */}
         <div className="bg-white shadow-sm flex-shrink-0">
           <button
