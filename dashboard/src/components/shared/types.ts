@@ -91,12 +91,16 @@ export interface LineConfiguration {
   color?: string | Record<string, string>;
   /** Track which colors were manually set by the user vs auto-generated. For single colors: boolean. For slice colors: map from slice values to boolean. */
   userSetColor?: boolean | Record<string, boolean>;
+  /** Optional custom display name for this line. If not provided, auto-generated names will be used. */
+  displayName?: string;
 }
 
 export interface GraphConfiguration {
   /** Unique identifier for this graph configuration. Generated using `graph-${Date.now()}` for internal state management and React keys. */
   id: string;
   lineConfigurations: LineConfiguration[];
+  /** Optional custom name for this graph. If not provided, auto-generated names will be used. */
+  name?: string;
 }
 
 export interface TimeSeriesRequest {

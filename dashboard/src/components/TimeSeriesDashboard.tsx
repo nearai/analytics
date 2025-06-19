@@ -406,6 +406,21 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
         )}
       </div>
       
+      {/* Display Name */}
+      <div className="mb-3">
+        <label className="block text-sm font-medium mb-1">Display Name</label>
+        <input
+          type="text"
+          value={lineConfig.displayName || ''}
+          onChange={(e) => onUpdate({ ...lineConfig, displayName: e.target.value || undefined })}
+          placeholder="Optional custom name for this line"
+          className="w-full p-1.5 border rounded text-sm"
+        />
+        <div className="mt-1 text-xs text-gray-500">
+          Leave empty to use auto-generated name
+        </div>
+      </div>
+      
       {/* Slice */}
       <div className="mb-3">
         <label className="block text-sm font-medium mb-1">Slice</label>
@@ -583,7 +598,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           data.slice_values.forEach((sliceValue, sliceIndex) => {
             if (sliceIndex < data.values.length) {
               const lineData = data.values[sliceIndex];
-              const baseName = lineConfig.metricName.split('/').pop() || lineConfig.metricName;
+              const baseName = lineConfig.displayName || lineConfig.metricName.split('/').pop() || lineConfig.metricName;
               const lineName = `${baseName}_${configIndex}_${sliceValue}`;
               
               // Store metadata for color lookup
@@ -605,7 +620,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           // Single line (no slicing)
           if (data.values.length > 0) {
             const lineData = data.values[0];
-            const baseName = lineConfig.metricName.split('/').pop() || lineConfig.metricName;
+            const baseName = lineConfig.displayName || lineConfig.metricName.split('/').pop() || lineConfig.metricName;
             const lineName = `${baseName}_${configIndex}`;
             
             // Store metadata for color lookup
@@ -858,7 +873,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                   return (
                     <div key={graph.id} className="border border-gray-300 rounded-lg p-4 bg-white">
                       <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-semibold">Graph {graphs.indexOf(graph) + 1}</h3>
+                        <h3 className="font-semibold">{graph.name || `Graph ${graphs.indexOf(graph) + 1}`}</h3>
                         <div className="flex gap-1">
                           <button
                             onClick={() => setShowGraphConfig({ graphId: graph.id })}
@@ -1057,11 +1072,15 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
         filters: [],
         slice: undefined,
         color: undefined,
-        userSetColor: undefined
+        userSetColor: undefined,
+        displayName: undefined
       }];
     }
     return existing;
   });
+
+  // Initialize graph name state
+  const [graphName, setGraphName] = useState<string>(graph?.name || '');
 
   const addLineConfiguration = () => {
     const newLineConfig: LineConfiguration = {
@@ -1070,7 +1089,8 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
       filters: [],
       slice: undefined,
       color: undefined,
-      userSetColor: undefined
+      userSetColor: undefined,
+      displayName: undefined
     };
     setLocalLineConfigs([...localLineConfigs, newLineConfig]);
   };
@@ -1106,12 +1126,12 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
     // Update the graph in the graphs array
     const updatedGraphs = graphs.map(g => 
       g.id === graphId 
-        ? { ...g, lineConfigurations: configsWithColors }
+        ? { ...g, lineConfigurations: configsWithColors, name: graphName || undefined }
         : g
     );
     
     onSave(updatedGraphs);
-  }, [localLineConfigs, graphs, graphId, onSave]);
+  }, [localLineConfigs, graphs, graphId, graphName, onSave]);
 
   useEffect(() => {
     // Handle Esc key press
@@ -1127,7 +1147,22 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-auto">
-        <h3 className="text-lg font-semibold mb-4">Configure Graph Lines</h3>
+        <h3 className="text-lg font-semibold mb-4">Configure Graph</h3>
+        
+        {/* Graph Name */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Graph Name</label>
+          <input
+            type="text"
+            value={graphName}
+            onChange={(e) => setGraphName(e.target.value)}
+            placeholder="Optional custom name for this graph"
+            className="w-full p-2 border rounded"
+          />
+          <div className="mt-1 text-xs text-gray-500">
+            Leave empty to use auto-generated name (Graph 1, Graph 2, etc.)
+          </div>
+        </div>
         
         <div className="mb-4">
           {localLineConfigs.map((lineConfig, index) => (
