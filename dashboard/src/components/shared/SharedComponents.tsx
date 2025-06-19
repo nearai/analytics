@@ -140,11 +140,11 @@ const parameterManagerThemes: Record<'blue' | 'green' | 'lightBlue', ParameterMa
     inputText: 'text-white',
     inputBorder: 'border-gray-600',
     inputPlaceholder: 'placeholder-gray-400',
-    addButtonBackground: 'bg-green-600',
-    addButtonHover: 'hover:bg-green-500',
+    addButtonBackground: 'bg-blue-600',
+    addButtonHover: 'hover:bg-blue-500',
     addButtonText: 'text-white',
-    helpButtonText: 'text-green-400',
-    helpButtonHover: 'hover:text-green-300',
+    helpButtonText: 'text-blue-400',
+    helpButtonHover: 'hover:text-blue-300',
     helpContentBackground: 'bg-gray-600'
   },
   lightBlue: {
@@ -159,7 +159,7 @@ const parameterManagerThemes: Record<'blue' | 'green' | 'lightBlue', ParameterMa
     addButtonText: 'text-white',
     helpButtonText: 'text-blue-600',
     helpButtonHover: 'hover:text-blue-700',
-    helpContentBackground: 'bg-blue-50'
+    helpContentBackground: 'bg-gray-100'
   }
 };
 
