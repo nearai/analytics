@@ -652,10 +652,10 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
               let lineName: string;
               
               if (customSliceName) {
-                lineName = `${customSliceName}_${configIndex}`;
+                lineName = `${customSliceName}`;
               } else {
-                const baseName = lineConfig.displayName || lineConfig.metricName.split('/').pop() || lineConfig.metricName;
-                lineName = `${baseName}_${configIndex}_${sliceValue}`;
+                const baseName = lineConfig.displayName || `${lineConfig.metricName.split('/').pop() || lineConfig.metricName}_${configIndex}`;
+                lineName = `${baseName}_${sliceValue}`;
               }
               
               // Store metadata for color lookup
@@ -677,8 +677,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           // Single line (no slicing)
           if (data.values.length > 0) {
             const lineData = data.values[0];
-            const baseName = lineConfig.displayName || lineConfig.metricName.split('/').pop() || lineConfig.metricName;
-            const lineName = `${baseName}_${configIndex}`;
+            const lineName = lineConfig.displayName || `${lineConfig.metricName.split('/').pop() || lineConfig.metricName}_${configIndex}`;
             
             // Store metadata for color lookup
             lineMetadata[lineName] = { configIndex };
@@ -998,7 +997,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                                   }
 
                                   <span>
-                                    {lineConfig.metricName.split('/').pop()}
+                                    {lineConfig.displayName || lineConfig.metricName.split('/').pop()}
                                     {lineConfig.slice && ` (${lineConfig.slice})`}
                                   </span>
                                 </div>
