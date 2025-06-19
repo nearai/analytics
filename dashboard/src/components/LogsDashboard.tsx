@@ -347,7 +347,6 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
   
   const [response, setResponse] = useState<LogsResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filterInput, setFilterInput] = useState('');
   const [groupInput, setGroupInput] = useState('');
@@ -387,9 +386,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
 
   // API call
   const fetchLogs = useCallback(async (requestData: LogsRequest, isRefresh = false) => {
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
+    if (!isRefresh) {
       setLoading(true);
     }
     setError(null);
@@ -418,9 +415,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      if (isRefresh) {
-        setRefreshing(false);
-      } else {
+      if (!isRefresh) {
         setLoading(false);
       }
     }

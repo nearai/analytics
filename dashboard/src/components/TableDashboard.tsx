@@ -209,7 +209,6 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   
   const [response, setResponse] = useState<TableResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedDetails, setSelectedDetails] = useState<Record<string, any> | null>(null);
   const [filterInput, setFilterInput] = useState('');
   const [sliceInput, setSliceInput] = useState('');
@@ -251,9 +250,6 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   // API call
   const fetchTable = useCallback(async (requestData: TableRequest, isRefresh = false) => {
     setError(null);
-    if (isRefresh) {
-      setRefreshing(true);
-    }
     
     try {
       setRequest(requestData);
@@ -298,10 +294,6 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      if (isRefresh) {
-        setRefreshing(false);
-      }
     }
   }, [config?.globalFilters, config?.metrics_service_url]);
 

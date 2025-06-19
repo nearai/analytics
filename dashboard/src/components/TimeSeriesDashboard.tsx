@@ -496,7 +496,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   const [graphs, setGraphs] = useState<GraphConfiguration[]>(request.graphs || []);
   const [showGraphConfig, setShowGraphConfig] = useState<{ graphId: string; lineId?: string } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [graphData, setGraphData] = useState<Record<string, { chartData: any[]; lineMetadata: Record<string, { configIndex: number; sliceValue?: string }> }>>({});
 
@@ -638,9 +637,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   const fetchAllGraphData = useCallback(async (isRefresh = false) => {
     if (graphs.length === 0) return;
     
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
+    if (!isRefresh) {
       setLoading(true);
     }
     try {
@@ -655,9 +652,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch graph data');
     } finally {
-      if (isRefresh) {
-        setRefreshing(false);
-      } else {
+      if (!isRefresh) {
         setLoading(false);
       }
     }
