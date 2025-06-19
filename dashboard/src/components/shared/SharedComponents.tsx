@@ -92,8 +92,79 @@ export const FileContentPopup: React.FC<{
   );
 };
 
-// Filter/Slice/Group Management Component
-interface FilterManagerProps {
+// Color theme definitions for ParameterManager
+interface ParameterManagerColorTheme {
+  // Current items styling
+  itemBackground: string;
+  itemHover: string;
+  
+  // Input field styling  
+  inputBackground: string;
+  inputText: string;
+  inputBorder: string;
+  inputPlaceholder: string;
+  
+  // Add button styling
+  addButtonBackground: string;
+  addButtonHover: string;
+  addButtonText: string;
+  
+  // Help button styling
+  helpButtonText: string;
+  helpButtonHover: string;
+  
+  // Help content styling
+  helpContentBackground: string;
+}
+
+// Predefined color themes
+const parameterManagerThemes: Record<'blue' | 'green' | 'lightBlue', ParameterManagerColorTheme> = {
+  blue: {
+    itemBackground: 'bg-blue-950',
+    itemHover: 'hover:bg-blue-800',
+    inputBackground: 'bg-gray-700',
+    inputText: 'text-white',
+    inputBorder: 'border-gray-600',
+    inputPlaceholder: 'placeholder-gray-400',
+    addButtonBackground: 'bg-blue-600',
+    addButtonHover: 'hover:bg-blue-500',
+    addButtonText: 'text-white',
+    helpButtonText: 'text-blue-400',
+    helpButtonHover: 'hover:text-blue-300',
+    helpContentBackground: 'bg-gray-600'
+  },
+  green: {
+    itemBackground: 'bg-green-900',
+    itemHover: 'hover:bg-green-800',
+    inputBackground: 'bg-gray-700',
+    inputText: 'text-white',
+    inputBorder: 'border-gray-600',
+    inputPlaceholder: 'placeholder-gray-400',
+    addButtonBackground: 'bg-blue-600',
+    addButtonHover: 'hover:bg-blue-500',
+    addButtonText: 'text-white',
+    helpButtonText: 'text-blue-400',
+    helpButtonHover: 'hover:text-blue-300',
+    helpContentBackground: 'bg-gray-600'
+  },
+  lightBlue: {
+    itemBackground: 'bg-blue-200',
+    itemHover: 'hover:bg-blue-300',
+    inputBackground: 'bg-white',
+    inputText: 'text-gray-900',
+    inputBorder: 'border-gray-300',
+    inputPlaceholder: 'placeholder-gray-500',
+    addButtonBackground: 'bg-blue-500',
+    addButtonHover: 'hover:bg-blue-600',
+    addButtonText: 'text-white',
+    helpButtonText: 'text-blue-600',
+    helpButtonHover: 'hover:text-blue-700',
+    helpContentBackground: 'bg-gray-100'
+  }
+};
+
+// Parameter Management Component (for filters, slices, groups, etc.)
+interface ParameterManagerProps {
   title: string;
   items: string[];
   input: string;
@@ -103,12 +174,12 @@ interface FilterManagerProps {
   recommendations?: string[];
   onAddRecommendation?: (item: string) => void;
   placeholder: string;
-  itemColor: 'blue' | 'green';
+  itemColor: 'blue' | 'green' | 'lightBlue';
   showHelp?: boolean;
   helpContent?: React.ReactNode;
 }
 
-export const FilterManager: React.FC<FilterManagerProps> = ({
+export const ParameterManager: React.FC<ParameterManagerProps> = ({
   title,
   items,
   input,
@@ -124,15 +195,8 @@ export const FilterManager: React.FC<FilterManagerProps> = ({
 }) => {
   const [showHelpContent, setShowHelpContent] = useState(false);
   
-  const bgColors: Record<'blue' | 'green', string> = {
-    blue: 'bg-blue-950',
-    green: 'bg-green-900'
-  };
-  
-  const hoverColors: Record<'blue' | 'green', string> = {
-    blue: 'hover:bg-blue-800',
-    green: 'hover:bg-green-800'
-  };
+  // Get the color theme based on the itemColor prop
+  const theme = parameterManagerThemes[itemColor];
 
   return (
     <div className="space-y-2">
@@ -142,14 +206,14 @@ export const FilterManager: React.FC<FilterManagerProps> = ({
           <label className="block text-xs font-medium mb-1">Current {title}</label>
           <div className="flex flex-wrap gap-1">
             {items.map((item, idx) => (
-              <div key={idx} className={`inline-flex items-center ${bgColors[itemColor]} px-2 py-1 rounded-full`}>
+              <div key={idx} className={`inline-flex items-center ${theme.itemBackground} px-2 py-1 rounded-full`}>
                 <button
                   onClick={() => onRemove(item)}
                   className="text-red-400 hover:text-red-300 mr-1"
                 >
                   <X size={10} />
                 </button>
-                <span className="text-xs">{item}</span>
+                <span className={`text-xs ${itemColor === 'lightBlue' ? 'text-gray-800' : 'text-white'}`}>{item}</span>
               </div>
             ))}
           </div>
@@ -166,11 +230,11 @@ export const FilterManager: React.FC<FilterManagerProps> = ({
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && onAdd()}
             placeholder={placeholder}
-            className="flex-1 p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600 placeholder-gray-400"
+            className={`flex-1 p-1.5 border rounded text-xs ${theme.inputBackground} ${theme.inputText} ${theme.inputBorder} ${theme.inputPlaceholder}`}
           />
           <button
             onClick={onAdd}
-            className="px-2 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs flex items-center justify-center"
+            className={`px-2 py-1.5 ${theme.addButtonBackground} ${theme.addButtonHover} ${theme.addButtonText} rounded text-xs flex items-center justify-center`}
             title="Add filter"
           >
             <Plus size={12} />
@@ -183,14 +247,18 @@ export const FilterManager: React.FC<FilterManagerProps> = ({
         <div>
           <button
             onClick={() => setShowHelpContent(!showHelpContent)}
-            className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+            className={`flex items-center gap-1 text-xs ${theme.helpButtonText} ${theme.helpButtonHover}`}
           >
             <Info size={12} />
             {title.slice(0, -1)} Syntax Help
           </button>
           {showHelpContent && (
-            <div className="mt-2 p-2 bg-gray-600 rounded text-xs">
-              {helpContent}
+            <div className={`mt-2 p-2 ${theme.helpContentBackground} rounded text-xs ${itemColor === 'lightBlue' ? 'text-gray-800' : 'text-white'}`}>
+              {/* Pass theme to FilterHelpContent if it's the FilterHelpContent component */}
+              {React.isValidElement(helpContent) && helpContent.type === FilterHelpContent
+                ? React.cloneElement(helpContent as React.ReactElement<FilterHelpContentProps>, { theme: itemColor === 'lightBlue' ? 'light' : 'dark' })
+                : helpContent
+              }
             </div>
           )}
         </div>
@@ -205,7 +273,7 @@ export const FilterManager: React.FC<FilterManagerProps> = ({
               <button
                 key={rec}
                 onClick={() => onAddRecommendation(rec)}
-                className={`inline-flex items-center px-2 py-1 ${bgColors[itemColor]} ${hoverColors[itemColor]} rounded-full text-xs`}
+                className={`inline-flex items-center px-2 py-1 ${theme.itemBackground} ${theme.itemHover} rounded-full text-xs ${itemColor === 'lightBlue' ? 'text-gray-800' : 'text-white'}`}
               >
                 {rec}
               </button>
@@ -418,19 +486,30 @@ interface FiltersSectionProps {
 }
 
 // Filter Help Content Component
-export const FilterHelpContent: React.FC = () => (
-  <>
-    <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
-    <p className="mb-1 text-gray-300">• <i>in/not_in</i>:</p>
-    <p className="ml-2 text-gray-400">agent_name:in:agent1,agent2</p>
-    <p className="mb-1 text-gray-300">• <i>range</i>:</p>
-    <p className="ml-2 text-[10px] text-gray-400">value:range:10:100<span className="text-gray-500 ml-1">(between 10 and 100)</span></p>
-    <p className="ml-2 text-[10px] text-gray-400">value:range:10:<span className="text-gray-500 ml-1">(minimum 10)</span></p>
-    <p className="ml-2 text-[10px] text-gray-400">value:range::100<span className="text-gray-500 ml-1">(maximum 100)</span></p>
-    <p className="ml-2 text-[10px] text-gray-400">time_end_utc:range:(2025-05-23T11:48):</p>
-    <p className="ml-4 text-[10px] text-gray-500">(after specified date/time)</p>
-  </>
-);
+interface FilterHelpContentProps {
+  theme?: 'light' | 'dark';
+}
+
+export const FilterHelpContent: React.FC<FilterHelpContentProps> = ({ theme = 'dark' }) => {
+  const isLight = theme === 'light';
+  const primaryText = isLight ? 'text-gray-700' : 'text-gray-300';
+  const secondaryText = isLight ? 'text-gray-600' : 'text-gray-400';
+  const accentText = isLight ? 'text-gray-500' : 'text-gray-500';
+  
+  return (
+    <>
+      <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
+      <p className={`mb-1 ${primaryText}`}>• <i>in/not_in</i>:</p>
+      <p className={`ml-2 ${secondaryText}`}>agent_name:in:agent1,agent2</p>
+      <p className={`mb-1 ${primaryText}`}>• <i>range</i>:</p>
+      <p className={`ml-2 text-[10px] ${secondaryText}`}>value:range:10:100<span className={`${accentText} ml-1`}>(between 10 and 100)</span></p>
+      <p className={`ml-2 text-[10px] ${secondaryText}`}>value:range:10:<span className={`${accentText} ml-1`}>(minimum 10)</span></p>
+      <p className={`ml-2 text-[10px] ${secondaryText}`}>value:range::100<span className={`${accentText} ml-1`}>(maximum 100)</span></p>
+      <p className={`ml-2 text-[10px] ${secondaryText}`}>time_end_utc:range:(2025-05-23T11:48):</p>
+      <p className={`ml-4 text-[10px] ${accentText}`}>(after specified date/time)</p>
+    </>
+  );
+};
 
 export const FiltersSection: React.FC<FiltersSectionProps> = ({
   filters,
@@ -447,7 +526,7 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({
   }
   return (
     <CollapsibleSection title="Filters">
-      <FilterManager
+      <ParameterManager
         title="Filters"
         items={filters}
         input={filterInput}
@@ -456,7 +535,7 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({
         onRemove={onRemoveFilter}
         placeholder="e.g., runner:not_in:local"
         itemColor="blue"
-        helpContent={<FilterHelpContent />}
+        helpContent={<FilterHelpContent theme="dark" />}
       />
 
       {/* Time filters */}

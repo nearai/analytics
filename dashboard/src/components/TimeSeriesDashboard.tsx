@@ -15,7 +15,7 @@ import {
 import { 
   CollapsibleSection, 
   FilterHelpContent, 
-  FilterManager, 
+  ParameterManager, 
   FiltersSection,
   ViewNavigation,
   getTimeFilter, 
@@ -380,7 +380,7 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
 
       {/* Filters */}
       <div className="mb-3">
-        <FilterManager
+        <ParameterManager
           title="Filters"
           items={lineConfig.filters || []}
           input={filterInput}
@@ -388,8 +388,8 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
           onAdd={handleAddFilter}
           onRemove={handleRemoveFilter}
           placeholder="e.g., runner:not_in:local"
-          itemColor="blue"
-          helpContent={<FilterHelpContent />}
+          itemColor="lightBlue"
+          helpContent={<FilterHelpContent theme="light" />}
         />
       </div>
       
