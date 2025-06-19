@@ -103,7 +103,7 @@ interface FilterManagerProps {
   recommendations?: string[];
   onAddRecommendation?: (item: string) => void;
   placeholder: string;
-  itemColor: 'blue' | 'green';
+  itemColor: 'blue' | 'green' | { bg: string; hover: string };
   showHelp?: boolean;
   helpContent?: React.ReactNode;
 }
@@ -124,15 +124,34 @@ export const FilterManager: React.FC<FilterManagerProps> = ({
 }) => {
   const [showHelpContent, setShowHelpContent] = useState(false);
   
-  const bgColors: Record<'blue' | 'green', string> = {
+  const predefinedBgColors: Record<'blue' | 'green', string> = {
     blue: 'bg-blue-950',
     green: 'bg-green-900'
   };
   
-  const hoverColors: Record<'blue' | 'green', string> = {
+  const predefinedHoverColors: Record<'blue' | 'green', string> = {
     blue: 'hover:bg-blue-800',
     green: 'hover:bg-green-800'
   };
+
+  // Get the actual color classes based on itemColor prop
+  const getColorClasses = () => {
+    if (typeof itemColor === 'string') {
+      // Use predefined colors for backward compatibility
+      return {
+        bg: predefinedBgColors[itemColor],
+        hover: predefinedHoverColors[itemColor]
+      };
+    } else {
+      // Use custom colors
+      return {
+        bg: itemColor.bg,
+        hover: itemColor.hover
+      };
+    }
+  };
+
+  const { bg: bgColor, hover: hoverColor } = getColorClasses();
 
   return (
     <div className="space-y-2">
@@ -142,7 +161,7 @@ export const FilterManager: React.FC<FilterManagerProps> = ({
           <label className="block text-xs font-medium mb-1">Current {title}</label>
           <div className="flex flex-wrap gap-1">
             {items.map((item, idx) => (
-              <div key={idx} className={`inline-flex items-center ${bgColors[itemColor]} px-2 py-1 rounded-full`}>
+              <div key={idx} className={`inline-flex items-center ${bgColor} px-2 py-1 rounded-full`}>
                 <button
                   onClick={() => onRemove(item)}
                   className="text-red-400 hover:text-red-300 mr-1"
@@ -205,7 +224,7 @@ export const FilterManager: React.FC<FilterManagerProps> = ({
               <button
                 key={rec}
                 onClick={() => onAddRecommendation(rec)}
-                className={`inline-flex items-center px-2 py-1 ${bgColors[itemColor]} ${hoverColors[itemColor]} rounded-full text-xs`}
+                className={`inline-flex items-center px-2 py-1 ${bgColor} ${hoverColor} rounded-full text-xs`}
               >
                 {rec}
               </button>
