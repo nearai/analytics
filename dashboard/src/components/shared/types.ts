@@ -93,6 +93,8 @@ export interface LineConfiguration {
   userSetColor?: boolean | Record<string, boolean>;
   /** Optional custom display name for this line. If not provided, auto-generated names will be used. */
   displayName?: string;
+  /** Optional custom display names for slice lines. If not given, "${displayName}_${sliceValue}" is used */
+  displayNamesForSliceLines?: Record<string, string>;
 }
 
 export interface GraphConfiguration {

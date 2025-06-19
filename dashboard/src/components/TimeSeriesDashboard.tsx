@@ -337,9 +337,15 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
       // Switching to sliced mode - color should become a map
       onUpdate({ ...lineConfig, slice, color: {}, userSetColor: {} });
     } else {
-      // Switching to non-sliced mode - color should become a string
+      // Switching to non-sliced mode - color should become a string and clear slice line names
       const defaultColor = getLineColor(lineConfig.metricName, '', lineConfig.filters || []);
-      onUpdate({ ...lineConfig, slice: undefined, color: defaultColor, userSetColor: false });
+      onUpdate({ 
+        ...lineConfig, 
+        slice: undefined, 
+        color: defaultColor, 
+        userSetColor: false, 
+        displayNamesForSliceLines: undefined 
+      });
     }
   };
   
@@ -436,6 +442,48 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
         )}
       </div>
       
+      {/* Slice Line Names (only shown when slice is configured and slice values are loaded) */}
+      {lineConfig.slice && sliceValues.length > 0 && (
+        <div className="mb-3">
+          <label className="block text-sm font-medium mb-1">Slice Line Display Names</label>
+          <div className="space-y-2">
+            {sliceValues.map(sliceValue => {
+              const currentDisplayName = lineConfig.displayNamesForSliceLines?.[sliceValue] || '';
+              
+              return (
+                <div key={sliceValue} className="flex items-center gap-2">
+                  <span className="text-sm font-medium w-24 flex-shrink-0">{sliceValue}:</span>
+                  <input
+                    type="text"
+                    value={currentDisplayName}
+                    onChange={(e) => {
+                      const newValue = e.target.value.trim();
+                      const newDisplayNames = { ...(lineConfig.displayNamesForSliceLines || {}) };
+                      
+                      if (newValue) {
+                        newDisplayNames[sliceValue] = newValue;
+                      } else {
+                        delete newDisplayNames[sliceValue];
+                      }
+                      
+                      onUpdate({ 
+                        ...lineConfig, 
+                        displayNamesForSliceLines: Object.keys(newDisplayNames).length > 0 ? newDisplayNames : undefined 
+                      });
+                    }}
+                    placeholder={`${lineConfig.displayName || lineConfig.metricName.split('/').pop() || lineConfig.metricName}_${sliceValue}`}
+                    className="flex-1 p-1.5 border rounded text-sm"
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-1 text-xs text-gray-500">
+            Leave empty to use auto-generated names
+          </div>
+        </div>
+      )}
+
       {/* Color(s) */}
       <div>
         <label className="block text-sm font-medium mb-1">
@@ -598,8 +646,17 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           data.slice_values.forEach((sliceValue, sliceIndex) => {
             if (sliceIndex < data.values.length) {
               const lineData = data.values[sliceIndex];
-              const baseName = lineConfig.displayName || lineConfig.metricName.split('/').pop() || lineConfig.metricName;
-              const lineName = `${baseName}_${configIndex}_${sliceValue}`;
+              
+              // Use custom slice line name if provided, otherwise use auto-generated name
+              const customSliceName = lineConfig.displayNamesForSliceLines?.[sliceValue];
+              let lineName: string;
+              
+              if (customSliceName) {
+                lineName = `${customSliceName}_${configIndex}`;
+              } else {
+                const baseName = lineConfig.displayName || lineConfig.metricName.split('/').pop() || lineConfig.metricName;
+                lineName = `${baseName}_${configIndex}_${sliceValue}`;
+              }
               
               // Store metadata for color lookup
               lineMetadata[lineName] = { configIndex, sliceValue };
@@ -1073,7 +1130,8 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
         slice: undefined,
         color: undefined,
         userSetColor: undefined,
-        displayName: undefined
+        displayName: undefined,
+        displayNamesForSliceLines: undefined
       }];
     }
     return existing;
@@ -1090,7 +1148,8 @@ const GraphConfigModal: React.FC<GraphConfigModalProps> = ({
       slice: undefined,
       color: undefined,
       userSetColor: undefined,
-      displayName: undefined
+      displayName: undefined,
+      displayNamesForSliceLines: undefined
     };
     setLocalLineConfigs([...localLineConfigs, newLineConfig]);
   };
