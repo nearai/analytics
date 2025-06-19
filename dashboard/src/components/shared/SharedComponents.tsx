@@ -281,9 +281,6 @@ export const ParameterManager: React.FC<ParameterManagerProps> = ({
   );
 };
 
-// Backward compatibility alias
-export const FilterManager = ParameterManager;
-
 // Utility functions
 export const isTimestampLike = (value: any): boolean => {
   if (typeof value !== 'string') return false;
