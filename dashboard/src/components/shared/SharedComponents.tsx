@@ -254,7 +254,11 @@ export const ParameterManager: React.FC<ParameterManagerProps> = ({
           </button>
           {showHelpContent && (
             <div className={`mt-2 p-2 ${theme.helpContentBackground} rounded text-xs ${itemColor === 'lightBlue' ? 'text-gray-800' : 'text-white'}`}>
-              {helpContent}
+              {/* Pass theme to FilterHelpContent if it's the FilterHelpContent component */}
+              {React.isValidElement(helpContent) && helpContent.type === FilterHelpContent
+                ? React.cloneElement(helpContent as React.ReactElement<FilterHelpContentProps>, { theme: itemColor === 'lightBlue' ? 'light' : 'dark' })
+                : helpContent
+              }
             </div>
           )}
         </div>
@@ -482,19 +486,30 @@ interface FiltersSectionProps {
 }
 
 // Filter Help Content Component
-export const FilterHelpContent: React.FC = () => (
-  <>
-    <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
-    <p className="mb-1 text-gray-300">• <i>in/not_in</i>:</p>
-    <p className="ml-2 text-gray-400">agent_name:in:agent1,agent2</p>
-    <p className="mb-1 text-gray-300">• <i>range</i>:</p>
-    <p className="ml-2 text-[10px] text-gray-400">value:range:10:100<span className="text-gray-500 ml-1">(between 10 and 100)</span></p>
-    <p className="ml-2 text-[10px] text-gray-400">value:range:10:<span className="text-gray-500 ml-1">(minimum 10)</span></p>
-    <p className="ml-2 text-[10px] text-gray-400">value:range::100<span className="text-gray-500 ml-1">(maximum 100)</span></p>
-    <p className="ml-2 text-[10px] text-gray-400">time_end_utc:range:(2025-05-23T11:48):</p>
-    <p className="ml-4 text-[10px] text-gray-500">(after specified date/time)</p>
-  </>
-);
+interface FilterHelpContentProps {
+  theme?: 'light' | 'dark';
+}
+
+export const FilterHelpContent: React.FC<FilterHelpContentProps> = ({ theme = 'dark' }) => {
+  const isLight = theme === 'light';
+  const primaryText = isLight ? 'text-gray-700' : 'text-gray-300';
+  const secondaryText = isLight ? 'text-gray-600' : 'text-gray-400';
+  const accentText = isLight ? 'text-gray-500' : 'text-gray-500';
+  
+  return (
+    <>
+      <p className="font-medium mb-1">Filter Format: <u>field:operator:value</u></p>
+      <p className={`mb-1 ${primaryText}`}>• <i>in/not_in</i>:</p>
+      <p className={`ml-2 ${secondaryText}`}>agent_name:in:agent1,agent2</p>
+      <p className={`mb-1 ${primaryText}`}>• <i>range</i>:</p>
+      <p className={`ml-2 text-[10px] ${secondaryText}`}>value:range:10:100<span className={`${accentText} ml-1`}>(between 10 and 100)</span></p>
+      <p className={`ml-2 text-[10px] ${secondaryText}`}>value:range:10:<span className={`${accentText} ml-1`}>(minimum 10)</span></p>
+      <p className={`ml-2 text-[10px] ${secondaryText}`}>value:range::100<span className={`${accentText} ml-1`}>(maximum 100)</span></p>
+      <p className={`ml-2 text-[10px] ${secondaryText}`}>time_end_utc:range:(2025-05-23T11:48):</p>
+      <p className={`ml-4 text-[10px] ${accentText}`}>(after specified date/time)</p>
+    </>
+  );
+};
 
 export const FiltersSection: React.FC<FiltersSectionProps> = ({
   filters,
@@ -520,7 +535,7 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({
         onRemove={onRemoveFilter}
         placeholder="e.g., runner:not_in:local"
         itemColor="blue"
-        helpContent={<FilterHelpContent />}
+        helpContent={<FilterHelpContent theme="dark" />}
       />
 
       {/* Time filters */}
