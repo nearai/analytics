@@ -382,7 +382,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     if (onRequestChange) {
       onRequestChange(request);
     }
-  }, [request, onRequestChange]);
+  }, [request]);
 
   // API call
   const fetchLogs = useCallback(async (requestData: LogsRequest) => {

@@ -504,7 +504,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     if (onRequestChange) {
       onRequestChange(request);
     }
-  }, [request, onRequestChange]);
+  }, [request]);
 
   // Fetch column tree for metric selection
   const fetchColumnTree = useCallback(async () => {

@@ -245,7 +245,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     if (onRequestChange) {
       onRequestChange(request);
     }
-  }, [request, onRequestChange]);
+  }, [request]);
 
   // API call
   const fetchTable = useCallback(async (requestData: TableRequest) => {
