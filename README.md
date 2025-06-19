@@ -8,8 +8,8 @@ A collection of tools for benchmarking, evaluating, and analyzing agent performa
 - [`/canonical_metrics`](./canonical_metrics/): Standard formats and tools for metrics collection, including:
   - Metrics CLI for processing and transforming metrics
   - Metrics Service API for querying and visualizing metrics data
-- [`/dashboard`](./dashboard/): Dashboard for tracking performance over time
-- [`/evaluation`](./evaluation/): Dashboard and tools for evaluating agent or model performance
+- [`/dashboard`](./dashboard/): Analytics Dashboard
+- [`/evaluation`](./evaluation/): Tools for evaluating agent or model performance
 
 ## Primary Use Cases
 
