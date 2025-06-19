@@ -17,7 +17,7 @@ const DEFAULT_CONFIG: DashboardConfig = {
       view_type: 'timeseries',
       view_name: 'Time Series',
       metricSelection: 'CUSTOM',
-      refreshRate: 5,
+      refreshRate: undefined,
       defaultParameters: {
         time_filter: '1 month',
         time_granulation: '1 day'
@@ -27,14 +27,14 @@ const DEFAULT_CONFIG: DashboardConfig = {
       view_type: 'table',
       view_name: 'Table',
       metricSelection: 'CUSTOM',
-      refreshRate: 5
+      refreshRate: undefined
     },
     logs: {
       view_type: 'logs',
       view_name: 'Logs',
       metricSelection: 'CUSTOM',
       timeFilterRecommendations: [],  // Default: disable
-      refreshRate: 5
+      refreshRate: undefined
     }
   }
 };
