@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, X, Info, Plus, BarChart3, Table, FileText } from 'lucide-react';
-import { DashboardConfig } from './types';
+import { DashboardConfig, MetricSelection } from './types';
 
 // Collapsible Section Component
 export const CollapsibleSection: React.FC<{
@@ -636,4 +636,73 @@ export const ViewNavigation: React.FC<ViewNavigationProps> = ({
 export const getApiUrl = (metrics_service_url: string | undefined, apiCall: string): string => {
   const baseUrl = metrics_service_url || 'http://localhost:8000/api/v1/';
   return baseUrl.endsWith('/') ? baseUrl + apiCall : baseUrl + '/' + apiCall;
+};
+
+// Important metrics response type
+export interface ImportantMetricsResponse {
+  [displayName: string]: [string[], string]; // [additional_filters, field_name]
+}
+
+// Fetch and filter important metrics by metricSelection
+export const fetchImportantMetrics = async (
+  metrics_service_url: string | undefined,
+  metricSelection: MetricSelection
+): Promise<ImportantMetricsResponse> => {
+  const url = getApiUrl(metrics_service_url, 'metrics/important');
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filters: [] })
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const allMetrics: ImportantMetricsResponse = await response.json();
+
+  // Filter metrics based on metricSelection
+  switch (metricSelection) {
+    case 'CUSTOM':
+      return allMetrics; // Return all metrics
+
+    case 'PERFORMANCE':
+      const performanceMetrics = [
+        'Agent Invocations',
+        'Successful Invocations', 
+        'Failed Invocations',
+        'Avg Agent Latency',
+        'Max Agent Latency'
+      ];
+      return Object.fromEntries(
+        Object.entries(allMetrics).filter(([name]) => performanceMetrics.includes(name))
+      );
+
+    case 'CAL':
+      const calMetrics = [
+        'Avg Agent Latency',
+        'Max Agent Latency',
+        'Avg Runner Start Latency',
+        'Max Runner Start Latency',
+        'Avg Completion Latency',
+        'Max Completion Latency'
+      ];
+      return Object.fromEntries(
+        Object.entries(allMetrics).filter(([name]) => calMetrics.includes(name))
+      );
+
+    case 'ERROR':
+      const errorMetrics = ['Failed Invocations'];
+      return Object.fromEntries(
+        Object.entries(allMetrics).filter(([name]) => errorMetrics.includes(name))
+      );
+
+    case 'FEEDBACK':
+      // No metrics for FEEDBACK yet
+      return {};
+
+    default:
+      return allMetrics;
+  }
 };
