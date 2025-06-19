@@ -646,14 +646,18 @@ export interface ImportantMetricsResponse {
 // Fetch and filter important metrics by metricSelection
 export const fetchImportantMetrics = async (
   metrics_service_url: string | undefined,
-  metricSelection: MetricSelection
+  metricSelection: MetricSelection,
+  globalFilters?: string[]
 ): Promise<ImportantMetricsResponse> => {
   const url = getApiUrl(metrics_service_url, 'metrics/important');
+  
+  // Merge global filters with empty request filters
+  const mergedFilters = mergeGlobalFilters(globalFilters, []);
   
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ filters: [] })
+    body: JSON.stringify({ filters: mergedFilters })
   });
 
   if (!response.ok) {
