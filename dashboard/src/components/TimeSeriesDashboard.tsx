@@ -566,7 +566,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   const [showGraphConfig, setShowGraphConfig] = useState<{ graphId: string; lineId?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [graphData, setGraphData] = useState<Record<string, { chartData: any[]; lineMetadata: Record<string, { configIndex: number; sliceValue?: string }> }>>({});
+  const [graphData, setGraphData] = useState<Record<string, { chartData: any[]; lineMetadata: Record<string, { configIndex: number; sliceValue?: string }>; error?: string }>>({});
 
   // Store the last refresh trigger value to detect changes
   const lastRefreshTrigger = useRef(refreshTrigger || 0);
@@ -614,6 +614,9 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     const chartData: any[] = [];
     const lineMetadata: Record<string, { configIndex: number; sliceValue?: string }> = {};
     
+    // Count total lines that will be generated to check 20 line limit
+    let totalLineCount = 0;
+    
     for (let configIndex = 0; configIndex < graph.lineConfigurations.length; configIndex++) {
       const lineConfig = graph.lineConfigurations[configIndex];
       if (!lineConfig.metricName) continue;
@@ -639,6 +642,19 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         }
 
         const data: TimeSeriesApiResponse = await response.json();
+        
+        // Count lines that will be generated from this configuration
+        const linesFromThisConfig = data.slice_values.length > 0 ? data.slice_values.length : 1;
+        totalLineCount += linesFromThisConfig;
+        
+        // Check if total lines exceed the limit of 20
+        if (totalLineCount > 20) {
+          return { 
+            chartData: [], 
+            lineMetadata: {}, 
+            error: `This graph would generate ${totalLineCount} lines, but the maximum allowed is 20. Please reduce the number of line configurations or use fewer slice values.` 
+          };
+        }
         
         // Convert API response to chart data
         const timePoints: number[] = [];
@@ -710,7 +726,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     
     // Sort by timestamp and return both data and metadata
     chartData.sort((a, b) => a.timestamp - b.timestamp);
-    return { chartData, lineMetadata };
+    return { chartData, lineMetadata, error: undefined };
   }, [request.time_granulation, request.filters, config?.globalFilters, config?.metrics_service_url]);
 
   // Fetch data for all graphs
@@ -721,7 +737,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
       setLoading(true);
     }
     try {
-      const newGraphData: Record<string, { chartData: any[]; lineMetadata: Record<string, { configIndex: number; sliceValue?: string }> }> = {};
+      const newGraphData: Record<string, { chartData: any[]; lineMetadata: Record<string, { configIndex: number; sliceValue?: string }>; error?: string }> = {};
       
       for (const graph of graphs) {
         const result = await fetchTimeSeriesData(graph);
@@ -1033,6 +1049,13 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                         {graph.lineConfigurations.length === 0 ? (
                           <div className="flex items-center justify-center h-full text-gray-500">
                             No lines configured
+                          </div>
+                        ) : graphData[graph.id]?.error ? (
+                          <div className="flex items-center justify-center h-full p-4">
+                            <div className="text-center">
+                              <div className="text-red-600 font-medium mb-2">⚠️ Too Many Lines</div>
+                              <div className="text-sm text-gray-700">{graphData[graph.id].error}</div>
+                            </div>
                           </div>
                         ) : (
                           <ResponsiveContainer width="100%" height="100%">
