@@ -282,7 +282,7 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
           slice_field: lineConfig.slice
         };
 
-        const timeSeriesUrl = getApiUrl(config, 'graphs/time-series');
+        const timeSeriesUrl = getApiUrl(config?.metrics_service_url, 'graphs/time-series');
         const response = await fetch(timeSeriesUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -516,7 +516,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         absent_metrics_strategy: 'accept_subset'
       };
 
-      const tableUrl = getApiUrl(config, 'table/aggregation');
+      const tableUrl = getApiUrl(config?.metrics_service_url, 'table/aggregation');
       const response = await fetch(tableUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -534,7 +534,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [config, request.filters]);  // Use entire config object since we use config in getApiUrl
+  }, [config?.metrics_service_url, request.filters]);
 
   useEffect(() => {
     fetchColumnTree();
@@ -558,7 +558,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           slice_field: lineConfig.slice
         };
 
-        const timeSeriesUrl = getApiUrl(config, 'graphs/time-series');
+        const timeSeriesUrl = getApiUrl(config?.metrics_service_url, 'graphs/time-series');
         const response = await fetch(timeSeriesUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -631,7 +631,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     // Sort by timestamp and return both data and metadata
     chartData.sort((a, b) => a.timestamp - b.timestamp);
     return { chartData, lineMetadata };
-  }, [request.time_granulation, request.filters, config]);  // Use entire config object since we use config in getApiUrl
+  }, [request.time_granulation, request.filters, config?.metrics_service_url]);
 
   // Fetch data for all graphs
   const fetchAllGraphData = useCallback(async () => {

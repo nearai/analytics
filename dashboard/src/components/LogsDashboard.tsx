@@ -397,7 +397,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
         ...requestData,
         filters: mergedFilters
       };
-      const url = getApiUrl(config, 'logs/list');
+      const url = getApiUrl(config?.metrics_service_url, 'logs/list');
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -415,7 +415,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [config]);  // Use entire config object since we use config in getApiUrl
+  }, [config?.globalFilters, config?.metrics_service_url]);
 
   // Initial load. Use saved request if present.
   useEffect(() => {

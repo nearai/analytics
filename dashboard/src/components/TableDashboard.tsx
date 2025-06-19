@@ -259,7 +259,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         ...requestData,
         filters: mergedFilters
       };
-      const url = getApiUrl(config, 'table/aggregation');
+      const url = getApiUrl(config?.metrics_service_url, 'table/aggregation');
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -295,7 +295,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
-  }, [config]);  // Use entire config object since we use config in getApiUrl
+  }, [config?.globalFilters, config?.metrics_service_url]);
 
   // Initial load. Use saved request if present.
   useEffect(() => {
