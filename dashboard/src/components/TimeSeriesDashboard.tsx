@@ -15,7 +15,7 @@ import {
 import { 
   CollapsibleSection, 
   FilterHelpContent, 
-  FilterManager, 
+  ParameterManager, 
   FiltersSection,
   ViewNavigation,
   getTimeFilter, 
@@ -380,7 +380,7 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
 
       {/* Filters */}
       <div className="mb-3">
-        <FilterManager
+        <ParameterManager
           title="Filters"
           items={lineConfig.filters || []}
           input={filterInput}

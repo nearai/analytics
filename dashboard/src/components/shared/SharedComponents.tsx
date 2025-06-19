@@ -92,8 +92,8 @@ export const FileContentPopup: React.FC<{
   );
 };
 
-// Color theme definitions for FilterManager
-interface FilterManagerColorTheme {
+// Color theme definitions for ParameterManager
+interface ParameterManagerColorTheme {
   // Current items styling
   itemBackground: string;
   itemHover: string;
@@ -118,7 +118,7 @@ interface FilterManagerColorTheme {
 }
 
 // Predefined color themes
-const filterManagerThemes: Record<'blue' | 'green' | 'lightBlue', FilterManagerColorTheme> = {
+const parameterManagerThemes: Record<'blue' | 'green' | 'lightBlue', ParameterManagerColorTheme> = {
   blue: {
     itemBackground: 'bg-blue-950',
     itemHover: 'hover:bg-blue-800',
@@ -163,8 +163,8 @@ const filterManagerThemes: Record<'blue' | 'green' | 'lightBlue', FilterManagerC
   }
 };
 
-// Filter/Slice/Group Management Component
-interface FilterManagerProps {
+// Parameter Management Component (for filters, slices, groups, etc.)
+interface ParameterManagerProps {
   title: string;
   items: string[];
   input: string;
@@ -179,7 +179,7 @@ interface FilterManagerProps {
   helpContent?: React.ReactNode;
 }
 
-export const FilterManager: React.FC<FilterManagerProps> = ({
+export const ParameterManager: React.FC<ParameterManagerProps> = ({
   title,
   items,
   input,
@@ -196,7 +196,7 @@ export const FilterManager: React.FC<FilterManagerProps> = ({
   const [showHelpContent, setShowHelpContent] = useState(false);
   
   // Get the color theme based on the itemColor prop
-  const theme = filterManagerThemes[itemColor];
+  const theme = parameterManagerThemes[itemColor];
 
   return (
     <div className="space-y-2">
@@ -280,6 +280,9 @@ export const FilterManager: React.FC<FilterManagerProps> = ({
     </div>
   );
 };
+
+// Backward compatibility alias
+export const FilterManager = ParameterManager;
 
 // Utility functions
 export const isTimestampLike = (value: any): boolean => {
@@ -511,7 +514,7 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({
   }
   return (
     <CollapsibleSection title="Filters">
-      <FilterManager
+      <ParameterManager
         title="Filters"
         items={filters}
         input={filterInput}

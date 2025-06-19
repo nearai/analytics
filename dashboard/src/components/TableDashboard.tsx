@@ -1,7 +1,18 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical } from 'lucide-react';
 import { TableRequest, TableResponse, ColumnNode, Column, DashboardConfig } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FilterManager, FiltersSection, ViewNavigation, formatTimestamp, getStyleClass, getTimeFilter as sharedGetTimeFilter, mergeGlobalFilters, getApiUrl } from './shared/SharedComponents';
+import {
+  CollapsibleSection,
+  DetailsPopup,
+  ParameterManager,
+  FiltersSection,
+  ViewNavigation,
+  formatTimestamp,
+  getStyleClass,
+  getTimeFilter as sharedGetTimeFilter,
+  mergeGlobalFilters,
+  getApiUrl
+} from './shared/SharedComponents';
 
 // Component-specific utility functions
 const formatCellValue = (values: Record<string, any>, unit?: string): React.ReactNode => {
@@ -609,7 +620,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
 
         {/* Slices */}
         <CollapsibleSection title="Slices">
-          <FilterManager
+          <ParameterManager
             title="Slices"
             items={request.slices || []}
             input={sliceInput}

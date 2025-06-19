@@ -1,7 +1,20 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp, GripVertical, Eye, FileText } from 'lucide-react';
 import { LogsRequest, LogsResponse, LogGroup, LogEntry, LogFile, DashboardConfig } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, FiltersSection, ViewNavigation, formatTimestamp, getStyleClass, getTimeFilter as sharedGetTimeFilter, isTimestampLike, mergeGlobalFilters, getApiUrl } from './shared/SharedComponents';
+import {
+  CollapsibleSection,
+  DetailsPopup,
+  FileContentPopup,
+  ParameterManager,
+  FiltersSection,
+  ViewNavigation,
+  formatTimestamp,
+  getStyleClass,
+  getTimeFilter as sharedGetTimeFilter,
+  isTimestampLike,
+  mergeGlobalFilters,
+  getApiUrl
+} from './shared/SharedComponents';
 
 // Format metadata/metrics for display
 const formatMetadataValue = (value: any): string => {
@@ -575,7 +588,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
 
         {/* Groups */}
         <CollapsibleSection title="Groups">
-          <FilterManager
+          <ParameterManager
             title="Groups"
             items={request.groups || []}
             input={groupInput}
