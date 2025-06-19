@@ -282,8 +282,7 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
           slice_field: lineConfig.slice
         };
 
-        const timeSeriesUrl = getApiUrl(config?.metrics_service_url, 'graphs/time-series');
-        const response = await fetch(timeSeriesUrl, {
+        const response = await fetch('http://localhost:8000/api/v1/graphs/time-series', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(apiRequest)
@@ -516,8 +515,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         absent_metrics_strategy: 'accept_subset'
       };
 
-      const tableUrl = getApiUrl(config?.metrics_service_url, 'table/aggregation');
-      const response = await fetch(tableUrl, {
+      const response = await fetch('http://localhost:8000/api/v1/table/aggregation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tableRequest)
@@ -534,7 +532,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [config?.globalFilters, config?.metrics_service_url, request.filters]);
+  }, [config?.globalFilters, request.filters]);
 
   useEffect(() => {
     fetchColumnTree();
@@ -558,8 +556,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           slice_field: lineConfig.slice
         };
 
-        const timeSeriesUrl = getApiUrl(config?.metrics_service_url, 'graphs/time-series');
-        const response = await fetch(timeSeriesUrl, {
+        const response = await fetch('http://localhost:8000/api/v1/graphs/time-series', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(apiRequest)
@@ -631,7 +628,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     // Sort by timestamp and return both data and metadata
     chartData.sort((a, b) => a.timestamp - b.timestamp);
     return { chartData, lineMetadata };
-  }, [request.time_granulation, request.filters, config?.globalFilters, config?.metrics_service_url]);
+  }, [request.time_granulation, request.filters, config?.globalFilters]);
 
   // Fetch data for all graphs
   const fetchAllGraphData = useCallback(async () => {
@@ -765,14 +762,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
       >
         <h2 className="text-lg font-bold mb-3">Time Series Controls</h2>
         
-        {/* Navigation to other views */}
-        <ViewNavigation
-          availableViews={getAvailableViews()}
-          currentViewId={viewId || 'timeseries'}
-          config={config || {}}
-          onNavigateToView={onNavigateToView || (() => {})}
-        />
-
         {/* Time Granulation */}
         <CollapsibleSection title="Time Granulation">
           <div>
