@@ -651,13 +651,10 @@ export const fetchImportantMetrics = async (
 ): Promise<ImportantMetricsResponse> => {
   const url = getApiUrl(metrics_service_url, 'metrics/important');
   
-  // Merge global filters with empty request filters
-  const mergedFilters = mergeGlobalFilters(globalFilters, []);
-  
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ filters: mergedFilters })
+    body: JSON.stringify({ filters: globalFilters || [] })
   });
 
   if (!response.ok) {
