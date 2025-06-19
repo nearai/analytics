@@ -388,7 +388,7 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
           onAdd={handleAddFilter}
           onRemove={handleRemoveFilter}
           placeholder="e.g., runner:not_in:local"
-          itemColor="blue"
+          itemColor={{ bg: 'bg-blue-600', hover: 'hover:bg-blue-500' }}
           helpContent={<FilterHelpContent />}
         />
       </div>
