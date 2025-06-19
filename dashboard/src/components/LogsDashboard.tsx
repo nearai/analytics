@@ -13,7 +13,8 @@ import {
   getTimeFilter as sharedGetTimeFilter,
   isTimestampLike,
   mergeGlobalFilters,
-  getApiUrl
+  getApiUrl,
+  fetchImportantMetrics
 } from './shared/SharedComponents';
 
 // Format metadata/metrics for display
@@ -367,6 +368,9 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
 
   // Store the last refresh trigger value to detect changes
   const lastRefreshTrigger = useRef(refreshTrigger || 0);
+  
+  // Store if error filters have been fetched to avoid duplicate calls
+  const errorFiltersFetched = useRef(false);
 
   // Resize panel
   const isResizing = useRef(false);
@@ -453,6 +457,48 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
       }
     }
   }, [refreshTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch error metrics when metricSelection is ERROR
+  useEffect(() => {
+    const fetchErrorFilters = async () => {
+      if (viewConfig?.metricSelection === 'ERROR' && 
+          config?.metrics_service_url && 
+          !errorFiltersFetched.current) {
+        errorFiltersFetched.current = true;
+        
+        try {
+          const importantMetrics = await fetchImportantMetrics(
+            config.metrics_service_url,
+            'ERROR',
+            config.globalFilters
+          );
+          
+          // Extract filters from "Failed Invocations" metric
+          if (importantMetrics['Failed Invocations']) {
+            const [additionalFilters] = importantMetrics['Failed Invocations'];
+            if (additionalFilters && additionalFilters.length > 0) {
+              // Check if these filters are already in the current request to avoid duplicates
+              const currentFilters = request.filters || [];
+              const newFilters = additionalFilters.filter(filter => !currentFilters.includes(filter));
+              
+              if (newFilters.length > 0) {
+                // Merge error filters with current request
+                const newRequest = {
+                  ...request,
+                  filters: [...currentFilters, ...newFilters]
+                };
+                setRequest(newRequest);
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to fetch error metrics:', error);
+        }
+      }
+    };
+
+    fetchErrorFilters();
+  }, [viewConfig?.metricSelection, config?.metrics_service_url, config?.globalFilters, request]);
 
   // Handlers
   const handleRemoveFilter = (filter: string) => {
