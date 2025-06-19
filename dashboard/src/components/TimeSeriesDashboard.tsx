@@ -534,7 +534,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [config?.metrics_service_url, request.filters]);
+  }, [config?.globalFilters, config?.metrics_service_url, request.filters]);
 
   useEffect(() => {
     fetchColumnTree();
@@ -631,7 +631,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     // Sort by timestamp and return both data and metadata
     chartData.sort((a, b) => a.timestamp - b.timestamp);
     return { chartData, lineMetadata };
-  }, [request.time_granulation, request.filters, config?.metrics_service_url]);
+  }, [request.time_granulation, request.filters, config?.globalFilters, config?.metrics_service_url]);
 
   // Fetch data for all graphs
   const fetchAllGraphData = useCallback(async () => {
