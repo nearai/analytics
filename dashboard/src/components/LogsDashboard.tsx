@@ -611,14 +611,6 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
 
       {/* Main Window */}
       <div className="flex-1 overflow-auto p-4 custom-scrollbar relative">
-        {/* Subtle refresh indicator */}
-        {refreshing && (
-          <div className="absolute top-2 right-2 bg-blue-100 border border-blue-300 rounded-full px-3 py-1 text-xs text-blue-700 z-10 flex items-center gap-1">
-            <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            Refreshing...
-          </div>
-        )}
-        
         {/* Show loading only for initial loads (when no previous response exists) */}
         {loading && !response && <div className="text-center py-4 text-gray-600">Loading...</div>}
         {error && <div className="text-red-600 text-center py-2 text-xs">Error: {error}</div>}

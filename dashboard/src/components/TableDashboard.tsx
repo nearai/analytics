@@ -648,14 +648,6 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
 
       {/* Main Window */}
       <div className="flex-1 flex flex-col overflow-hidden bg-gray-50 relative">
-        {/* Subtle refresh indicator */}
-        {refreshing && (
-          <div className="absolute top-2 right-2 bg-blue-100 border border-blue-300 rounded-full px-3 py-1 text-xs text-blue-700 z-10 flex items-center gap-1">
-            <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            Refreshing...
-          </div>
-        )}
-        
         {/* Column Tree */}
         <div className="bg-white shadow-sm flex-shrink-0">
           <button

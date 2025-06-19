@@ -513,7 +513,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   // Fetch column tree for metric selection
   const fetchColumnTree = useCallback(async () => {
     try {
-      setLoading(true);
       const tableRequest: TableRequest = {
         filters: mergeGlobalFilters(config?.globalFilters, request.filters),
         slices: [],
@@ -535,8 +534,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
       setColumnTree(data.column_tree);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch column tree');
-    } finally {
-      setLoading(false);
     }
   }, [config?.globalFilters, config?.metrics_service_url, request.filters]);
 
@@ -680,7 +677,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         fetchAllGraphData(true); // Pass true to indicate this is a refresh
       }
     }
-  }, [refreshTrigger, fetchAllGraphData, graphs.length]);
+  }, [refreshTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle time filter change with auto granulation
   const handleTimeFilterChange = (filter: string) => {
@@ -840,14 +837,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto relative">
-        {/* Subtle refresh indicator */}
-        {refreshing && (
-          <div className="absolute top-4 right-4 bg-blue-100 border border-blue-300 rounded-full px-3 py-1 text-xs text-blue-700 z-10 flex items-center gap-1">
-            <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            Refreshing...
-          </div>
-        )}
-        
         {/* Show loading only for initial loads (when no previous graph data exists) */}
         {loading && Object.keys(graphData).length === 0 && (
           <div className="flex items-center justify-center h-full">
