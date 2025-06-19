@@ -1,4 +1,4 @@
-# NEAR AI Analytics
+# AI Agent Analytics
 
 A collection of tools for benchmarking, evaluating, and analyzing agent performance metrics.
 
