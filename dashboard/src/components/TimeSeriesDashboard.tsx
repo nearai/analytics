@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Settings, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { 
@@ -496,8 +496,12 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   const [graphs, setGraphs] = useState<GraphConfiguration[]>(request.graphs || []);
   const [showGraphConfig, setShowGraphConfig] = useState<{ graphId: string; lineId?: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [graphData, setGraphData] = useState<Record<string, { chartData: any[]; lineMetadata: Record<string, { configIndex: number; sliceValue?: string }> }>>({});
+
+  // Store the last refresh trigger value to detect changes
+  const lastRefreshTrigger = useRef(refreshTrigger || 0);
 
   // Update saved request when request changes
   useEffect(() => {
@@ -634,10 +638,14 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   }, [request.time_granulation, request.filters, config?.globalFilters, config?.metrics_service_url]);
 
   // Fetch data for all graphs
-  const fetchAllGraphData = useCallback(async () => {
+  const fetchAllGraphData = useCallback(async (isRefresh = false) => {
     if (graphs.length === 0) return;
     
-    setLoading(true);
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const newGraphData: Record<string, { chartData: any[]; lineMetadata: Record<string, { configIndex: number; sliceValue?: string }> }> = {};
       
@@ -650,14 +658,29 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch graph data');
     } finally {
-      setLoading(false);
+      if (isRefresh) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [graphs, fetchTimeSeriesData]);
 
-  // Fetch graph data when graphs change or refresh is triggered
+  // Fetch graph data when graphs change
   useEffect(() => {
     fetchAllGraphData();
-  }, [fetchAllGraphData, refreshTrigger]);
+  }, [fetchAllGraphData]);
+
+  // Handle refresh trigger changes separately
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger !== lastRefreshTrigger.current && refreshTrigger > 0) {
+      lastRefreshTrigger.current = refreshTrigger;
+      // Only refresh if we have graphs
+      if (graphs.length > 0) {
+        fetchAllGraphData(true); // Pass true to indicate this is a refresh
+      }
+    }
+  }, [refreshTrigger, fetchAllGraphData, graphs.length]);
 
   // Handle time filter change with auto granulation
   const handleTimeFilterChange = (filter: string) => {
@@ -816,8 +839,17 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        {loading && (
+      <div className="flex-1 overflow-auto relative">
+        {/* Subtle refresh indicator */}
+        {refreshing && (
+          <div className="absolute top-4 right-4 bg-blue-100 border border-blue-300 rounded-full px-3 py-1 text-xs text-blue-700 z-10 flex items-center gap-1">
+            <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            Refreshing...
+          </div>
+        )}
+        
+        {/* Show loading only for initial loads (when no previous graph data exists) */}
+        {loading && Object.keys(graphData).length === 0 && (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-600">Loading...</div>
           </div>
@@ -829,7 +861,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           </div>
         )}
 
-        {!loading && !error && (
+        {(!loading || Object.keys(graphData).length > 0) && !error && (
           <div className="p-4">
             {/* Graph Grid */}
             <div className="grid grid-cols-2 gap-4">

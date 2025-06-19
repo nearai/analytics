@@ -209,6 +209,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   
   const [response, setResponse] = useState<TableResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedDetails, setSelectedDetails] = useState<Record<string, any> | null>(null);
   const [filterInput, setFilterInput] = useState('');
   const [sliceInput, setSliceInput] = useState('');
@@ -216,7 +217,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   const [panelWidth, setPanelWidth] = useState(256); // 256px = 16rem
 
   // Store the last refresh trigger value to detect changes
-  const lastRefreshTrigger = useRef(refreshTrigger);
+  const lastRefreshTrigger = useRef(refreshTrigger || 0);
 
   // Resize panel
   const isResizing = useRef(false);
@@ -248,8 +249,11 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   }, [request]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // API call
-  const fetchTable = useCallback(async (requestData: TableRequest) => {
+  const fetchTable = useCallback(async (requestData: TableRequest, isRefresh = false) => {
     setError(null);
+    if (isRefresh) {
+      setRefreshing(true);
+    }
     
     try {
       setRequest(requestData);
@@ -294,6 +298,10 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      if (isRefresh) {
+        setRefreshing(false);
+      }
     }
   }, [config?.globalFilters, config?.metrics_service_url]);
 
@@ -308,11 +316,11 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
 
   // Handle refresh trigger changes
   useEffect(() => {
-    if (refreshTrigger !== lastRefreshTrigger.current && refreshTrigger > 0) {
+    if (refreshTrigger !== undefined && refreshTrigger !== lastRefreshTrigger.current && refreshTrigger > 0) {
       lastRefreshTrigger.current = refreshTrigger;
       // Only refresh if we have a request
       if (request) {
-        fetchTable(request);
+        fetchTable(request, true); // Pass true to indicate this is a refresh
       }
     }
   }, [refreshTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -639,7 +647,15 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
       </div>
 
       {/* Main Window */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
+      <div className="flex-1 flex flex-col overflow-hidden bg-gray-50 relative">
+        {/* Subtle refresh indicator */}
+        {refreshing && (
+          <div className="absolute top-2 right-2 bg-blue-100 border border-blue-300 rounded-full px-3 py-1 text-xs text-blue-700 z-10 flex items-center gap-1">
+            <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            Refreshing...
+          </div>
+        )}
+        
         {/* Column Tree */}
         <div className="bg-white shadow-sm flex-shrink-0">
           <button
