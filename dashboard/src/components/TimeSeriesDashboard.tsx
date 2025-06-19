@@ -752,7 +752,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         fetchAllGraphData(true); // Pass true to indicate this is a refresh
       }
     }
-  }, [refreshTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [refreshTrigger, request.time_granulation, request.filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle time filter change with auto granulation
   const handleTimeFilterChange = (filter: string) => {
@@ -851,6 +851,13 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     </div>
   );
 
+  const [localTimeGranulation, setLocalTimeGranulation] = useState(request.time_granulation || '1 day');
+
+  // Sync local state when request.time_granulation changes from external sources
+  useEffect(() => {
+    setLocalTimeGranulation(request.time_granulation || '1 day');
+  }, [request.time_granulation]);
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Control Panel */}
@@ -874,8 +881,14 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
             <label className="block text-xs font-medium mb-1">Granulation</label>
             <input
               type="text"
-              value={request.time_granulation || '1 day'}
-              onChange={(e) => handleTimeGranulationChange(e.target.value)}
+              value={localTimeGranulation}
+              onChange={(e) => setLocalTimeGranulation(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleTimeGranulationChange(e.currentTarget.value);
+                }
+              }}
+              onBlur={(e) => handleTimeGranulationChange(e.target.value)}
               list="granulation-options"
               placeholder="e.g., 1 minute, 1 hour, 1 day"
               className="w-full p-1.5 border rounded text-xs bg-gray-700 text-white border-gray-600 placeholder-gray-400"
