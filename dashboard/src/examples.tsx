@@ -48,7 +48,7 @@ const CALTrackingConfig = () => (
     viewConfigs: {
       table: {
         view_type: 'table',
-        view_name: 'CAL Metrics',
+        view_name: 'Cost/Accuracy/Latency',
         metricSelection: 'CAL',
         showParameters: ['absent_metrics_strategy'],
         defaultParameters: {
@@ -111,8 +111,8 @@ const FullDashboardConfig = () => (
   }} />
 );
 
-// 6. Example with multiple views of same type and new features
-const ExampleNewFeaturesConfig = () => (
+// 6. Example with multiple views of same type
+const MultipleViewsConfig = () => (
   <Dashboard config={{
     views: ['timeseries_performance', 'table_performance', 'logs_all', 'logs_errors'],
     globalFilters: [],
@@ -161,5 +161,5 @@ export {
   CALTrackingConfig,
   TimeSeriesConfig,
   FullDashboardConfig,
-  ExampleNewFeaturesConfig
+  MultipleViewsConfig
 };
