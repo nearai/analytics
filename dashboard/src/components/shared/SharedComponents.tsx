@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, X, Info, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Info, Plus, BarChart3, Table, FileText } from 'lucide-react';
+import { DashboardConfig } from './types';
 
 // Collapsible Section Component
 export const CollapsibleSection: React.FC<{
@@ -477,4 +478,83 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({
       )}
     </CollapsibleSection>
   );
+};
+
+// View Navigation Component
+interface ViewNavigationProps {
+  availableViews: string[];
+  currentViewId: string;
+  config: DashboardConfig;
+  onNavigateToView: (viewId: string) => void;
+}
+
+const getViewTypeIcon = (viewType: string) => {
+  switch (viewType) {
+    case 'timeseries':
+      return BarChart3;
+    case 'table':
+      return Table;
+    case 'logs':
+      return FileText;
+    default:
+      return FileText;
+  }
+};
+
+const getDefaultViewName = (viewType: string) => {
+  switch (viewType) {
+    case 'timeseries':
+      return 'Time Series';
+    case 'table':
+      return 'Table';
+    case 'logs':
+      return 'Logs';
+    default:
+      return 'View';
+  }
+};
+
+export const ViewNavigation: React.FC<ViewNavigationProps> = ({
+  availableViews,
+  currentViewId,
+  config,
+  onNavigateToView
+}) => {
+  // Filter out the current view and show views in configuration order
+  const otherViews = availableViews.filter(viewId => viewId !== currentViewId);
+  
+  // Only show if there are other views to navigate to
+  if (otherViews.length === 0) {
+    return null;
+  }
+  
+  return (
+    <CollapsibleSection title="Views" defaultOpen={true}>
+      <div className="space-y-2">
+        {otherViews.map(viewId => {
+          const viewConfig = config?.viewConfigs?.[viewId];
+          const viewType = viewConfig?.view_type || 'logs';
+          const viewName = viewConfig?.view_name || getDefaultViewName(viewType);
+          const IconComponent = getViewTypeIcon(viewType);
+          
+          return (
+            <button
+              key={viewId}
+              onClick={() => onNavigateToView(viewId)}
+              className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
+            >
+              <IconComponent size={16} />
+              {viewName}
+            </button>
+          );
+        })}
+      </div>
+    </CollapsibleSection>
+  );
+};
+
+// API URL construction helper
+export const getApiUrl = (metrics_service_url: string | undefined, apiCall: string): string => {
+  const baseUrl = metrics_service_url || 'http://localhost:8000/api/v1/';
+  return baseUrl.endsWith('/') ? baseUrl + apiCall : baseUrl + '/' + apiCall;
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical, FileText, BarChart3 } from 'lucide-react';
+import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical } from 'lucide-react';
 import { TableRequest, TableResponse, ColumnNode, Column, DashboardConfig } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FilterManager, FiltersSection, formatTimestamp, getStyleClass, mergeGlobalFilters } from './shared/SharedComponents';
+import { CollapsibleSection, DetailsPopup, FilterManager, FiltersSection, ViewNavigation, formatTimestamp, getStyleClass, getTimeFilter as sharedGetTimeFilter, mergeGlobalFilters, getApiUrl } from './shared/SharedComponents';
 
 // Component-specific utility functions
 const formatCellValue = (values: Record<string, any>, unit?: string): React.ReactNode => {
@@ -140,20 +140,22 @@ const ColumnTreeNode: React.FC<{
 };
 
 interface TableDashboardProps {
-  onNavigateToTimeSeries?: () => void;
-  onNavigateToLogs: () => void;
+  onNavigateToView?: (viewId: string) => void;
   savedRequest?: TableRequest | null;
   onRequestChange?: (request: TableRequest) => void;
   config?: DashboardConfig;
+  viewId?: string;
+  viewConfig?: import('./shared/types').ViewConfig;
   refreshTrigger?: number;
 }
 
 const TableDashboard: React.FC<TableDashboardProps> = ({ 
-  onNavigateToTimeSeries,
-  onNavigateToLogs, 
+  onNavigateToView,
   savedRequest, 
   onRequestChange, 
   config, 
+  viewId,
+  viewConfig,
   refreshTrigger = 0
 }) => {
   // State
@@ -166,10 +168,22 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     column_selections: ['/metadata/time_end_utc/max_value', '/metrics/']
   };
   
-  // Apply default parameters from config
+  // Apply default parameters from view config including time_filter
   const getInitialRequest = (): TableRequest => {
-    const configDefaults = config?.viewConfigs?.table?.defaultParameters || {};
-    return { ...defaultRequest, ...configDefaults };
+    const configDefaults = viewConfig?.defaultParameters || {};
+    const defaultFilters = [];
+    
+    // Add time filter if specified in config
+    if (configDefaults.time_filter) {
+      const timeFilter = sharedGetTimeFilter(String(configDefaults.time_filter));
+      defaultFilters.push(timeFilter);
+    }
+    
+    return { 
+      ...defaultRequest, 
+      ...configDefaults,
+      filters: [...defaultFilters, ...(configDefaults.filters || [])]
+    };
   };
   
   const [request, setRequest] = useState<TableRequest>(savedRequest || getInitialRequest());
@@ -178,14 +192,9 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   const getAvailableViews = (): string[] => {
     return config?.views || ['timeseries', 'table', 'logs'];
   };
-  
-  const shouldShowViewsPanel = (): boolean => {
-    const availableViews = getAvailableViews();
-    return availableViews.length > 1;
-  };
 
   const getVisibleParameters = (): string[] => {
-    const showParameters = config?.viewConfigs?.table?.showParameters;
+    const showParameters = viewConfig?.showParameters;
     if (showParameters === undefined) {
       // Show all parameters by default
       return ['prune_mode', 'absent_metrics_strategy', 'slices_recommendation_strategy'];
@@ -236,7 +245,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     if (onRequestChange) {
       onRequestChange(request);
     }
-  }, [request, onRequestChange]);
+  }, [request]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // API call
   const fetchTable = useCallback(async (requestData: TableRequest) => {
@@ -250,7 +259,8 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         ...requestData,
         filters: mergedFilters
       };
-      const res = await fetch('http://localhost:8000/api/v1/table/aggregation', {
+      const url = getApiUrl(config?.metrics_service_url, 'table/aggregation');
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestWithGlobalFilters)
@@ -285,7 +295,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
-  }, [config?.globalFilters]);
+  }, [config?.globalFilters, config?.metrics_service_url]);
 
   // Initial load. Use saved request if present.
   useEffect(() => {
@@ -520,30 +530,12 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         <h2 className="text-lg font-bold mb-3">Table Controls</h2>
         
         {/* Navigation to other views */}
-        {shouldShowViewsPanel() && (
-          <CollapsibleSection title="Views" defaultOpen={true}>
-            <div className="space-y-2">
-              {getAvailableViews().includes('timeseries') && onNavigateToTimeSeries && (
-                <button
-                  onClick={onNavigateToTimeSeries}
-                  className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-                >
-                  <BarChart3 size={16} />
-                  View Time Series
-                </button>
-              )}
-              {getAvailableViews().includes('logs') && (
-                <button
-                  onClick={onNavigateToLogs}
-                  className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-                >
-                  <FileText size={16} />
-                  View Logs
-                </button>
-              )}
-            </div>
-          </CollapsibleSection>
-        )}
+        <ViewNavigation
+          availableViews={getAvailableViews()}
+          currentViewId={viewId || 'table'}
+          config={config || {}}
+          onNavigateToView={onNavigateToView || (() => {})}
+        />
 
         {/* Parameters */}
         {shouldShowParametersPanel() && (

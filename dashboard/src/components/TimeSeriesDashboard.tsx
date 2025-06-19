@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Settings, Table, FileText, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Settings, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { 
   TimeSeriesRequest, 
@@ -17,17 +17,20 @@ import {
   FilterHelpContent, 
   FilterManager, 
   FiltersSection,
+  ViewNavigation,
   getTimeFilter, 
   mergeGlobalFilters, 
-  parseTimePeriodToHours
+  parseTimePeriodToHours,
+  getApiUrl
 } from './shared/SharedComponents';
 
 interface TimeSeriesDashboardProps {
-  onNavigateToTable: () => void;
-  onNavigateToLogs: () => void;
+  onNavigateToView?: (viewId: string) => void;
   savedRequest?: TimeSeriesRequest | null;
   onRequestChange?: (request: TimeSeriesRequest) => void;
   config?: DashboardConfig;
+  viewId?: string;
+  viewConfig?: import('./shared/types').ViewConfig;
   refreshTrigger?: number;
 }
 
@@ -279,7 +282,8 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
           slice_field: lineConfig.slice
         };
 
-        const response = await fetch('http://localhost:8000/api/v1/graphs/time-series', {
+        const timeSeriesUrl = getApiUrl(config?.metrics_service_url, 'graphs/time-series');
+        const response = await fetch(timeSeriesUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(apiRequest)
@@ -462,25 +466,21 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
 };
 
 const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
-  onNavigateToTable,
-  onNavigateToLogs,
+  onNavigateToView,
   savedRequest,
   onRequestChange,
   config,
+  viewId,
+  viewConfig,
   refreshTrigger
 }) => {
   const getAvailableViews = (): string[] => {
     return config?.views || ['timeseries', 'table', 'logs'];
   };
-  
-  const shouldShowViewsPanel = (): boolean => {
-    const availableViews = getAvailableViews();
-    return availableViews.length > 1;
-  };
 
-  // Default request based on config
+  // Default request based on view config
   const getDefaultRequest = (): TimeSeriesRequest => {
-    const defaultParams = config?.viewConfigs?.timeseries?.defaultParameters || {};
+    const defaultParams = viewConfig?.defaultParameters || {};
     const defaultTimeFilter = getTimeFilter(defaultParams.time_filter || '1 month');
     return {
       filters: [defaultTimeFilter],
@@ -504,7 +504,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     if (onRequestChange) {
       onRequestChange(request);
     }
-  }, [request, onRequestChange]);
+  }, [request]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch column tree for metric selection
   const fetchColumnTree = useCallback(async () => {
@@ -516,7 +516,8 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         absent_metrics_strategy: 'accept_subset'
       };
 
-      const response = await fetch('http://localhost:8000/api/v1/table/aggregation', {
+      const tableUrl = getApiUrl(config?.metrics_service_url, 'table/aggregation');
+      const response = await fetch(tableUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tableRequest)
@@ -533,7 +534,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [config?.globalFilters, request.filters]);
+  }, [config?.globalFilters, config?.metrics_service_url, request.filters]);
 
   useEffect(() => {
     fetchColumnTree();
@@ -557,7 +558,8 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           slice_field: lineConfig.slice
         };
 
-        const response = await fetch('http://localhost:8000/api/v1/graphs/time-series', {
+        const timeSeriesUrl = getApiUrl(config?.metrics_service_url, 'graphs/time-series');
+        const response = await fetch(timeSeriesUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(apiRequest)
@@ -629,7 +631,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     // Sort by timestamp and return both data and metadata
     chartData.sort((a, b) => a.timestamp - b.timestamp);
     return { chartData, lineMetadata };
-  }, [request.time_granulation, request.filters, config?.globalFilters]);
+  }, [request.time_granulation, request.filters, config?.globalFilters, config?.metrics_service_url]);
 
   // Fetch data for all graphs
   const fetchAllGraphData = useCallback(async () => {
@@ -764,30 +766,12 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         <h2 className="text-lg font-bold mb-3">Time Series Controls</h2>
         
         {/* Navigation to other views */}
-        {shouldShowViewsPanel() && (
-          <CollapsibleSection title="Views" defaultOpen={true}>
-            <div className="space-y-2">
-              {getAvailableViews().includes('table') && (
-                <button
-                  onClick={onNavigateToTable}
-                  className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-                >
-                  <Table size={16} />
-                  View Table
-                </button>
-              )}
-              {getAvailableViews().includes('logs') && (
-                <button
-                  onClick={onNavigateToLogs}
-                  className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-                >
-                  <FileText size={16} />
-                  View Logs
-                </button>
-              )}
-            </div>
-          </CollapsibleSection>
-        )}
+        <ViewNavigation
+          availableViews={getAvailableViews()}
+          currentViewId={viewId || 'timeseries'}
+          config={config || {}}
+          onNavigateToView={onNavigateToView || (() => {})}
+        />
 
         {/* Time Granulation */}
         <CollapsibleSection title="Time Granulation">

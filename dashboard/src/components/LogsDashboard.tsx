@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronDown, ChevronUp, GripVertical, Table, FileText, Eye, BarChart3 } from 'lucide-react';
+import { ChevronDown, ChevronUp, GripVertical, Eye, FileText } from 'lucide-react';
 import { LogsRequest, LogsResponse, LogGroup, LogEntry, LogFile, DashboardConfig } from './shared/types';
-import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, FiltersSection, formatTimestamp, getStyleClass, isTimestampLike, mergeGlobalFilters } from './shared/SharedComponents';
+import { CollapsibleSection, DetailsPopup, FileContentPopup, FilterManager, FiltersSection, ViewNavigation, formatTimestamp, getStyleClass, getTimeFilter as sharedGetTimeFilter, isTimestampLike, mergeGlobalFilters, getApiUrl } from './shared/SharedComponents';
 
 // Format metadata/metrics for display
 const formatMetadataValue = (value: any): string => {
@@ -280,20 +280,22 @@ const LogEntryComponent: React.FC<{
 };
 
 interface LogsDashboardProps {
-  onNavigateToTimeSeries?: () => void;
-  onNavigateToTable: () => void;
+  onNavigateToView?: (viewId: string) => void;
   savedRequest?: LogsRequest | null;
   onRequestChange?: (request: LogsRequest) => void;
   config?: DashboardConfig;
+  viewId?: string;
+  viewConfig?: import('./shared/types').ViewConfig;
   refreshTrigger?: number;
 }
 
 const LogsDashboard: React.FC<LogsDashboardProps> = ({ 
-  onNavigateToTimeSeries,
-  onNavigateToTable, 
+  onNavigateToView,
   savedRequest, 
   onRequestChange, 
-  config, 
+  config,
+  viewId,
+  viewConfig,
   refreshTrigger = 0
 }) => {
   // State
@@ -304,10 +306,22 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     groups: []
   };
   
-  // Apply default parameters from config
+  // Apply default parameters from view config including time_filter
   const getInitialRequest = (): LogsRequest => {
-    const configDefaults = config?.viewConfigs?.logs?.defaultParameters || {};
-    return { ...defaultRequest, ...configDefaults };
+    const configDefaults = viewConfig?.defaultParameters || {};
+    const defaultFilters = [];
+    
+    // Add time filter if specified in config
+    if (configDefaults.time_filter) {
+      const timeFilter = sharedGetTimeFilter(String(configDefaults.time_filter));
+      defaultFilters.push(timeFilter);
+    }
+    
+    return { 
+      ...defaultRequest, 
+      ...configDefaults,
+      filters: [...defaultFilters, ...(configDefaults.filters || [])]
+    };
   };
   
   const [request, setRequest] = useState<LogsRequest>(savedRequest || getInitialRequest());
@@ -316,14 +330,9 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
   const getAvailableViews = (): string[] => {
     return config?.views || ['timeseries', 'table', 'logs'];
   };
-  
-  const shouldShowViewsPanel = (): boolean => {
-    const availableViews = getAvailableViews();
-    return availableViews.length > 1;
-  };
 
   const getVisibleParameters = (): string[] => {
-    const showParameters = config?.viewConfigs?.logs?.showParameters;
+    const showParameters = viewConfig?.showParameters;
     if (showParameters === undefined) {
       // Show all parameters by default
       return ['prune_mode', 'groups_recommendation_strategy'];
@@ -373,7 +382,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     if (onRequestChange) {
       onRequestChange(request);
     }
-  }, [request, onRequestChange]);
+  }, [request]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // API call
   const fetchLogs = useCallback(async (requestData: LogsRequest) => {
@@ -388,7 +397,8 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
         ...requestData,
         filters: mergedFilters
       };
-      const res = await fetch('http://localhost:8000/api/v1/logs/list', {
+      const url = getApiUrl(config?.metrics_service_url, 'logs/list');
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestWithGlobalFilters)
@@ -405,7 +415,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [config?.globalFilters]);
+  }, [config?.globalFilters, config?.metrics_service_url]);
 
   // Initial load. Use saved request if present.
   useEffect(() => {
@@ -498,30 +508,12 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
         <h2 className="text-lg font-bold mb-3">Logs Controls</h2>
         
         {/* Navigation to other views */}
-        {shouldShowViewsPanel() && (
-          <CollapsibleSection title="Views" defaultOpen={true}>
-            <div className="space-y-2">
-              {getAvailableViews().includes('timeseries') && onNavigateToTimeSeries && (
-                <button
-                  onClick={onNavigateToTimeSeries}
-                  className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-                >
-                  <BarChart3 size={16} />
-                  View Time Series
-                </button>
-              )}
-              {getAvailableViews().includes('table') && (
-                <button
-                  onClick={onNavigateToTable}
-                  className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
-                >
-                  <Table size={16} />
-                  View Table
-                </button>
-              )}
-            </div>
-          </CollapsibleSection>
-        )}
+        <ViewNavigation
+          availableViews={getAvailableViews()}
+          currentViewId={viewId || 'logs'}
+          config={config || {}}
+          onNavigateToView={onNavigateToView || (() => {})}
+        />
         
         {/* Parameters */}
         {shouldShowParametersPanel() && (
