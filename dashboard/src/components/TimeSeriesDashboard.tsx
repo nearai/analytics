@@ -1061,7 +1061,12 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
 
   // Fetch data for all graphs
   const fetchAllGraphData = useCallback(async (isRefresh = false) => {
-    if (graphs.length === 0) return;
+    if (graphs.length === 0) {
+      if (!isRefresh) {
+        setLoading(false);
+      }
+      return;
+    }
     
     if (!isRefresh) {
       setLoading(true);
