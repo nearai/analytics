@@ -90,10 +90,26 @@ import { Dashboard } from '@nearai/analytics-dashboard';
     table: {
       showParameters: ['prune_mode'], // Show only specific parameters
       refreshRate: 30 // Refresh every 30 seconds
+    },
+    logs_errors: {
+      view_type: 'logs',
+      view_name: 'Error Logs',
+      metricSelection: 'ERROR' // Automatically filters to show only failed invocations
     }
   }
 }} />
 ```
+
+#### Error Logs Feature
+
+The dashboard supports automatic error filtering for logs views. When a logs view is configured with `metricSelection: 'ERROR'`, the dashboard will:
+
+- Automatically fetch "Failed Invocations" metrics
+- Extract error-specific filters from the metrics response
+- Apply these filters to show only logs from failed invocations
+- Merge error filters with any existing filters without duplication
+
+This provides an easy way to focus on error logs without manual filter configuration.
 
 ### 5. Run Benchmarks and Evaluations
 
