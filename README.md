@@ -74,12 +74,13 @@ import { Dashboard } from '@nearai/analytics-dashboard';
 
 // Use with configuration
 <Dashboard config={{
-  views: ['timeseries', 'table', 'logs'], // Time Series, Table, and Logs views
-  defaultView: 'timeseries', // Start with Time Series view
+  views: ['timeseries', 'table', 'error_logs'], // Time Series, Table, and Error Logs views
   globalFilters: ['runner:not_in:local'], // Applied to all requests
-  metricSelection: 'PERFORMANCE', // Metric selection
   viewConfigs: {
     timeseries: {
+      view_type: 'timeseries',
+      view_name: 'Time Series',
+      metricSelection: 'PERFORMANCE',
       defaultParameters: {
         time_filter: '1 month',
         time_granulation: '1 day'
@@ -88,8 +89,17 @@ import { Dashboard } from '@nearai/analytics-dashboard';
       refreshRate: 30 // Refresh every 30 seconds
     },
     table: {
+      view_type: 'table',
+      view_name: 'Table',
+      metricSelection: 'CUSTOM',
       showParameters: ['prune_mode'], // Show only specific parameters
       refreshRate: 30 // Refresh every 30 seconds
+    },
+    logs_errors: {
+      view_type: 'logs',
+      view_name: 'Error Logs',
+      metricSelection: 'ERROR',
+      timeFilterRecommendations: []  // Default: disable
     }
   }
 }} />

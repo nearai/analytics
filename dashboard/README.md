@@ -92,25 +92,6 @@ npm run build
 
 The build files will be in the `build/` directory.
 
-## Table Features
-
-- **Control Panel**: Configure parameters, filters, and slices
-- **Column Tree**: Hierarchical column selection
-- **Data Table**: Interactive table with sorting and filtering
-  - Initially a single row showing overall averages
-  - Dynamically filter and slice the data by any column
-- **Time Filters**: Quick filters for last hour/day/week
-- **Details View**: Click cells to view detailed JSON data
-
-## Chronological Log Entries Features
-
-This view displays individual log entries in chronological order:
-
-- Detailed metadata for each run
-- Quick access to metrics and log files
-- Filtering by date ranges and metadata
-- Grouping
-
 ## Development
 
 The app is built with:
@@ -151,9 +132,8 @@ The app is built with:
 
 #### 4. Error Analysis
 
-**Current implementation**: ❌ Not implemented
-- **Planned**: Metrics table with filtering, slicing, error columns, and custom columns.
-- **Planned**: Stream of log files specifically for error runs.
+**Current implementation**: ✅ Error logs available
+- Stream of log files specifically for error runs.
 - **Future**: Error-specific filters and grouping strategies.
 - **Future**: Error pattern detection and analysis.
 

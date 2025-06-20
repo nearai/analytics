@@ -13,7 +13,8 @@ import {
   getTimeFilter as sharedGetTimeFilter,
   isTimestampLike,
   mergeGlobalFilters,
-  getApiUrl
+  getApiUrl,
+  fetchImportantMetrics
 } from './shared/SharedComponents';
 
 // Format metadata/metrics for display
@@ -367,7 +368,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
 
   // Store the last refresh trigger value to detect changes
   const lastRefreshTrigger = useRef(refreshTrigger || 0);
-
+  
   // Resize panel
   const isResizing = useRef(false);
   
@@ -396,6 +397,40 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
       onRequestChange(request);
     }
   }, [request]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Function to fetch error filters and merge them with request
+  const fetchAndMergeErrorFilters = useCallback(async (baseRequest: LogsRequest): Promise<LogsRequest> => {
+    if (viewConfig?.metricSelection === 'ERROR' && config?.metrics_service_url) {
+      try {
+        const importantMetrics = await fetchImportantMetrics(
+          config.metrics_service_url,
+          'ERROR',
+          config.globalFilters
+        );
+        
+        // Extract filters from "Failed Invocations" metric
+        if (importantMetrics['Failed Invocations']) {
+          const [additionalFilters] = importantMetrics['Failed Invocations'];
+          if (additionalFilters && additionalFilters.length > 0) {
+            // Check if these filters are already in the base request to avoid duplicates
+            const currentFilters = baseRequest.filters || [];
+            const newFilters = additionalFilters.filter(filter => !currentFilters.includes(filter));
+            
+            if (newFilters.length > 0) {
+              return {
+                ...baseRequest,
+                filters: [...currentFilters, ...newFilters]
+              };
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to fetch error metrics:', error);
+      }
+    }
+    
+    return baseRequest;
+  }, [viewConfig?.metricSelection, config?.metrics_service_url, config?.globalFilters]);
 
   // API call
   const fetchLogs = useCallback(async (requestData: LogsRequest, isRefresh = false) => {
@@ -434,13 +469,24 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     }
   }, [config?.globalFilters, config?.metrics_service_url]);
 
-  // Initial load. Use saved request if present.
+  // Initial load with error filters integration
   useEffect(() => {
-    if (savedRequest) {
-      fetchLogs(savedRequest);
-    } else {
-      fetchLogs(request);
-    }
+    const loadInitialData = async () => {
+      const initialRequest = savedRequest || request;
+      
+      // Fetch and merge error filters if needed
+      const requestWithErrorFilters = await fetchAndMergeErrorFilters(initialRequest);
+      
+      // Update state if error filters were added
+      if (requestWithErrorFilters !== initialRequest) {
+        setRequest(requestWithErrorFilters);
+      }
+      
+      // Fetch logs with the final request
+      await fetchLogs(requestWithErrorFilters);
+    };
+
+    loadInitialData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle refresh trigger changes
