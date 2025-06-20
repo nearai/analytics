@@ -116,18 +116,16 @@ The app is built with:
 
 **Current implementation**: ✅ Available
 - Time granulation: Manual time filters (last hour, day, week, custom ranges).
-- Interactive time series visualization with graph management.
+- Interactive performance time series graphs.
 - Metrics table with filtering, slicing, performance columns, and custom columns.
 - Stream of log files with chronological ordering.
 - Default parameters optimized for performance tracking.
-- Time filter recommendations passed to logs view.
+- Time filter recommendations can be passed to logs view.
 
 #### 3. Cost/Accuracy/Latency Tracking
 
-**Current implementation**: ❌ Not implemented
-- Metrics table with filtering, slicing, cost/accuracy/latency columns, and custom columns.
-- No time filters.
-- **Note**: Metric selection parameter (CAL) added to configuration but not yet implemented.
+**Current implementation**: ✅ Latency graphs available
+- Interactive latency time series graphs.
 - **Future**: Will include specialized cost, accuracy, and latency column selections.
 
 #### 4. Error Analysis
@@ -140,7 +138,6 @@ The app is built with:
 #### 5. User Feedback Analysis
 
 **Current implementation**: ❌ Not implemented
-- **Planned**: Metrics table with filtering, slicing, feedback columns, and custom columns.
 - **Planned**: Stream of log files with user feedback data.
 - **Future**: Feedback sentiment analysis and categorization.
 - **Future**: User feedback correlation with performance metrics.
