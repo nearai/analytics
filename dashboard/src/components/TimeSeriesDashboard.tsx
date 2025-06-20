@@ -87,9 +87,14 @@ const makeDarkerColor = (hexColor: string): string => {
 const getLineColor = (metricName: string, sliceValue: string, filters: string[]): string => {
   const isSuccess = isSuccessLine(metricName, sliceValue, filters);
   const isError = isErrorLine(metricName, sliceValue, filters);
+
+  // Transform metricName before creating the hash key
+  const normalizedMetricName = metricName
+    .replace(/\/(min_value|max_value)$/g, '') // Remove /min_value and /max_value suffixes
+    .replace(/\b(avg|min|max)\b/gi, ''); // Remove occurrences of 'avg', 'min', 'max'
   
   // Create a deterministic key from the inputs
-  const key = `${metricName}|${sliceValue}|${filters.join(',')}`;
+  const key = `${normalizedMetricName}|${sliceValue}|${filters.join(',')}`;
   const hash = hashString(key);
   
   let baseColor: string;
@@ -128,37 +133,7 @@ const getColorForLineConfig = (lineConfig: LineConfiguration, sliceValue?: strin
   }
   
   // Auto-generate color based on current category
-  // Pass displayName to help with Max detection
-  return getLineColorWithDisplayName(lineConfig.metricName, sliceValue || '', lineConfig.filters || [], lineConfig.displayName);
-};
-
-const getLineColorWithDisplayName = (metricName: string, sliceValue: string, filters: string[], displayName?: string): string => {
-  const isSuccess = isSuccessLine(metricName, sliceValue, filters);
-  const isError = isErrorLine(metricName, sliceValue, filters);
-  
-  // Create a deterministic key from the inputs
-  const key = `${metricName}|${sliceValue}|${filters.join(',')}`;
-  const hash = hashString(key);
-  
-  let baseColor: string;
-  if (isSuccess) {
-    baseColor = SUCCESS_COLORS[hash % SUCCESS_COLORS.length];
-  } else if (isError) {
-    baseColor = ERROR_COLORS[hash % ERROR_COLORS.length];
-  } else {
-    baseColor = DEFAULT_COLORS[hash % DEFAULT_COLORS.length];
-  }
-  
-  // Make darker if this is a "Max" metric (for latency graphs)
-  const isMaxMetric = metricName.toLowerCase().includes('max') || 
-                     (sliceValue && sliceValue.toLowerCase().includes('max')) ||
-                     (displayName && displayName.toLowerCase().includes('max'));
-  
-  if (isMaxMetric) {
-    return makeDarkerColor(baseColor);
-  }
-  
-  return baseColor;
+  return getLineColor(lineConfig.metricName, sliceValue || '', lineConfig.filters || []);
 };
 
 const isSuccessLine = (metricName: string, sliceValue: string, filters: string[]): boolean => {
@@ -275,8 +250,8 @@ const createInitialGraphsFromImportantMetrics = async (
         metricName: fieldName,
         filters: filters,
         displayName: 'Agent Invocations',
-        color: getLineColorWithDisplayName(fieldName, '', filters, 'Agent Invocations'),
-        userSetColor: false
+        color: getLineColor(fieldName, '', filters),
+        userSetColor: true
       }]
     });
   }
@@ -295,15 +270,15 @@ const createInitialGraphsFromImportantMetrics = async (
           metricName: successField,
           filters: successFilters,
           displayName: 'Successful Invocations',
-          color: getLineColorWithDisplayName(successField, '', successFilters, 'Successful Invocations'),
-          userSetColor: false
+          color: getLineColor(successField, '', successFilters),
+          userSetColor: true
         },
         {
           id: `line-${Date.now()}-failed`,
           metricName: failField,
           filters: failFilters,
           displayName: 'Failed Invocations',
-          color: getLineColorWithDisplayName(failField, '', failFilters, 'Failed Invocations'),
+          color: getLineColor(failField, '', failFilters),
           userSetColor: false
         }
       ]
@@ -329,8 +304,8 @@ const createInitialGraphsFromImportantMetrics = async (
           filters: avgFilters,
           slice: shouldSlice ? 'agent_name' : undefined,
           displayName: 'Avg Agent Latency',
-          color: shouldSlice ? {} : getLineColorWithDisplayName(avgField, '', avgFilters, 'Avg Agent Latency'),
-          userSetColor: shouldSlice ? {} : false
+          color: shouldSlice ? {} : getLineColor(avgField, '', avgFilters),
+          userSetColor: shouldSlice ? {} : true
         },
         {
           id: `line-${Date.now()}-max-agent`,
@@ -338,8 +313,8 @@ const createInitialGraphsFromImportantMetrics = async (
           filters: maxFilters,
           slice: shouldSlice ? 'agent_name' : undefined,
           displayName: 'Max Agent Latency',
-          color: shouldSlice ? {} : getLineColorWithDisplayName(maxField, '', maxFilters, 'Max Agent Latency'),
-          userSetColor: shouldSlice ? {} : false
+          color: shouldSlice ? {} : getLineColor(maxField, '', maxFilters),
+          userSetColor: shouldSlice ? {} : true
         }
       ]
     });
@@ -395,8 +370,8 @@ const createInitialGraphsFromImportantMetrics = async (
           filters: avgFilters,
           slice: shouldSlice ? 'model' : undefined,
           displayName: 'Avg Completion Latency',
-          color: shouldSlice ? {} : getLineColorWithDisplayName(avgField, '', avgFilters, 'Avg Completion Latency'),
-          userSetColor: shouldSlice ? {} : false
+          color: shouldSlice ? {} : getLineColor(avgField, '', avgFilters),
+          userSetColor: shouldSlice ? {} : true
         },
         {
           id: `line-${Date.now()}-max-completion`,
@@ -404,8 +379,8 @@ const createInitialGraphsFromImportantMetrics = async (
           filters: maxFilters,
           slice: shouldSlice ? 'model' : undefined,
           displayName: 'Max Completion Latency',
-          color: shouldSlice ? {} : getLineColorWithDisplayName(maxField, '', maxFilters, 'Max Completion Latency'),
-          userSetColor: shouldSlice ? {} : false
+          color: shouldSlice ? {} : getLineColor(maxField, '', maxFilters),
+          userSetColor: shouldSlice ? {} : true
         }
       ]
     });
@@ -547,7 +522,7 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
             const colorMap: Record<string, string> = {};
             const userSetColorMap: Record<string, boolean> = {};
             data.slice_values.forEach((value, index) => {
-              colorMap[value] = getLineColorWithDisplayName(lineConfig.metricName, value, lineConfig.filters || [], lineConfig.displayName);
+              colorMap[value] = getLineColor(lineConfig.metricName, value, lineConfig.filters || []);
               userSetColorMap[value] = false; // Mark as auto-generated
             });
             onUpdate({ ...lineConfig, color: colorMap, userSetColor: userSetColorMap });
@@ -587,7 +562,7 @@ const LineConfigurationComponent: React.FC<LineConfigurationComponentProps> = ({
       onUpdate({ ...lineConfig, slice, color: {}, userSetColor: {} });
     } else {
       // Switching to non-sliced mode - color should become a string and clear slice line names
-      const defaultColor = getLineColorWithDisplayName(lineConfig.metricName, '', lineConfig.filters || [], lineConfig.displayName);
+      const defaultColor = getLineColor(lineConfig.metricName, '', lineConfig.filters || []);
       onUpdate({ 
         ...lineConfig, 
         slice: undefined, 
@@ -827,7 +802,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
       setLoading(true);
       const importantMetrics = await fetchImportantMetrics(
         config?.metrics_service_url,
-        'CUSTOM', // Get all available metrics
+        viewConfig?.metricSelection || 'CUSTOM',
         mergeGlobalFilters(config?.globalFilters, request.filters)
       );
       
@@ -849,7 +824,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [initialGraphsLoaded, graphs.length, config, request]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update saved request when request changes
   useEffect(() => {
@@ -888,13 +863,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   useEffect(() => {
     fetchColumnTree();
   }, [fetchColumnTree, refreshTrigger]);
-
-  // Load initial graphs when component mounts and column tree is available
-  useEffect(() => {
-    if (columnTree && !initialGraphsLoaded && graphs.length === 0) {
-      loadInitialGraphs();
-    }
-  }, [columnTree, initialGraphsLoaded, graphs.length, loadInitialGraphs]);
 
   // Fetch time series data for a graph
   const fetchTimeSeriesData = useCallback(async (graph: GraphConfiguration) => {
