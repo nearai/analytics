@@ -891,8 +891,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     } catch (err) {
       console.error('Failed to load initial graphs:', err);
       setInitialGraphsLoaded(true); // Still mark as loaded to prevent retries
-    } finally {
-      setLoading(false);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1063,7 +1061,12 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
 
   // Fetch data for all graphs
   const fetchAllGraphData = useCallback(async (isRefresh = false) => {
-    if (graphs.length === 0) return;
+    if (graphs.length === 0) {
+      if (!isRefresh) {
+        setLoading(false);
+      }
+      return;
+    }
     
     if (!isRefresh) {
       setLoading(true);
