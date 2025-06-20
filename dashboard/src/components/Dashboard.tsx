@@ -9,18 +9,28 @@ interface DashboardProps {
 }
 
 const DEFAULT_CONFIG: DashboardConfig = {
-  views: ['timeseries', 'table', 'logs', 'error_logs'],
+  views: ['timeseries_performance', 'timeseries_latency', 'table', 'logs', 'error_logs'],
   globalFilters: [],
   metrics_service_url: 'http://localhost:8000/api/v1/',
   viewConfigs: {
-    timeseries: {
+    timeseries_performance: {
       view_type: 'timeseries',
-      view_name: 'Time Series',
-      metricSelection: 'CUSTOM',
+      view_name: 'Performance',
+      metricSelection: 'PERFORMANCE',
       refreshRate: undefined,
       defaultParameters: {
         time_filter: '1 month',
         time_granulation: '1 day'
+      }
+    },
+    timeseries_latency: {
+      view_type: 'timeseries',
+      view_name: 'Latency',
+      metricSelection: 'CAL',
+      refreshRate: undefined,
+      defaultParameters: {
+        time_filter: '1 month',
+        time_granulation: '3 days'
       }
     },
     table: {
@@ -137,6 +147,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
     if (viewConfig.view_type === 'timeseries') {
       return (
         <TimeSeriesDashboard
+          key={viewToRender} // Add unique key to force remount
           {...commonProps}
           savedRequest={viewRequests[viewToRender] as TimeSeriesRequest || null}
           onRequestChange={(request: TimeSeriesRequest) => {
@@ -150,6 +161,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
     } else if (viewConfig.view_type === 'table') {
       return (
         <TableDashboard
+          key={viewToRender} // Add unique key to force remount
           {...commonProps}
           savedRequest={viewRequests[viewToRender] as TableRequest || null}
           onRequestChange={(request: TableRequest) => {
@@ -163,6 +175,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
     } else if (viewConfig.view_type === 'logs') {
       return (
         <LogsDashboard
+          key={viewToRender} // Add unique key to force remount
           {...commonProps}
           savedRequest={viewRequests[viewToRender] as LogsRequest || null}
           onRequestChange={(request: LogsRequest) => {

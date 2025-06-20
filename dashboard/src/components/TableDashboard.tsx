@@ -538,7 +538,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         className="bg-gray-800 shadow-lg overflow-y-auto p-3 text-white relative dark-scrollbar" 
         style={{ width: `${panelWidth}px` }}
       >
-        <h2 className="text-lg font-bold mb-3">Table Controls</h2>
+        <h2 className="text-lg font-bold mb-3">Controls</h2>
         
         {/* Navigation to other views */}
         <ViewNavigation
