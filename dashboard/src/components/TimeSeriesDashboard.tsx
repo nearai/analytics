@@ -21,7 +21,9 @@ import {
   getTimeFilter, 
   mergeGlobalFilters, 
   parseTimePeriodToHours,
-  getApiUrl
+  getApiUrl,
+  fetchImportantMetrics,
+  ImportantMetricsResponse
 } from './shared/SharedComponents';
 
 interface TimeSeriesDashboardProps {
@@ -66,21 +68,121 @@ const hashString = (str: string): number => {
   return Math.abs(hash);
 };
 
+// Helper function to make a color darker by reducing lightness
+const makeDarkerColor = (hexColor: string): string => {
+  // Convert hex to RGB
+  const r = parseInt(hexColor.slice(1, 3), 16);
+  const g = parseInt(hexColor.slice(3, 5), 16);
+  const b = parseInt(hexColor.slice(5, 7), 16);
+  
+  // Make darker by reducing each component by about 30%
+  const darkerR = Math.floor(r * 0.7);
+  const darkerG = Math.floor(g * 0.7);
+  const darkerB = Math.floor(b * 0.7);
+  
+  // Convert back to hex
+  return `#${darkerR.toString(16).padStart(2, '0')}${darkerG.toString(16).padStart(2, '0')}${darkerB.toString(16).padStart(2, '0')}`;
+};
+
+// Helper function to adjust hue of a color
+const adjustHue = (color: string, hueShift: number): string => {
+  // Convert hex to HSL
+  const hex = color.replace('#', '');
+  const r = parseInt(hex.substr(0, 2), 16) / 255;
+  const g = parseInt(hex.substr(2, 2), 16) / 255;
+  const b = parseInt(hex.substr(4, 2), 16) / 255;
+  
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  const s = max === 0 ? 0 : (max - min) / max;
+  const l = (max + min) / 2;
+  
+  if (max !== min) {
+    const d = max - min;
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  
+  // Apply hue shift and normalize
+  h = (h * 360 + hueShift) % 360;
+  if (h < 0) h += 360;
+  
+  // Convert back to RGB
+  const hslToRgb = (h: number, s: number, l: number) => {
+    h /= 360;
+    const hue2rgb = (p: number, q: number, t: number) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    
+    if (s === 0) {
+      return [l, l, l]; // achromatic
+    } else {
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      return [
+        hue2rgb(p, q, h + 1/3),
+        hue2rgb(p, q, h),
+        hue2rgb(p, q, h - 1/3)
+      ];
+    }
+  };
+  
+  const [newR, newG, newB] = hslToRgb(h, s, l);
+  
+  // Convert back to hex
+  const toHex = (c: number) => {
+    const hex = Math.round(c * 255).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+  
+  return `#${toHex(newR)}${toHex(newG)}${toHex(newB)}`;
+};
+
 const getLineColor = (metricName: string, sliceValue: string, filters: string[]): string => {
   const isSuccess = isSuccessLine(metricName, sliceValue, filters);
   const isError = isErrorLine(metricName, sliceValue, filters);
+
+  // Transform metricName before creating the hash key
+  const normalizedMetricName = metricName
+    .replace(/\/(min_value|max_value)$/g, '') // Remove /min_value and /max_value suffixes
+    .replace(/_(avg|min|max)$/gi, '')
+    .replace(/(avg|min|max)_$/gi, '')
+    .replace(/\b(avg|min|max)\b/gi, ''); // Remove occurrences of 'avg', 'min', 'max'
   
   // Create a deterministic key from the inputs
-  const key = `${metricName}|${sliceValue}|${filters.join(',')}`;
+  const key = `${normalizedMetricName}|${sliceValue}|${filters.join(',')}`;
   const hash = hashString(key);
   
+  let baseColor: string;
   if (isSuccess) {
-    return SUCCESS_COLORS[hash % SUCCESS_COLORS.length];
+    baseColor = SUCCESS_COLORS[hash % SUCCESS_COLORS.length];
   } else if (isError) {
-    return ERROR_COLORS[hash % ERROR_COLORS.length];
+    baseColor = ERROR_COLORS[hash % ERROR_COLORS.length];
   } else {
-    return DEFAULT_COLORS[hash % DEFAULT_COLORS.length];
+    baseColor = DEFAULT_COLORS[hash % DEFAULT_COLORS.length];
   }
+
+  // Apply small hue diversion based on hash
+  const hueShift = 2 * (((hash >> 8) % 21) - 10);
+  baseColor = adjustHue(baseColor, hueShift);
+  
+  // Make darker if this is a "Max" metric (for latency graphs)
+  if (metricName.toLowerCase().includes('max') || 
+      (sliceValue && sliceValue.toLowerCase().includes('max'))) {
+    return makeDarkerColor(baseColor);
+  }
+  
+  return baseColor;
 };
 
 // Helper functions for handling color types
@@ -165,6 +267,196 @@ const isErrorLine = (metricName: string, sliceValue: string, filters: string[]):
   }
   
   return false;
+};
+
+// Helper to count slice values for a given metric
+const getSliceValueCount = async (
+  metricName: string, 
+  sliceField: string,
+  config?: DashboardConfig,
+  requestFilters?: string[]
+): Promise<number> => {
+  try {
+    const apiRequest: TimeSeriesApiRequest = {
+      time_granulation: 24 * 60 * 60 * 1000, // 1 day in ms
+      moving_aggregation_field_name: metricName,
+      global_filters: mergeGlobalFilters(config?.globalFilters, requestFilters),
+      slice_field: sliceField
+    };
+
+    const timeSeriesUrl = getApiUrl(config?.metrics_service_url, 'graphs/time-series');
+    const response = await fetch(timeSeriesUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(apiRequest)
+    });
+
+    if (response.ok) {
+      const data: TimeSeriesApiResponse = await response.json();
+      return data.slice_values.length;
+    }
+  } catch (err) {
+    console.error('Failed to get slice value count:', err);
+  }
+  return 0;
+};
+
+// Function to create initial graphs from important metrics
+const createInitialGraphsFromImportantMetrics = async (
+  importantMetrics: ImportantMetricsResponse,
+  config?: DashboardConfig,
+  requestFilters?: string[]
+): Promise<GraphConfiguration[]> => {
+  const graphs: GraphConfiguration[] = [];
+
+  // 1. Agent Invocations - Single line
+  if (importantMetrics['Agent Invocations']) {
+    const [filters, fieldName] = importantMetrics['Agent Invocations'];
+    graphs.push({
+      id: `graph-${Date.now()}-agent-invocations`,
+      name: 'Agent Invocations',
+      lineConfigurations: [{
+        id: `line-${Date.now()}-agent-invocations`,
+        metricName: fieldName,
+        filters: filters,
+        displayName: 'Agent Invocations',
+        color: getLineColor(fieldName, '', filters),
+        userSetColor: true
+      }]
+    });
+  }
+
+  // 2. Successful/Failed Invocations - Two lines
+  if (importantMetrics['Successful Invocations'] && importantMetrics['Failed Invocations']) {
+    const [successFilters, successField] = importantMetrics['Successful Invocations'];
+    const [failFilters, failField] = importantMetrics['Failed Invocations'];
+    
+    graphs.push({
+      id: `graph-${Date.now()}-success-fail-invocations`,
+      name: 'Successful/Failed Invocations',
+      lineConfigurations: [
+        {
+          id: `line-${Date.now()}-successful`,
+          metricName: successField,
+          filters: successFilters,
+          displayName: 'Successful Invocations',
+          color: getLineColor(successField, '', successFilters),
+          userSetColor: true
+        },
+        {
+          id: `line-${Date.now()}-failed`,
+          metricName: failField,
+          filters: failFilters,
+          displayName: 'Failed Invocations',
+          color: getLineColor(failField, '', failFilters),
+          userSetColor: true
+        }
+      ]
+    });
+  }
+
+  // 3. Avg/Max Agent Latency - Two lines, slice by agent_name if < 7 agents
+  if (importantMetrics['Avg Agent Latency'] && importantMetrics['Max Agent Latency']) {
+    const [avgFilters, avgField] = importantMetrics['Avg Agent Latency'];
+    const [maxFilters, maxField] = importantMetrics['Max Agent Latency'];
+    
+    // Check agent count
+    const agentCount = await getSliceValueCount(avgField, 'agent_name', config, requestFilters);
+    const shouldSlice = agentCount > 0 && agentCount < 7;
+    
+    graphs.push({
+      id: `graph-${Date.now()}-agent-latency`,
+      name: 'Avg/Max Agent Latency',
+      lineConfigurations: [
+        {
+          id: `line-${Date.now()}-avg-agent`,
+          metricName: avgField,
+          filters: avgFilters,
+          slice: shouldSlice ? 'agent_name' : undefined,
+          displayName: shouldSlice ? 'avg' : 'Avg Agent Latency',
+          color: shouldSlice ? {} : getLineColor(avgField, '', avgFilters),
+          userSetColor: shouldSlice ? {} : true
+        },
+        {
+          id: `line-${Date.now()}-max-agent`,
+          metricName: maxField,
+          filters: maxFilters,
+          slice: shouldSlice ? 'agent_name' : undefined,
+          displayName: shouldSlice ? 'max' : 'Max Agent Latency',
+          color: shouldSlice ? {} : getLineColor(maxField, '', maxFilters),
+          userSetColor: shouldSlice ? {} : true
+        }
+      ]
+    });
+  }
+
+  // 4. Avg/Max Runner Latency - Sliced by runner
+  if (importantMetrics['Avg Runner Start Latency'] && importantMetrics['Max Runner Start Latency']) {
+    const [avgFilters, avgField] = importantMetrics['Avg Runner Start Latency'];
+    const [maxFilters, maxField] = importantMetrics['Max Runner Start Latency'];
+    
+    graphs.push({
+      id: `graph-${Date.now()}-runner-latency`,
+      name: 'Avg/Max Runner Latency',
+      lineConfigurations: [
+        {
+          id: `line-${Date.now()}-avg-runner`,
+          metricName: avgField,
+          filters: avgFilters,
+          slice: 'runner',
+          displayName: 'avg',
+          color: {},
+          userSetColor: {}
+        },
+        {
+          id: `line-${Date.now()}-max-runner`,
+          metricName: maxField,
+          filters: maxFilters,
+          slice: 'runner',
+          displayName: 'max',
+          color: {},
+          userSetColor: {}
+        }
+      ]
+    });
+  }
+
+  // 5. Avg/Max Completion Latency - Sliced by model if < 7 models
+  if (importantMetrics['Avg Completion Latency'] && importantMetrics['Max Completion Latency']) {
+    const [avgFilters, avgField] = importantMetrics['Avg Completion Latency'];
+    const [maxFilters, maxField] = importantMetrics['Max Completion Latency'];
+    
+    // Check model count
+    const modelCount = await getSliceValueCount(avgField, 'model', config, requestFilters);
+    const shouldSlice = modelCount > 0 && modelCount < 7;
+    
+    graphs.push({
+      id: `graph-${Date.now()}-completion-latency`,
+      name: 'Avg/Max Completion Latency',
+      lineConfigurations: [
+        {
+          id: `line-${Date.now()}-avg-completion`,
+          metricName: avgField,
+          filters: avgFilters,
+          slice: shouldSlice ? 'model' : undefined,
+          displayName: shouldSlice ? 'avg' : 'Avg Completion Latency',
+          color: shouldSlice ? {} : getLineColor(avgField, '', avgFilters),
+          userSetColor: shouldSlice ? {} : true
+        },
+        {
+          id: `line-${Date.now()}-max-completion`,
+          metricName: maxField,
+          filters: maxFilters,
+          slice: shouldSlice ? 'model' : undefined,
+          displayName: shouldSlice ? 'max' : 'Max Completion Latency',
+          color: shouldSlice ? {} : getLineColor(maxField, '', maxFilters),
+          userSetColor: shouldSlice ? {} : true
+        }
+      ]
+    });
+  }
+
+  return graphs;
 };
 
 // Metric Tree Component for selecting metrics
@@ -564,12 +856,45 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   const [columnTree, setColumnTree] = useState<ColumnNode | null>(null);
   const [graphs, setGraphs] = useState<GraphConfiguration[]>(request.graphs || []);
   const [showGraphConfig, setShowGraphConfig] = useState<{ graphId: string; lineId?: string } | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [graphData, setGraphData] = useState<Record<string, { chartData: any[]; lineMetadata: Record<string, { configIndex: number; sliceValue?: string }>; error?: string }>>({});
+  const [initialGraphsLoaded, setInitialGraphsLoaded] = useState(false);
 
   // Store the last refresh trigger value to detect changes
   const lastRefreshTrigger = useRef(refreshTrigger || 0);
+
+  // Load initial graphs from important metrics if no graphs exist
+  const loadInitialGraphs = useCallback(async () => {
+    if (initialGraphsLoaded || graphs.length > 0) return;
+    
+    try {
+      setLoading(true);
+      const importantMetrics = await fetchImportantMetrics(
+        config?.metrics_service_url,
+        viewConfig?.metricSelection || 'CUSTOM',
+        mergeGlobalFilters(config?.globalFilters, request.filters)
+      );
+      
+      const initialGraphs = await createInitialGraphsFromImportantMetrics(
+        importantMetrics,
+        config,
+        request.filters
+      );
+      
+      if (initialGraphs.length > 0) {
+        setGraphs(initialGraphs);
+        setRequest({ ...request, graphs: initialGraphs });
+      }
+      
+      setInitialGraphsLoaded(true);
+    } catch (err) {
+      console.error('Failed to load initial graphs:', err);
+      setInitialGraphsLoaded(true); // Still mark as loaded to prevent retries
+    } finally {
+      setLoading(false);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update saved request when request changes
   useEffect(() => {
@@ -608,6 +933,13 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   useEffect(() => {
     fetchColumnTree();
   }, [fetchColumnTree, refreshTrigger]);
+
+  // Load initial graphs when component mounts
+  useEffect(() => {
+    if (!initialGraphsLoaded && graphs.length === 0) {
+      loadInitialGraphs();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch time series data for a graph
   const fetchTimeSeriesData = useCallback(async (graph: GraphConfiguration) => {
@@ -881,7 +1213,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         className="bg-gray-800 shadow-lg overflow-y-auto p-3 text-white relative dark-scrollbar" 
         style={{ width: `${panelWidth}px` }}
       >
-        <h2 className="text-lg font-bold mb-3">Time Series Controls</h2>
+        <h2 className="text-lg font-bold mb-3">Controls</h2>
         
         {/* Navigation to other views */}
         <ViewNavigation
@@ -892,7 +1224,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         />
 
         {/* Time Granulation */}
-        <CollapsibleSection title="Time Granulation">
+        <CollapsibleSection title="Time Granulation" defaultOpen={true}>
           <div>
             <div className="mb-2">
               <label className="flex items-center text-xs text-white">
@@ -989,9 +1321,11 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
                           </button>
                           <button
                             onClick={() => {
-                              const newGraphs = graphs.filter(g => g.id !== graph.id);
-                              setGraphs(newGraphs);
-                              setRequest({ ...request, graphs: newGraphs });
+                              const updatedGraphs = graphs.map(g => 
+                                g.id === graph.id ? { id: `empty-graph-${Date.now()}`, lineConfigurations: [] } : g
+                              );
+                              setGraphs(updatedGraphs);
+                              setRequest({ ...request, graphs: updatedGraphs });
                             }}
                             className="p-1 text-red-500 hover:text-red-700"
                             title="Remove graph"
