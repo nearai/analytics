@@ -347,7 +347,7 @@ const createInitialGraphsFromImportantMetrics = async (
           filters: failFilters,
           displayName: 'Failed Invocations',
           color: getLineColor(failField, '', failFilters),
-          userSetColor: false
+          userSetColor: true
         }
       ]
     });
