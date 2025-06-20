@@ -9,7 +9,7 @@ interface DashboardProps {
 }
 
 const DEFAULT_CONFIG: DashboardConfig = {
-  views: ['timeseries', 'table', 'logs'],
+  views: ['timeseries', 'table', 'logs', 'error_logs'],
   globalFilters: [],
   metrics_service_url: 'http://localhost:8000/api/v1/',
   viewConfigs: {
@@ -33,6 +33,13 @@ const DEFAULT_CONFIG: DashboardConfig = {
       view_type: 'logs',
       view_name: 'Logs',
       metricSelection: 'CUSTOM',
+      timeFilterRecommendations: [],  // Default: disable
+      refreshRate: undefined
+    },
+    error_logs: {
+      view_type: 'logs',
+      view_name: 'Error Logs',
+      metricSelection: 'ERROR',
       timeFilterRecommendations: [],  // Default: disable
       refreshRate: undefined
     }
