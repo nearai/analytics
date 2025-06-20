@@ -151,9 +151,8 @@ The app is built with:
 
 #### 4. Error Analysis
 
-**Current implementation**: ❌ Not implemented
-- **Planned**: Metrics table with filtering, slicing, error columns, and custom columns.
-- **Planned**: Stream of log files specifically for error runs.
+**Current implementation**: ✅ Error logs available
+- Stream of log files specifically for error runs.
 - **Future**: Error-specific filters and grouping strategies.
 - **Future**: Error pattern detection and analysis.
 
