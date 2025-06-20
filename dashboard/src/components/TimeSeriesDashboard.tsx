@@ -155,6 +155,8 @@ const getLineColor = (metricName: string, sliceValue: string, filters: string[])
   // Transform metricName before creating the hash key
   const normalizedMetricName = metricName
     .replace(/\/(min_value|max_value)$/g, '') // Remove /min_value and /max_value suffixes
+    .replace(/_(avg|min|max)$/gi, '')
+    .replace(/(avg|min|max)_$/gi, '')
     .replace(/\b(avg|min|max)\b/gi, ''); // Remove occurrences of 'avg', 'min', 'max'
   
   // Create a deterministic key from the inputs
