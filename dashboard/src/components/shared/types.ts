@@ -155,7 +155,7 @@ export interface TimeSeriesApiResponse {
 }
 
 // Dashboard Configuration types for web component usage
-export type MetricSelection = 'CUSTOM' | 'PERFORMANCE' | 'CAL' | 'ERROR' | 'FEEDBACK';
+export type MetricSelection = 'CUSTOM' | 'PERFORMANCE' | 'CAL' | 'ERROR' | 'FEEDBACK' | 'COMPARE_MODELS';
 export type ViewType = 'timeseries' | 'table' | 'logs';
 
 export interface ViewConfig {

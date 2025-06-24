@@ -68,6 +68,11 @@ The dashboard provides three main views accessible via navigation tabs:
   - Dynamically filter and slice the data by any column
 - **Time Filters**: Quick filters for last hour/day/week
 - **Details View**: Click cells to view detailed JSON data
+- **Model Comparison Mode**: When using 'COMPARE_MODELS' metricSelection:
+  - Uses `/table/evaluation` endpoint instead of `/table/aggregation`
+  - No parameters, slicing, or time filters available
+  - Default column selections: `['/metrics/']`
+  - Designed for comparing different model performances
 
 ### Chronological Logs View
 

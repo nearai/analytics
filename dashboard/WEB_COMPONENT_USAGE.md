@@ -41,7 +41,7 @@ function App() {
 - **viewConfigs**: Per-view configuration keyed by view ID:
   - **view_type**: Type of view component ('timeseries', 'table', 'logs').
   - **view_name**: Display name for the view (shown in navigation buttons).
-  - **metricSelection**: CUSTOM, PERFORMANCE, CAL (Cost/Accuracy/Latency), ERROR, FEEDBACK.
+  - **metricSelection**: CUSTOM, PERFORMANCE, CAL (Cost/Accuracy/Latency), ERROR, FEEDBACK, COMPARE_MODELS.
   - **showParameters**: Which parameters to show in Parameters panel. If empty, hides the panel.
   - **defaultParameters**: Default values for parameters including time_filter support.
   - **timeFilterRecommendations**: Time filters to include in recommendations.
@@ -75,7 +75,7 @@ interface ViewConfig {
   view_name: string;
   
   // Metric selection for this specific view
-  metricSelection: 'CUSTOM' | 'PERFORMANCE' | 'CAL' | 'ERROR' | 'FEEDBACK';
+  metricSelection: 'CUSTOM' | 'PERFORMANCE' | 'CAL' | 'ERROR' | 'FEEDBACK' | 'COMPARE_MODELS';
   
   // Which parameters to show in Parameters panel (hides panel if empty)
   showParameters?: string[];
@@ -244,6 +244,25 @@ interface ViewConfig {
       view_name: 'Error Logs',
       metricSelection: 'ERROR',
       timeFilterRecommendations: []  // Disable time filter recommendations
+    }
+  }
+}} />
+```
+
+### 6. Model Comparison View
+
+```jsx
+<Dashboard config={{
+  views: ['model_comparison'],
+  defaultView: 'model_comparison',
+  viewConfigs: {
+    model_comparison: {
+      view_type: 'table',
+      view_name: 'Model Comparison',
+      metricSelection: 'COMPARE_MODELS',
+      // No parameters, slicing, or time filters for model comparison
+      // Uses table/evaluation endpoint with default column_selections: ['/metrics/']
+      refreshRate: 60
     }
   }
 }} />

@@ -182,6 +182,17 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   // Apply default parameters from view config including time_filter
   const getInitialRequest = (): TableRequest => {
     const configDefaults = viewConfig?.defaultParameters || {};
+    const isCompareModels = viewConfig?.metricSelection === 'COMPARE_MODELS';
+    
+    if (isCompareModels) {
+      // For COMPARE_MODELS: no parameters, no slicing, no time filters, default column_selections
+      return {
+        filters: [],
+        slices: [],
+        column_selections: ['/metrics/']
+      };
+    }
+    
     const defaultFilters = [];
     
     // Add time filter if specified in config
@@ -214,8 +225,22 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   };
   
   const shouldShowParametersPanel = (): boolean => {
+    // Hide parameters panel for COMPARE_MODELS
+    if (viewConfig?.metricSelection === 'COMPARE_MODELS') {
+      return false;
+    }
     const visibleParameters = getVisibleParameters();
     return visibleParameters.length > 0;
+  };
+
+  const shouldShowFiltersSection = (): boolean => {
+    // Hide filters section for COMPARE_MODELS (no time filters)
+    return viewConfig?.metricSelection !== 'COMPARE_MODELS';
+  };
+
+  const shouldShowSlicesSection = (): boolean => {
+    // Hide slices section for COMPARE_MODELS (no slicing)
+    return viewConfig?.metricSelection !== 'COMPARE_MODELS';
   };
   
   const [response, setResponse] = useState<TableResponse | null>(null);
@@ -264,17 +289,39 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     
     try {
       setRequest(requestData);
-      // Merge global filters with request filters
-      const mergedFilters = mergeGlobalFilters(config?.globalFilters, requestData.filters);
-      const requestWithGlobalFilters = {
-        ...requestData,
-        filters: mergedFilters
-      };
-      const url = getApiUrl(config?.metrics_service_url, 'table/aggregation');
+      
+      // Determine API endpoint and request data based on metricSelection
+      const isCompareModels = viewConfig?.metricSelection === 'COMPARE_MODELS';
+      const apiEndpoint = isCompareModels ? 'table/evaluation' : 'table/aggregation';
+      
+      let finalRequestData = requestData;
+      
+      if (isCompareModels) {
+        // For COMPARE_MODELS: no parameters, no slicing, no time filters
+        finalRequestData = {
+          ...requestData,
+          filters: [], // No time filters
+          slices: [], // No slicing
+          column_selections: ['/metrics/'], // Default column selections
+          // Remove parameters that shouldn't be used for model comparison
+          prune_mode: undefined,
+          absent_metrics_strategy: undefined,
+          slices_recommendation_strategy: undefined
+        };
+      } else {
+        // Merge global filters with request filters for regular aggregation
+        const mergedFilters = mergeGlobalFilters(config?.globalFilters, requestData.filters);
+        finalRequestData = {
+          ...requestData,
+          filters: mergedFilters
+        };
+      }
+      
+      const url = getApiUrl(config?.metrics_service_url, apiEndpoint);
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestWithGlobalFilters)
+        body: JSON.stringify(finalRequestData)
       });
       
       if (!res.ok) {
@@ -306,7 +353,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
-  }, [config?.globalFilters, config?.metrics_service_url]);
+  }, [config?.globalFilters, config?.metrics_service_url, viewConfig?.metricSelection]);
 
   // Initial load. Use saved request if present.
   useEffect(() => {
@@ -607,38 +654,42 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         )}
 
         {/* Filters */}
-        <FiltersSection
-          filters={request.filters || []}
-          filterInput={filterInput}
-          setFilterInput={setFilterInput}
-          onAddFilter={handleAddFilter}
-          onRemoveFilter={handleRemoveFilter}
-          onTimeFilter={handleTimeFilter}
-          timeFilterRecommendations={config?.viewConfigs?.table?.timeFilterRecommendations}
-          showTimeFilters={true}
-        />
+        {shouldShowFiltersSection() && (
+          <FiltersSection
+            filters={request.filters || []}
+            filterInput={filterInput}
+            setFilterInput={setFilterInput}
+            onAddFilter={handleAddFilter}
+            onRemoveFilter={handleRemoveFilter}
+            onTimeFilter={handleTimeFilter}
+            timeFilterRecommendations={config?.viewConfigs?.table?.timeFilterRecommendations}
+            showTimeFilters={true}
+          />
+        )}
 
         {/* Slices */}
-        <CollapsibleSection title="Slices">
-          <ParameterManager
-            title="Slices"
-            items={request.slices || []}
-            input={sliceInput}
-            setInput={setSliceInput}
-            onAdd={handleAddSlice}
-            onRemove={handleRemoveSlice}
-            recommendations={response?.slice_recommendations}
-            onAddRecommendation={handleAddSliceRecommendation}
-            placeholder="e.g., agent_name"
-            itemColor="green"
-            helpContent={
-              <>
-                <p className="mb-1">• Simple: agent_name</p>
-                <p>• Conditional: runner:in:local</p>
-              </>
-            }
-          />
-        </CollapsibleSection>
+        {shouldShowSlicesSection() && (
+          <CollapsibleSection title="Slices">
+            <ParameterManager
+              title="Slices"
+              items={request.slices || []}
+              input={sliceInput}
+              setInput={setSliceInput}
+              onAdd={handleAddSlice}
+              onRemove={handleRemoveSlice}
+              recommendations={response?.slice_recommendations}
+              onAddRecommendation={handleAddSliceRecommendation}
+              placeholder="e.g., agent_name"
+              itemColor="green"
+              helpContent={
+                <>
+                  <p className="mb-1">• Simple: agent_name</p>
+                  <p>• Conditional: runner:in:local</p>
+                </>
+              }
+            />
+          </CollapsibleSection>
+        )}
         
         {/* Resize handle */}
         <div

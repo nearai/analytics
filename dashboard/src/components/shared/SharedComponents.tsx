@@ -703,6 +703,10 @@ export const fetchImportantMetrics = async (
       // No metrics for FEEDBACK yet
       return {};
 
+    case 'COMPARE_MODELS':
+      // Return all metrics for model comparison
+      return allMetrics;
+
     default:
       return allMetrics;
   }
