@@ -125,32 +125,34 @@ Examples:
     parser.add_argument(
         "--metrics-path",
         required=False,
-        help="Path to metrics data directory (optional, if not provided only evaluation endpoint will work)",
+        default=os.getenv("METRICS_BASE_PATH"),
+        help="Path to metrics data directory (optional, if not provided only evaluation endpoint will work, or METRICS_BASE_PATH env var)",
         type=str,
     )
 
-    # Optional arguments with localhost-friendly defaults
+    # Optional arguments with environment variable defaults
     parser.add_argument(
         "--host",
-        default="127.0.0.1",
-        help="Host to bind to (default: 127.0.0.1 for localhost only)",
+        default=os.getenv("HOST", "127.0.0.1"),
+        help="Host to bind to (default: 127.0.0.1 for localhost only, or HOST env var)",
     )
     parser.add_argument(
         "--port",
         type=int,
-        default=8000,
-        help="Port to bind to (default: 8000)",
+        default=int(os.getenv("PORT", "8000")),
+        help="Port to bind to (default: 8000, or PORT env var)",
     )
     parser.add_argument(
         "--reload",
         action="store_true",
-        help="Enable auto-reload for development (watches for code changes)",
+        default=os.getenv("RELOAD", "false").lower() == "true",
+        help="Enable auto-reload for development (watches for code changes, or RELOAD env var)",
     )
     parser.add_argument(
         "--log-level",
         choices=["critical", "error", "warning", "info", "debug"],
-        default="info",
-        help="Logging level (default: info)",
+        default=os.getenv("LOG_LEVEL", "info"),
+        help="Logging level (default: info, or LOG_LEVEL env var)",
     )
 
     return parser
