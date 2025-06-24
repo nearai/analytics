@@ -8,7 +8,7 @@ from metrics_core.local_files import load_logs_list_from_disk
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.moving_aggregation import MovingAggregation
 from metrics_core.transform_utils import MovingAggregationParams, create_moving_aggregation
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from metrics_service.config import settings
 
@@ -25,9 +25,9 @@ class MovingAggregationRequest(BaseModel):
     # A field name (can be subfield) used to calculate moving aggregation values
     moving_aggregation_field_name: str
     # Global filters to apply first
-    global_filters: List[str] = []
+    global_filters: List[str] = Field(default_factory=list)
     # List of filter conditions to calculate moving aggregation values
-    moving_aggregation_filters: List[str] = []
+    moving_aggregation_filters: List[str] = Field(default_factory=list)
     # Optional slice field
     slice_field: str = ""
 
@@ -63,6 +63,12 @@ async def create_time_series_graph(request: MovingAggregationRequest):
     """
     try:
         logger.info(f"Request received: {request}")
+        # Check if metrics path is configured
+        if not settings.has_metrics_path():
+            raise HTTPException(
+                status_code=503,
+                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
+            )
         # Get metrics path from settings
         metrics_path = settings.get_metrics_path()
 
@@ -89,6 +95,15 @@ async def create_time_series_graph(request: MovingAggregationRequest):
 
         return moving_aggregation.to_dict()
 
+    except HTTPException:
+        raise  # Re-raise HTTPException without wrapping
+    except ValueError as e:
+        if "METRICS_BASE_PATH is not set" in str(e):
+            raise HTTPException(
+                status_code=503,
+                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
+            ) from None
+        raise HTTPException(status_code=400, detail=str(e))  # noqa: B904
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=f"Metrics path not found: {str(e)}")  # noqa: B904
     except Exception as e:

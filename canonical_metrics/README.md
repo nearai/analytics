@@ -155,12 +155,17 @@ metrics-service --metrics-path /Users/me/.nearai/tuned_logs
 ## Starting the Service
 
 ```bash
-# Run the service
+# Run the service with metrics data
 poetry run metrics-service --metrics-path /Users/me/.nearai/tuned_logs
+
+# Run without metrics path (only evaluation endpoint will work with external data)
+poetry run metrics-service
 
 # Or with additional options
 poetry run metrics-service --metrics-path /Users/me/.nearai/tuned_logs --port 8080 --reload
 ```
+
+**Note**: The `--metrics-path` argument is optional. When not provided, endpoints that require metrics data will return appropriate error messages.
 
 ### API Documentation
 
@@ -309,7 +314,38 @@ The `column_tree` shows all available columns in a hierarchical structure:
 - `children`: Nested columns
 - Use this to discover available metrics and fields
 
-### 2. List Logs - POST /api/v1/logs/list
+### 2. Create Evaluation Table - POST /api/v1/table/evaluation
+
+This endpoint returns an evaluation table from available evaluation data, showing individual entries rather than aggregated data.
+
+#### Basic Example
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/table/evaluation" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "column_selections": [
+      "/metrics/livebench/"
+    ]
+  }'
+```
+
+#### Example with Filters and Sorting
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/table/evaluation" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": ["organization:not_in:OpenAI"],
+    "column_selections": [
+      "/metrics/livebench/"
+    ],
+    "sort_by_column": "livebench/average",
+    "sort_order": "desc"
+  }'
+```
+
+### 3. List Logs - POST /api/v1/logs/list
 
 The Logs API provides access to individual log entries with grouping and filtering capabilities. Unlike the Table API which focuses on aggregated metrics, the Logs API lets you examine individual runs and their associated log files. This endpoint processes metrics & log entries according to the provided parameters and returns formatted grouped logs in chronological order.
 
@@ -418,7 +454,7 @@ Example response structure:
 ]
 ```
 
-### 3. Get Important Metrics - POST /api/v1/metrics/important
+### 4. Get Important Metrics - POST /api/v1/metrics/important
 
 This endpoint returns important metrics that are available in the dataset after applying filters. It helps identify which key performance metrics have data available for analysis.
 
@@ -478,7 +514,7 @@ The endpoint checks for these predefined important metrics:
 
 Only metrics that have actual data present in the filtered dataset are returned.
 
-### 4. Create Time Series Graph - POST /api/v1/graphs/time-series
+### 5. Create Time Series Graph - POST /api/v1/graphs/time-series
 
 This endpoint creates time series data for graphing from your metrics data based on moving aggregation parameters. It processes metrics entries to generate time-based aggregated values suitable for visualization.
 

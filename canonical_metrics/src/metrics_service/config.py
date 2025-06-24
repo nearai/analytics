@@ -36,5 +36,9 @@ class Settings(BaseSettings):
             raise ValueError("METRICS_BASE_PATH is not set")
         return Path(self.metrics_base_path)
 
+    def has_metrics_path(self) -> bool:
+        """Check if metrics path is configured."""
+        return self.metrics_base_path is not None
+
 
 settings = Settings()

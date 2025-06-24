@@ -5,11 +5,18 @@ from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
 from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy
-from metrics_core.local_files import load_logs_list_from_disk
+from metrics_core.local_files import load_evaluation_entries, load_logs_list_from_disk
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.table import SortOrder, Table
-from metrics_core.transform_utils import GroupsRecommendationStrategy, PruneMode, TableCreationParams, create_table
-from pydantic import BaseModel
+from metrics_core.transform_utils import (
+    EvaluationTableCreationParams,
+    GroupsRecommendationStrategy,
+    PruneMode,
+    TableCreationParams,
+    create_evaluation_table,
+    create_table,
+)
+from pydantic import BaseModel, Field
 
 from metrics_service.config import settings
 
@@ -22,9 +29,9 @@ class TableCreationRequest(BaseModel):
     """Request model for table creation."""
 
     # TableCreationParams fields
-    filters: List[str] = []
-    slices: List[str] = []
-    column_selections: List[str] = []
+    filters: List[str] = Field(default_factory=list)
+    slices: List[str] = Field(default_factory=list)
+    column_selections: List[str] = Field(default_factory=list)
     sort_by_column: Optional[str] = None
     sort_order: Optional[str] = "desc"  # "asc" or "desc"
     prune_mode: str = "column"  # "none" or "column"
@@ -54,6 +61,34 @@ class TableCreationRequest(BaseModel):
         }
 
 
+class EvaluationTableCreationRequest(BaseModel):
+    """Request model for evaluation table creation."""
+
+    # EvaluationTableCreationParams fields
+    filters: List[str] = Field(default_factory=list)
+    column_selections: List[str] = Field(default_factory=list)
+    sort_by_column: Optional[str] = None
+    sort_order: Optional[str] = "desc"  # "asc" or "desc"
+
+    # Additional parameters
+    column_selections_to_add: Optional[List[str]] = None
+    column_selections_to_remove: Optional[List[str]] = None
+
+    class Config:
+        """Pydantic config."""
+
+        json_schema_extra = {
+            "example": {
+                "filters": ["organization:not_in:OpenAI"],
+                "column_selections": ["/metrics/livebench/"],
+                "sort_by_column": "livebench/average",
+                "sort_order": "desc",
+                "column_selections_to_add": ["/metrics/livebench/categories/coding"],
+                "column_selections_to_remove": ["/metadata/organization"],
+            }
+        }
+
+
 @router.post("/aggregation", response_model=dict)
 async def create_metrics_table(request: TableCreationRequest):
     """Create a table from metrics data.
@@ -72,6 +107,13 @@ async def create_metrics_table(request: TableCreationRequest):
     """
     try:
         logger.info(f"Request received: {request}")
+        # Check if metrics path is configured
+        if not settings.has_metrics_path():
+            raise HTTPException(
+                status_code=503,
+                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
+            )
+
         # Get metrics path from settings
         metrics_path = settings.get_metrics_path()
 
@@ -113,10 +155,69 @@ async def create_metrics_table(request: TableCreationRequest):
 
         return table.to_dict()
 
+    except HTTPException:
+        raise  # Re-raise HTTPException without wrapping
+    except ValueError as e:
+        if "METRICS_BASE_PATH is not set" in str(e):
+            raise HTTPException(
+                status_code=503,
+                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
+            ) from None
+        raise HTTPException(status_code=400, detail=str(e))  # noqa: B904
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=f"Metrics path not found: {str(e)}")  # noqa: B904
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating table: {str(e)}")  # noqa: B904
+
+
+@router.post("/evaluation", response_model=dict)
+async def create_evaluation_table_endpoint(request: EvaluationTableCreationRequest):
+    """Create an evaluation table from metrics data.
+
+    This endpoint processes evaluation entries according to the provided parameters
+    and returns a formatted table with evaluation data. Unlike the aggregation
+    endpoint, this creates a table where each row represents an individual entry
+    rather than aggregated data.
+
+    Args:
+    ----
+        request: Evaluation table creation parameters including filters and column selections
+
+    Returns:
+    -------
+        A dictionary representation of the created Table
+
+    """
+    try:
+        logger.info(f"Evaluation table request received: {request}")
+
+        # Handle sort_by parameter
+        sort_by = None
+        if request.sort_by_column:
+            sort_order = SortOrder(request.sort_order)
+            sort_by = (request.sort_by_column, sort_order)
+
+        # Create EvaluationTableCreationParams
+        params = EvaluationTableCreationParams(
+            filters=request.filters,
+            column_selections=request.column_selections,
+            sort_by=sort_by,
+        )
+
+        # Create evaluation table
+        table: Table = create_evaluation_table(
+            entries=load_evaluation_entries(),
+            params=params,
+            column_selections_to_add=request.column_selections_to_add,
+            column_selections_to_remove=request.column_selections_to_remove,
+        )
+
+        return table.to_dict()
+
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=f"Metrics path not found: {str(e)}")  # noqa: B904
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating evaluation table: {str(e)}")  # noqa: B904
 
 
 @router.get("/schema")

@@ -10,7 +10,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.12"
+python = ">=3.10,<3.13"
 # CLI dependencies
 click = "^8.1.7"
 rich = "^13.7.0"
