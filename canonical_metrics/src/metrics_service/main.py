@@ -43,14 +43,15 @@ def create_app() -> FastAPI:
         logger.info(f"Starting {settings.service_name} v{settings.service_version}")
 
         if settings.has_metrics_path():
-            logger.info(f"Metrics path: {settings.metrics_base_path}")
-            # Verify metrics path exists
+            logger.info(f"Performance metrics path: {settings.metrics_base_path}")
+            # Verify metrics path exists but don't fail if it doesn't
             if not settings.metrics_base_path.exists():
-                logger.error(f"Metrics path does not exist: {settings.metrics_base_path}")
-                raise RuntimeError("Metrics path not found")
+                logger.warning(f"Performance metrics path does not exist: {settings.metrics_base_path}")
+                logger.warning("Performance metrics endpoints will return errors until path is available.")
         else:
-            logger.warning("No metrics path configured. Only evaluation endpoint will be functional.")
-            logger.info("To enable full functionality, set METRICS_BASE_PATH environment variable.")
+            logger.info("No performance metrics path configured.")
+            logger.info("Performance metrics will be fetched from service URL when configured.")
+            logger.info("Evaluation metrics (LiveBench) will still work from local storage.")
 
     @app.get("/")
     async def root():

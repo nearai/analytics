@@ -32,25 +32,28 @@ def start_service():
     print("Starting Metrics Service...")
     print(f"Host: {host}:{port}")
     if metrics_path:
-        print(f"Metrics path: {metrics_path}")
+        print(f"Performance metrics path: {metrics_path}")
     else:
-        print("Metrics path: Not configured (only evaluation endpoint will work)")
+        print("Performance metrics path: Not configured (will be fetched from service URL when available)")
+    print("Evaluation metrics: Stored locally in ~/.analytics/")
     print(f"Reload: {reload}")
     print(f"Log level: {log_level}")
     print(f"\nAPI documentation available at: http://{host}:{port}/api/v1/docs")
 
-    # Check if metrics path exists
+    # Check if metrics path exists but don't fail
     if metrics_path:
         if not Path(metrics_path).exists():
-            print(f"\nERROR: Metrics path does not exist: {metrics_path}")
-            print("Please provide a valid path to your metrics data.")
-            sys.exit(1)
+            print(f"\nWARNING: Performance metrics path does not exist: {metrics_path}")
+            print("Performance metrics endpoints will return errors until path is available.")
+            print("Service will continue to run with evaluation metrics only.")
         else:
             # List some stats about the metrics directory
             metrics_files = list(Path(metrics_path).rglob("*.json"))
-            print(f"\nFound {len(metrics_files)} JSON files in metrics directory")
+            print(f"\nFound {len(metrics_files)} JSON files in performance metrics directory")
     else:
-        print("\nNote: No metrics path configured. Data-dependent endpoints will return errors.")
+        print("\nNote: Performance metrics path not configured.")
+        print("Performance metrics will be fetched from service URL when configured.")
+        print("Evaluation metrics endpoints will still work normally.")
 
     # Run the service
     uvicorn.run(
@@ -74,17 +77,16 @@ def main():
     # Parse arguments and start service
     args = parse_arguments()
 
-    # Validate metrics path exists if provided
+    # Validate metrics path exists if provided (but don't fail)
     metrics_path = None
     if args.metrics_path:
         metrics_path = Path(args.metrics_path).resolve()
         if not metrics_path.exists():
-            print(f"ERROR: Metrics path does not exist: {metrics_path}")
-            sys.exit(1)
-
-        if not metrics_path.is_dir():
-            print(f"ERROR: Metrics path is not a directory: {metrics_path}")
-            sys.exit(1)
+            print(f"WARNING: Performance metrics path does not exist: {metrics_path}")
+            print("Service will start but performance metrics endpoints will return errors.")
+        elif not metrics_path.is_dir():
+            print(f"WARNING: Performance metrics path is not a directory: {metrics_path}")
+            print("Service will start but performance metrics endpoints will return errors.")
 
     # Set environment variables from arguments
     os.environ["HOST"] = args.host
@@ -107,17 +109,20 @@ def create_parser():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Run service with metrics from a specific directory
+  # Run service for development with local performance metrics
   poetry run metrics-service --metrics-path /Users/me/.nearai/logs
+
+  # Run for production (performance metrics from service URL, evaluation metrics from local storage)
+  poetry run metrics-service
 
   # Run with auto-reload for development
   poetry run metrics-service --metrics-path ./data --reload
 
   # Run on a different port
-  poetry run metrics-service --metrics-path ./data --port 8080
+  poetry run metrics-service --port 8080
 
   # Run with debug logging
-  poetry run metrics-service --metrics-path ./data --log-level debug
+  poetry run metrics-service --log-level debug
         """,
     )
 
@@ -125,32 +130,34 @@ Examples:
     parser.add_argument(
         "--metrics-path",
         required=False,
-        help="Path to metrics data directory (optional, if not provided only evaluation endpoint will work)",
+        default=os.getenv("METRICS_BASE_PATH"),
+        help="Path to performance metrics data directory (optional, used for development only, or METRICS_BASE_PATH env var)",  # noqa: E501
         type=str,
     )
 
-    # Optional arguments with localhost-friendly defaults
+    # Optional arguments with environment variable defaults
     parser.add_argument(
         "--host",
-        default="127.0.0.1",
-        help="Host to bind to (default: 127.0.0.1 for localhost only)",
+        default=os.getenv("HOST", "127.0.0.1"),
+        help="Host to bind to (default: 127.0.0.1 for localhost only, or HOST env var)",
     )
     parser.add_argument(
         "--port",
         type=int,
-        default=8000,
-        help="Port to bind to (default: 8000)",
+        default=int(os.getenv("PORT", "8000")),
+        help="Port to bind to (default: 8000, or PORT env var)",
     )
     parser.add_argument(
         "--reload",
         action="store_true",
-        help="Enable auto-reload for development (watches for code changes)",
+        default=os.getenv("RELOAD", "false").lower() == "true",
+        help="Enable auto-reload for development (watches for code changes, or RELOAD env var)",
     )
     parser.add_argument(
         "--log-level",
         choices=["critical", "error", "warning", "info", "debug"],
-        default="info",
-        help="Logging level (default: info)",
+        default=os.getenv("LOG_LEVEL", "info"),
+        help="Logging level (default: info, or LOG_LEVEL env var)",
     )
 
     return parser
