@@ -1,6 +1,6 @@
 # Web Component Usage Guide
 
-The Historic Performance Dashboard can be used as a configurable web component in other React applications, providing flexible integration options while maintaining full functionality.
+The Dashboard can be used as a configurable web component in other React applications, providing flexible integration options while maintaining full functionality.
 
 ## Installation
 
