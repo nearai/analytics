@@ -68,6 +68,11 @@ The dashboard provides three main views accessible via navigation tabs:
   - Dynamically filter and slice the data by any column
 - **Time Filters**: Quick filters for last hour/day/week
 - **Details View**: Click cells to view detailed JSON data
+- **Model Comparison Mode**: When using 'COMPARE_MODELS' metricSelection:
+  - Uses `/table/evaluation` endpoint instead of `/table/aggregation`
+  - No parameters, slicing, or time filters available
+  - Default column selections: `['/metrics/']`
+  - Designed for comparing different model performances
 
 ### Chronological Logs View
 
@@ -141,3 +146,9 @@ The app is built with:
 - **Planned**: Stream of log files with user feedback data.
 - **Future**: Feedback sentiment analysis and categorization.
 - **Future**: User feedback correlation with performance metrics.
+
+#### 6. Compare Models
+
+**Current implementation**: ✅ Table available
+- Models evaluation table.
+- **Future**: Model recommendations based on agent's information and developer's preferences (e.g., budget).

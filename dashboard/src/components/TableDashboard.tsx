@@ -182,6 +182,17 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   // Apply default parameters from view config including time_filter
   const getInitialRequest = (): TableRequest => {
     const configDefaults = viewConfig?.defaultParameters || {};
+    const isCompareModels = viewConfig?.metricSelection === 'COMPARE_MODELS';
+    
+    if (isCompareModels) {
+      // For COMPARE_MODELS: no parameters, no slicing, no time filters, default column_selections
+      return {
+        filters: [],
+        slices: [],
+        column_selections: ['/metrics/']
+      };
+    }
+    
     const defaultFilters = [];
     
     // Add time filter if specified in config
@@ -214,8 +225,22 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   };
   
   const shouldShowParametersPanel = (): boolean => {
+    // Hide parameters panel for COMPARE_MODELS
+    if (viewConfig?.metricSelection === 'COMPARE_MODELS') {
+      return false;
+    }
     const visibleParameters = getVisibleParameters();
     return visibleParameters.length > 0;
+  };
+
+  const shouldShowTimeFiltersSection = (): boolean => {
+    // Hide time filters for COMPARE_MODELS
+    return viewConfig?.metricSelection !== 'COMPARE_MODELS';
+  };
+
+  const shouldShowSlicesSection = (): boolean => {
+    // Hide slices section for COMPARE_MODELS (no slicing)
+    return viewConfig?.metricSelection !== 'COMPARE_MODELS';
   };
   
   const [response, setResponse] = useState<TableResponse | null>(null);
@@ -270,7 +295,12 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         ...requestData,
         filters: mergedFilters
       };
-      const url = getApiUrl(config?.metrics_service_url, 'table/aggregation');
+      
+      // Determine API endpoint and request data based on metricSelection
+      const isCompareModels = viewConfig?.metricSelection === 'COMPARE_MODELS';
+      const apiEndpoint = isCompareModels ? 'table/evaluation' : 'table/aggregation';
+      
+      const url = getApiUrl(config?.metrics_service_url, apiEndpoint);
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -306,7 +336,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
-  }, [config?.globalFilters, config?.metrics_service_url]);
+  }, [config?.globalFilters, config?.metrics_service_url, viewConfig?.metricSelection]);
 
   // Initial load. Use saved request if present.
   useEffect(() => {
@@ -615,30 +645,32 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
           onRemoveFilter={handleRemoveFilter}
           onTimeFilter={handleTimeFilter}
           timeFilterRecommendations={config?.viewConfigs?.table?.timeFilterRecommendations}
-          showTimeFilters={true}
+          showTimeFilters={shouldShowTimeFiltersSection()}
         />
 
         {/* Slices */}
-        <CollapsibleSection title="Slices">
-          <ParameterManager
-            title="Slices"
-            items={request.slices || []}
-            input={sliceInput}
-            setInput={setSliceInput}
-            onAdd={handleAddSlice}
-            onRemove={handleRemoveSlice}
-            recommendations={response?.slice_recommendations}
-            onAddRecommendation={handleAddSliceRecommendation}
-            placeholder="e.g., agent_name"
-            itemColor="green"
-            helpContent={
-              <>
-                <p className="mb-1">• Simple: agent_name</p>
-                <p>• Conditional: runner:in:local</p>
-              </>
-            }
-          />
-        </CollapsibleSection>
+        {shouldShowSlicesSection() && (
+          <CollapsibleSection title="Slices">
+            <ParameterManager
+              title="Slices"
+              items={request.slices || []}
+              input={sliceInput}
+              setInput={setSliceInput}
+              onAdd={handleAddSlice}
+              onRemove={handleRemoveSlice}
+              recommendations={response?.slice_recommendations}
+              onAddRecommendation={handleAddSliceRecommendation}
+              placeholder="e.g., agent_name"
+              itemColor="green"
+              helpContent={
+                <>
+                  <p className="mb-1">• Simple: agent_name</p>
+                  <p>• Conditional: runner:in:local</p>
+                </>
+              }
+            />
+          </CollapsibleSection>
+        )}
         
         {/* Resize handle */}
         <div
