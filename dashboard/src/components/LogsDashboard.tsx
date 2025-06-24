@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronDown, ChevronUp, GripVertical, Eye, FileText } from 'lucide-react';
+import { ChevronDown, ChevronUp, GripVertical, Eye, FileText, Info } from 'lucide-react';
 import { LogsRequest, LogsResponse, LogGroup, LogEntry, LogFile, DashboardConfig } from './shared/types';
 import {
   CollapsibleSection,
   DetailsPopup,
   FileContentPopup,
+  PrivacyDisclaimerPopup,
   ParameterManager,
   FiltersSection,
   ViewNavigation,
@@ -365,6 +366,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
   const [filterInput, setFilterInput] = useState('');
   const [groupInput, setGroupInput] = useState('');
   const [panelWidth, setPanelWidth] = useState(256);
+  const [showPrivacyDisclaimer, setShowPrivacyDisclaimer] = useState(false);
 
   // Store the last refresh trigger value to detect changes
   const lastRefreshTrigger = useRef(refreshTrigger || 0);
@@ -669,6 +671,19 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
         {loading && !response && <div className="text-center py-4 text-gray-600">Loading...</div>}
         {error && <div className="text-red-600 text-center py-2 text-xs">Error: {error}</div>}
         
+        {/* Data Privacy Disclaimer */}
+        {response && response.groups.length > 0 && (
+          <div className="mb-4 pb-3 border-b border-gray-200">
+            <button
+              onClick={() => setShowPrivacyDisclaimer(true)}
+              className="text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
+            >
+              <Info size={12} />
+              Data Privacy Notice - Log File Access Information
+            </button>
+          </div>
+        )}
+        
         {response && response.groups.length === 0 && (
           <div className="text-center py-4 text-gray-600">No log entries found matching the criteria.</div>
         )}
@@ -685,6 +700,13 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
           </div>
         ))}
       </div>
+
+      {/* Privacy Disclaimer Popup */}
+      {showPrivacyDisclaimer && (
+        <PrivacyDisclaimerPopup
+          onClose={() => setShowPrivacyDisclaimer(false)}
+        />
+      )}
     </div>
   );
 };
