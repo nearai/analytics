@@ -1,6 +1,6 @@
 {
   "name": "@nearai/analytics-dashboard",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A configurable React dashboard component for analytics with table and logs views",
   "main": "src/components/index.ts",
   "types": "src/components/index.ts",
