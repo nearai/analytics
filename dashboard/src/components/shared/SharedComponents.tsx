@@ -91,14 +91,14 @@ export const PrivacyDisclaimerPopup: React.FC<{
             <div>
               <h4 className="font-medium text-gray-900 mb-1">Agent Developer Access</h4>
               <p>
-                When you are the developer of the agent being monitored, you maintain full access to all log files and data without any modifications or restrictions.
+                When traffic originates from the agent developer themselves (i.e., you are both the developer of the agent and the user generating the traffic), you maintain full access to all log files and data without any modifications or restrictions.
               </p>
             </div>
             
             <div>
               <h4 className="font-medium text-gray-900 mb-1">Benchmark and Evaluation Traffic</h4>
               <p>
-                Log entries from benchmark runs and agent evaluations are not displayed in this interface. No log data from these automated processes is made available through this dashboard.
+                Log entries from benchmark runs and agent evaluations are completely excluded from logs views. Note that this traffic may be displayed in other dashboard views (time series, tables) with appropriate filtering options.
               </p>
             </div>
             
