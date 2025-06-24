@@ -41,12 +41,16 @@ def create_app() -> FastAPI:
     async def startup_event():
         """Initialize the service on startup."""
         logger.info(f"Starting {settings.service_name} v{settings.service_version}")
-        logger.info(f"Metrics path: {settings.metrics_base_path}")
 
-        # Verify metrics path exists
-        if not settings.metrics_base_path or not settings.metrics_base_path.exists():
-            logger.error(f"Metrics path does not exist: {settings.metrics_base_path}")
-            raise RuntimeError("Metrics path not found")
+        if settings.has_metrics_path():
+            logger.info(f"Metrics path: {settings.metrics_base_path}")
+            # Verify metrics path exists
+            if not settings.metrics_base_path.exists():
+                logger.error(f"Metrics path does not exist: {settings.metrics_base_path}")
+                raise RuntimeError("Metrics path not found")
+        else:
+            logger.warning("No metrics path configured. Only evaluation endpoint will be functional.")
+            logger.info("To enable full functionality, set METRICS_BASE_PATH environment variable.")
 
     @app.get("/")
     async def root():

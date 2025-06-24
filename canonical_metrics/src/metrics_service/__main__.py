@@ -28,24 +28,29 @@ def start_service():
 
     # Get metrics path and validate
     metrics_path = os.getenv("METRICS_BASE_PATH")
-    assert metrics_path
 
     print("Starting Metrics Service...")
     print(f"Host: {host}:{port}")
-    print(f"Metrics path: {metrics_path}")
+    if metrics_path:
+        print(f"Metrics path: {metrics_path}")
+    else:
+        print("Metrics path: Not configured (only evaluation endpoint will work)")
     print(f"Reload: {reload}")
     print(f"Log level: {log_level}")
     print(f"\nAPI documentation available at: http://{host}:{port}/api/v1/docs")
 
     # Check if metrics path exists
-    if not Path(metrics_path).exists():
-        print(f"\nERROR: Metrics path does not exist: {metrics_path}")
-        print("Please provide a valid path to your metrics data.")
-        sys.exit(1)
+    if metrics_path:
+        if not Path(metrics_path).exists():
+            print(f"\nERROR: Metrics path does not exist: {metrics_path}")
+            print("Please provide a valid path to your metrics data.")
+            sys.exit(1)
+        else:
+            # List some stats about the metrics directory
+            metrics_files = list(Path(metrics_path).rglob("*.json"))
+            print(f"\nFound {len(metrics_files)} JSON files in metrics directory")
     else:
-        # List some stats about the metrics directory
-        metrics_files = list(Path(metrics_path).rglob("*.json"))
-        print(f"\nFound {len(metrics_files)} JSON files in metrics directory")
+        print("\nNote: No metrics path configured. Data-dependent endpoints will return errors.")
 
     # Run the service
     uvicorn.run(
@@ -73,20 +78,23 @@ def main():
     # Parse arguments and start service
     args = parse_arguments()
 
-    # Validate metrics path exists
-    metrics_path = Path(args.metrics_path).resolve()
-    if not metrics_path.exists():
-        print(f"ERROR: Metrics path does not exist: {metrics_path}")
-        sys.exit(1)
+    # Validate metrics path exists if provided
+    metrics_path = None
+    if args.metrics_path:
+        metrics_path = Path(args.metrics_path).resolve()
+        if not metrics_path.exists():
+            print(f"ERROR: Metrics path does not exist: {metrics_path}")
+            sys.exit(1)
 
-    if not metrics_path.is_dir():
-        print(f"ERROR: Metrics path is not a directory: {metrics_path}")
-        sys.exit(1)
+        if not metrics_path.is_dir():
+            print(f"ERROR: Metrics path is not a directory: {metrics_path}")
+            sys.exit(1)
 
     # Set environment variables from arguments
     os.environ["HOST"] = args.host
     os.environ["PORT"] = str(args.port)
-    os.environ["METRICS_BASE_PATH"] = str(metrics_path)
+    if metrics_path:
+        os.environ["METRICS_BASE_PATH"] = str(metrics_path)
     os.environ["RELOAD"] = "true" if args.reload else "false"
     os.environ["LOG_LEVEL"] = args.log_level
 
@@ -117,11 +125,11 @@ Examples:
         """,
     )
 
-    # Required argument
+    # Optional argument
     parser.add_argument(
         "--metrics-path",
-        required=True,
-        help="Path to metrics data directory (required)",
+        required=False,
+        help="Path to metrics data directory (optional, if not provided only evaluation endpoint will work)",
         type=str,
     )
 
