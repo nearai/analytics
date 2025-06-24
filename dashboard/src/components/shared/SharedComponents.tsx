@@ -98,7 +98,7 @@ export const PrivacyDisclaimerPopup: React.FC<{
             <div>
               <h4 className="font-medium text-gray-900 mb-1">Benchmark and Evaluation Traffic</h4>
               <p>
-                Log entries from benchmark runs and agent evaluations are completely excluded from logs views. Note that this traffic may be displayed in other dashboard views (time series, tables) with appropriate filtering options.
+                Log entries from benchmark runs and agent evaluations are completely excluded from logs views. Note that this traffic may be displayed in other dashboard views (graphs, tables) with appropriate filtering options.
               </p>
             </div>
             
@@ -108,7 +108,7 @@ export const PrivacyDisclaimerPopup: React.FC<{
                 For actual user interactions, log files are displayed only when both of the following conditions are satisfied:
               </p>
               <ul className="list-disc ml-6 mt-2 space-y-1">
-                <li>The user has explicitly enabled log file collection for the purpose of agent improvement</li>
+                <li>The user has enabled log file collection for the purpose of agents improvement</li>
                 <li>Our automated systems have either successfully obfuscated all personally identifiable information (PII) and sensitive data, or have determined that no such sensitive information is present in the logs</li>
               </ul>
             </div>
