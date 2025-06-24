@@ -1,6 +1,6 @@
-# NEAR AI Analytics Metrics Service - Docker
+# AI Agent Analytics Metrics Service - Docker
 
-This directory contains Docker configuration for running the NEAR AI Analytics Metrics Service with automated LiveBench data scraping.
+This directory contains Docker configuration for running the AI Agent Analytics Metrics Service with automated LiveBench data scraping.
 
 ## Features
 
@@ -52,10 +52,6 @@ docker logs -f metrics-service
 Once running, visit:
 - **Interactive API Documentation**: http://localhost:8000/api/v1/docs
 - **Alternative Documentation**: http://localhost:8000/api/v1/redoc
-
-Key endpoints:
-- `GET /api/v1/table/schema` - Get schema information
-- `POST /api/v1/metrics/important` - Get important metrics
 
 ## Configuration
 
