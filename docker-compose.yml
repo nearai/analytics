@@ -11,7 +11,8 @@ services:
       # Mount log files for debugging
       - ./logs:/var/log
     environment:
-      - METRICS_BASE_PATH=/data/livebench/leaderboard
+      # Note: METRICS_BASE_PATH is not set - performance metrics will be fetched from service URL
+      # LiveBench evaluation data is stored in ~/.analytics/livebench/leaderboard (hardcoded path)
       - HOST=0.0.0.0
       - PORT=8000
       - LOG_LEVEL=info

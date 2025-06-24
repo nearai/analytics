@@ -59,10 +59,11 @@ Once running, visit:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `METRICS_BASE_PATH` | `/data/livebench/leaderboard` | Path to metrics data |
 | `HOST` | `0.0.0.0` | Service host |
 | `PORT` | `8000` | Service port |
 | `LOG_LEVEL` | `info` | Logging level |
+
+**Note**: `METRICS_BASE_PATH` is not set by default. Performance metrics will be fetched from a service URL when configured. Evaluation metrics (LiveBench) are stored locally in `~/.analytics/livebench/leaderboard`.
 
 ### Custom Configuration
 
@@ -70,7 +71,8 @@ Create a `.env` file or override in docker-compose.yml:
 
 ```yaml
 environment:
-  - METRICS_BASE_PATH=/data/livebench/leaderboard
+  # Performance metrics source (to be configured)
+  # - PERFORMANCE_METRICS_URL=https://your-metrics-service.com/api
   - HOST=0.0.0.0
   - PORT=8000
   - LOG_LEVEL=debug
@@ -78,22 +80,28 @@ environment:
 
 ## Data Management
 
-### LiveBench Data
+The service handles two types of metrics data:
 
+### Performance Metrics
+- Fetched from a service URL (to be configured)
+- Not stored locally in Docker containers
+- Endpoints will return errors until service URL is configured
+
+### Evaluation Metrics (LiveBench)
 - Initial scraping happens on container startup
 - Daily scraping runs at 2 AM UTC via cron
-- Data is stored in `/data/.analytics/livebench/leaderboard`
-- Symlinked to `/data/livebench/leaderboard` for the metrics service
+- Data is stored in `~/.analytics/livebench/leaderboard` inside the container
+- Symlinked to `/data/livebench/leaderboard` for access
 
 ### Persistent Storage
 
-Data persists between container restarts using Docker volumes:
+Evaluation data persists between container restarts using Docker volumes:
 
 ```bash
-# Backup data
+# Backup evaluation data
 docker run --rm -v livebench_data:/data -v $(pwd):/backup alpine tar czf /backup/livebench-backup.tar.gz -C /data .
 
-# Restore data
+# Restore evaluation data
 docker run --rm -v livebench_data:/data -v $(pwd):/backup alpine tar xzf /backup/livebench-backup.tar.gz -C /data
 ```
 
