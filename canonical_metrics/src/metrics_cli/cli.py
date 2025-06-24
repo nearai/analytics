@@ -9,14 +9,21 @@ from metrics_core.conversions.determine_pruning import DeterminePruningConversio
 from metrics_core.conversions.ms_to_s import MsToSConversion
 from metrics_core.conversions.rename import RenameConversion
 from metrics_core.conversions.round import RoundConversion
-from metrics_core.local_files import load_logs_list_from_disk, save_logs_list_to_disk, write_table_to_csv
+from metrics_core.local_files import (
+    load_evaluation_entries,
+    load_logs_list_from_disk,
+    save_logs_list_to_disk,
+    write_table_to_csv,
+)
 from metrics_core.models.condition import parse_conditions
 from metrics_core.transform_utils import (
     AggregationParams,
+    EvaluationTableCreationParams,
     MetricsTuneParams,
     PruneMode,
     TableCreationParams,
     create_aggregation,
+    create_evaluation_table,
     create_metrics_tuning,
     create_table,
 )
@@ -218,6 +225,36 @@ def aggregation_table(
     print("Slice recommendations:")
     for slice in slice_recommendations:
         print(f" - {slice}")
+
+
+@cli.command(name="evaluation-table")
+@click.argument("to_path", type=click.Path(path_type=Path))
+@click.option("--filters", "-f", type=str, default="", help="Filter conditions (field:operator:values)")
+@click.pass_context
+def evaluation_table(ctx, to_path: Path, filters: str):
+    """Create evaluation table (CSV)."""
+    verbose = ctx.obj.get("verbose", False)
+
+    # Ensure output path has .csv extension
+    if not to_path.suffix:
+        to_path = to_path.with_suffix(".csv")
+    elif to_path.suffix.lower() != ".csv":
+        print(f"Warning: Output file has '{to_path.suffix}' extension, expected '.csv'")
+
+    params = EvaluationTableCreationParams(
+        filters=[filters] if filters else [],
+        column_selections=["/metrics/"],
+    )
+    entries = load_evaluation_entries()
+    table = create_evaluation_table(entries, params, verbose=verbose)
+
+    # Write table to CSV file
+    try:
+        write_table_to_csv(table, to_path)
+        print(f"Table written to: {to_path}")
+    except Exception as e:
+        print(f"Failed to write CSV: {e}")
+        return
 
 
 def main():
