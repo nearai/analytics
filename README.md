@@ -52,6 +52,24 @@ curl -X POST "http://localhost:8000/api/v1/table/aggregation" \
   }'
 ```
 
+### 3a. 🐳 [Run with Docker](./DOCKER.md)
+
+The easiest way to run the metrics service with automated LiveBench data:
+
+```bash
+# Quick start with Docker Compose
+docker compose up -d
+
+# Access the service
+open http://localhost:8000/api/v1/docs
+```
+
+This provides:
+- ✅ Metrics service running without requiring local data
+- ✅ Automated LiveBench leaderboard scraping on startup and daily
+- ✅ Persistent data storage
+- ✅ Health monitoring and auto-restart
+
 ### 4. [Run Dashboard](./dashboard/)
 
 Run a web application for querying and visualizing analytics metrics data. Features comprehensive views for time series analysis, data tables, and chronological logs.
@@ -121,6 +139,7 @@ Visualize, analyze, and compare agent & model performances using the collected m
 
 ## Key Features
 
+- **🐳 Docker Support**: One-command deployment with automated LiveBench data scraping
 - **Canonical Metrics Format**: Standardized format for consistent metrics across all agents
 - **Flexible Aggregation**: Group and aggregate metrics by various dimensions
 - **Powerful Filtering**: Filter metrics by runner, model, time ranges, and custom criteria
