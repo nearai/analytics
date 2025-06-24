@@ -9,7 +9,7 @@ interface DashboardProps {
 }
 
 const DEFAULT_CONFIG: DashboardConfig = {
-  views: ['timeseries_performance', 'timeseries_latency', 'table', 'logs', 'error_logs'],
+  views: ['timeseries_performance', 'timeseries_latency', 'table', 'model_comparison', 'logs', 'error_logs'],
   globalFilters: [],
   metrics_service_url: 'http://localhost:8000/api/v1/',
   viewConfigs: {
@@ -37,6 +37,12 @@ const DEFAULT_CONFIG: DashboardConfig = {
       view_type: 'table',
       view_name: 'Table',
       metricSelection: 'CUSTOM',
+      refreshRate: undefined
+    },
+    model_comparison: {
+      view_type: 'table',
+      view_name: 'Compare Models',
+      metricSelection: 'COMPARE_MODELS',
       refreshRate: undefined
     },
     logs: {
