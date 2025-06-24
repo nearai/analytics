@@ -1,4 +1,4 @@
-# Dockerfile for NEAR AI Analytics Metrics Service
+# Dockerfile for AI Agent Analytics Metrics Service
 FROM python:3.12-slim
 
 # Install system dependencies
@@ -38,8 +38,7 @@ RUN chmod +x /app/scripts/init.sh
 EXPOSE 8000
 
 # Set environment variables
-ENV METRICS_BASE_PATH=/data/livebench/leaderboard \
-    HOST=0.0.0.0 \
+ENV HOST=0.0.0.0 \
     PORT=8000 \
     PYTHONPATH=/app
 

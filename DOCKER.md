@@ -63,16 +63,12 @@ Once running, visit:
 | `PORT` | `8000` | Service port |
 | `LOG_LEVEL` | `info` | Logging level |
 
-**Note**: `METRICS_BASE_PATH` is not set by default. Performance metrics will be fetched from a service URL when configured. Evaluation metrics (LiveBench) are stored locally in `~/.analytics/livebench/leaderboard`.
-
 ### Custom Configuration
 
 Create a `.env` file or override in docker-compose.yml:
 
 ```yaml
 environment:
-  # Performance metrics source (to be configured)
-  # - PERFORMANCE_METRICS_URL=https://your-metrics-service.com/api
   - HOST=0.0.0.0
   - PORT=8000
   - LOG_LEVEL=debug
@@ -87,10 +83,10 @@ The service handles two types of metrics data:
 - Not stored locally in Docker containers
 - Endpoints will return errors until service URL is configured
 
-### Evaluation Metrics (LiveBench)
-- Initial scraping happens on container startup
+### Evaluation Metric
+- Initial scraping of LiveBench happens on container startup
 - Daily scraping runs at 2 AM UTC via cron
-- Data is stored in `~/.analytics/livebench/leaderboard` inside the container
+- LiveBench Data is stored in `~/.analytics/livebench/leaderboard` inside the container
 - Symlinked to `/data/livebench/leaderboard` for access
 
 ### Persistent Storage

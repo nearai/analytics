@@ -65,7 +65,6 @@ open http://localhost:8000/api/v1/docs
 ```
 
 This provides:
-- ✅ Metrics service running without requiring local data
 - ✅ Automated LiveBench leaderboard scraping on startup and daily
 - ✅ Persistent data storage
 - ✅ Health monitoring and auto-restart

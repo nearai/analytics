@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Starting NEAR AI Analytics Metrics Service..."
+echo "Starting AI Agent Analytics Metrics Service..."
 
 # Start cron daemon for daily scraping
 echo "Starting cron daemon..."

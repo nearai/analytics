@@ -35,7 +35,7 @@ def start_service():
         print(f"Performance metrics path: {metrics_path}")
     else:
         print("Performance metrics path: Not configured (will be fetched from service URL when available)")
-    print(f"Evaluation metrics: Stored locally in ~/.analytics/livebench/leaderboard")
+    print("Evaluation metrics: Stored locally in ~/.analytics/")
     print(f"Reload: {reload}")
     print(f"Log level: {log_level}")
     print(f"\nAPI documentation available at: http://{host}:{port}/api/v1/docs")
