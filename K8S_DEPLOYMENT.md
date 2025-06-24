@@ -63,7 +63,7 @@ The service provides health endpoints:
 
 ## Key Configuration
 
-- **Port**: Service runs on port 8000 (corrected from original 3001)
+- **Port**: Service runs on port 8000
 - **Health endpoints**: Uses `/health` for probes
 - **Environment**: Configured with HOST=0.0.0.0, PORT=8000, LOG_LEVEL=info
 - **SSL**: Automatically redirects HTTP to HTTPS on port 443
@@ -76,13 +76,3 @@ If the service doesn't start:
 2. Verify the ECR image is accessible
 3. Check if the `production` namespace exists
 4. Ensure AWS Load Balancer Controller is running in the cluster
-
-## Changes from Original
-
-This manifest fixes several issues from the original proposal:
-
-- Port corrected from 3001 to 8000
-- Health check endpoint changed to `/health`
-- Ingress class fixed for AWS ALB consistency
-- Added proper environment variables
-- Added liveness probe for better monitoring
