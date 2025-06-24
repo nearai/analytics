@@ -34,9 +34,13 @@ WORKDIR /app
 COPY requirements.txt /app/
 RUN pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org -r requirements.txt
 
-# Install Playwright browsers (may fail in environments with SSL issues)
+# Install Playwright system dependencies and browsers
+# Do this BEFORE setting any custom HOME environment variable
 RUN playwright install-deps || echo "Warning: Failed to install Playwright system dependencies"
 RUN playwright install chromium || echo "Warning: Failed to install Playwright browsers due to SSL certificate issues"
+
+# Verify browser installation
+RUN ls -la /root/.cache/ms-playwright/ || echo "Playwright cache directory not found"
 
 # Copy source code
 COPY canonical_metrics/ /app/canonical_metrics/

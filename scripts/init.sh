@@ -12,18 +12,16 @@ run_livebench_scraper() {
     echo "Running LiveBench scraper..."
     cd /app/livebench
     
-    # Set the output directory to match METRICS_BASE_PATH
-    export HOME=/data
-    
-    # Check if Playwright browsers are available
+    # Check if Playwright browsers are available in the correct location
     if ! playwright install --help > /dev/null 2>&1; then
         echo "Warning: Playwright is not available. Skipping LiveBench scraping."
         return 1
     fi
     
-    # Try to install browsers if not already present
-    if [ ! -d "/root/.cache/ms-playwright/chromium_headless_shell-1169" ]; then
-        echo "Playwright browsers not found. Attempting to install..."
+    # Check for browsers in the default Playwright cache location
+    PLAYWRIGHT_CACHE_DIR="/root/.cache/ms-playwright"
+    if [ ! -d "$PLAYWRIGHT_CACHE_DIR" ] || [ -z "$(ls -A $PLAYWRIGHT_CACHE_DIR 2>/dev/null)" ]; then
+        echo "Playwright browsers not found in $PLAYWRIGHT_CACHE_DIR. Attempting to install..."
         if ! playwright install chromium; then
             echo "Warning: Failed to install Playwright browsers. This may be due to SSL certificate issues in restricted environments."
             echo "LiveBench scraping will be skipped. The metrics service will run with limited functionality."
@@ -31,7 +29,15 @@ run_livebench_scraper() {
         fi
     fi
     
-    # Run the scraper
+    # Set environment variables for the scraper
+    # Keep HOME as /root so Playwright can find browsers, but set custom output path via env var
+    export LIVEBENCH_OUTPUT_DIR="/data/.analytics/livebench/leaderboard"
+    export PLAYWRIGHT_BROWSERS_PATH="/root/.cache/ms-playwright"
+    
+    # Create output directory
+    mkdir -p "$LIVEBENCH_OUTPUT_DIR"
+    
+    # Run the scraper with explicit browser path
     if python download.py; then
         echo "LiveBench scraper completed successfully"
         
