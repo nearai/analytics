@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  metrics-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist livebench data
+      - livebench_data:/data
+      # Mount log files for debugging
+      - ./logs:/var/log
+    environment:
+      - METRICS_BASE_PATH=/data/livebench/leaderboard
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  livebench_data:
+    driver: local
