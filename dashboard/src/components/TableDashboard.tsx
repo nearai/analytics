@@ -233,8 +233,8 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     return visibleParameters.length > 0;
   };
 
-  const shouldShowFiltersSection = (): boolean => {
-    // Hide filters section for COMPARE_MODELS (no time filters)
+  const shouldShowTimeFiltersSection = (): boolean => {
+    // Hide time filters for COMPARE_MODELS
     return viewConfig?.metricSelection !== 'COMPARE_MODELS';
   };
 
@@ -289,39 +289,22 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     
     try {
       setRequest(requestData);
+      // Merge global filters with request filters
+      const mergedFilters = mergeGlobalFilters(config?.globalFilters, requestData.filters);
+      const requestWithGlobalFilters = {
+        ...requestData,
+        filters: mergedFilters
+      };
       
       // Determine API endpoint and request data based on metricSelection
       const isCompareModels = viewConfig?.metricSelection === 'COMPARE_MODELS';
       const apiEndpoint = isCompareModels ? 'table/evaluation' : 'table/aggregation';
       
-      let finalRequestData = requestData;
-      
-      if (isCompareModels) {
-        // For COMPARE_MODELS: no parameters, no slicing, no time filters
-        finalRequestData = {
-          ...requestData,
-          filters: [], // No time filters
-          slices: [], // No slicing
-          column_selections: ['/metrics/'], // Default column selections
-          // Remove parameters that shouldn't be used for model comparison
-          prune_mode: undefined,
-          absent_metrics_strategy: undefined,
-          slices_recommendation_strategy: undefined
-        };
-      } else {
-        // Merge global filters with request filters for regular aggregation
-        const mergedFilters = mergeGlobalFilters(config?.globalFilters, requestData.filters);
-        finalRequestData = {
-          ...requestData,
-          filters: mergedFilters
-        };
-      }
-      
       const url = getApiUrl(config?.metrics_service_url, apiEndpoint);
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(finalRequestData)
+        body: JSON.stringify(requestWithGlobalFilters)
       });
       
       if (!res.ok) {
@@ -654,18 +637,16 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         )}
 
         {/* Filters */}
-        {shouldShowFiltersSection() && (
-          <FiltersSection
-            filters={request.filters || []}
-            filterInput={filterInput}
-            setFilterInput={setFilterInput}
-            onAddFilter={handleAddFilter}
-            onRemoveFilter={handleRemoveFilter}
-            onTimeFilter={handleTimeFilter}
-            timeFilterRecommendations={config?.viewConfigs?.table?.timeFilterRecommendations}
-            showTimeFilters={true}
-          />
-        )}
+        <FiltersSection
+          filters={request.filters || []}
+          filterInput={filterInput}
+          setFilterInput={setFilterInput}
+          onAddFilter={handleAddFilter}
+          onRemoveFilter={handleRemoveFilter}
+          onTimeFilter={handleTimeFilter}
+          timeFilterRecommendations={config?.viewConfigs?.table?.timeFilterRecommendations}
+          showTimeFilters={shouldShowTimeFiltersSection()}
+        />
 
         {/* Slices */}
         {shouldShowSlicesSection() && (

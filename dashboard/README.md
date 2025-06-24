@@ -146,3 +146,9 @@ The app is built with:
 - **Planned**: Stream of log files with user feedback data.
 - **Future**: Feedback sentiment analysis and categorization.
 - **Future**: User feedback correlation with performance metrics.
+
+#### 6. Compare Models
+
+**Current implementation**: ✅ Table available
+- Models evaluation table.
+- **Future**: Model recommendations based on agent's information and developer's preferences (e.g., budget).

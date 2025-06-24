@@ -258,7 +258,7 @@ interface ViewConfig {
   viewConfigs: {
     model_comparison: {
       view_type: 'table',
-      view_name: 'Model Comparison',
+      view_name: 'Compare Models',
       metricSelection: 'COMPARE_MODELS',
       // No parameters, slicing, or time filters for model comparison
       // Uses table/evaluation endpoint with default column_selections: ['/metrics/']
