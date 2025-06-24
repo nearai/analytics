@@ -131,7 +131,7 @@ Examples:
         "--metrics-path",
         required=False,
         default=os.getenv("METRICS_BASE_PATH"),
-        help="Path to performance metrics data directory (optional, used for development only, or METRICS_BASE_PATH env var)",
+        help="Path to performance metrics data directory (optional, used for development only, or METRICS_BASE_PATH env var)",  # noqa: E501
         type=str,
     )
 
