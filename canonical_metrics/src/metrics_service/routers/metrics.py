@@ -9,7 +9,7 @@ from metrics_core.local_files import load_logs_list_from_disk
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.condition import Condition, parse_condition_list
 from metrics_core.transform_utils import extract_base_field_name
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from metrics_service.config import settings
 
@@ -34,7 +34,7 @@ IMPORTANT_METRICS: Dict[str, Tuple[List[str], str]] = {
 class ImportantMetricsRequest(BaseModel):
     """Request model for important metrics."""
 
-    filters: List[str] = []
+    filters: List[str] = Field(default_factory=list)
 
     class Config:
         """Pydantic config."""

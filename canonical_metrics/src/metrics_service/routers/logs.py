@@ -12,7 +12,7 @@ from metrics_core.transform_utils import (
     PruneMode,
     create_logs_list,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from metrics_service.config import settings
 
@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 class ListLogsRequest(BaseModel):
     """Request model for listing logs."""
 
-    filters: List[str] = []
-    groups: List[str] = []
+    filters: List[str] = Field(default_factory=list)
+    groups: List[str] = Field(default_factory=list)
     prune_mode: str = "all"  # "none", or "column", or "all"
     groups_recommendation_strategy: str = "concise"  # "none", "first_alphabetical", or "concise"
 

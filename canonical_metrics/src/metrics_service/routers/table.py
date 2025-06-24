@@ -16,7 +16,7 @@ from metrics_core.transform_utils import (
     create_evaluation_table,
     create_table,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from metrics_service.config import settings
 
@@ -29,9 +29,9 @@ class TableCreationRequest(BaseModel):
     """Request model for table creation."""
 
     # TableCreationParams fields
-    filters: List[str] = []
-    slices: List[str] = []
-    column_selections: List[str] = []
+    filters: List[str] = Field(default_factory=list)
+    slices: List[str] = Field(default_factory=list)
+    column_selections: List[str] = Field(default_factory=list)
     sort_by_column: Optional[str] = None
     sort_order: Optional[str] = "desc"  # "asc" or "desc"
     prune_mode: str = "column"  # "none" or "column"
@@ -65,8 +65,8 @@ class EvaluationTableCreationRequest(BaseModel):
     """Request model for evaluation table creation."""
 
     # EvaluationTableCreationParams fields
-    filters: List[str] = []
-    column_selections: List[str] = []
+    filters: List[str] = Field(default_factory=list)
+    column_selections: List[str] = Field(default_factory=list)
     sort_by_column: Optional[str] = None
     sort_order: Optional[str] = "desc"  # "asc" or "desc"
 
