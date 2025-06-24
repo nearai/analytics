@@ -9,6 +9,8 @@ from typing import Any, Dict, List
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.table import Table, TableCell
 
+LIVEBENCH_LEADERBOARD_PATH = "~/.analytics/livebench/leaderboard"
+
 
 def load_canonical_metrics_from_disk(logs_entry_path: Path, include_log_files: bool = False) -> CanonicalMetricsEntry:
     """Load metrics.json file from `logs_entry_path`."""
@@ -172,3 +174,7 @@ def write_table_to_csv(table: Table, file_path: Path) -> None:
                     csv_row.append(format_cell_values(cell))
 
             writer.writerow(csv_row)
+
+
+def load_evaluation_entries() -> List[CanonicalMetricsEntry]:
+    return load_logs_list_from_disk(Path(LIVEBENCH_LEADERBOARD_PATH).expanduser())
