@@ -58,6 +58,80 @@ export const DetailsPopup: React.FC<{
   );
 };
 
+// Privacy Disclaimer Popup Component
+export const PrivacyDisclaimerPopup: React.FC<{
+  onClose: () => void;
+}> = ({ onClose }) => {
+  // Handle Esc key press
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-auto" style={{ width: '80vw' }}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Data Privacy Notice</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="text-sm space-y-4 text-gray-700">
+          <p className="font-medium">
+            Log File Access and Data Privacy Information
+          </p>
+          
+          <div className="space-y-3">
+            <div>
+              <h4 className="font-medium text-gray-900 mb-1">Agent Developer Access</h4>
+              <p>
+                When traffic originates from the agent developer themselves (i.e., you are both the developer of the agent and the user generating the traffic), you maintain full access to all log files and data without any modifications or restrictions.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="font-medium text-gray-900 mb-1">Benchmark and Evaluation Traffic</h4>
+              <p>
+                Log entries from benchmark runs and agent evaluations are completely excluded from logs views. Note that this traffic may be displayed in other dashboard views (graphs, tables) with appropriate filtering options.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="font-medium text-gray-900 mb-1">User Traffic and Data Collection</h4>
+              <p>
+                For actual user interactions, log files are displayed only when both of the following conditions are satisfied:
+              </p>
+              <ul className="list-disc ml-6 mt-2 space-y-1">
+                <li>The user has enabled log file collection for the purpose of agents improvement</li>
+                <li>Our automated systems have either successfully obfuscated all personally identifiable information (PII) and sensitive data, or have determined that no such sensitive information is present in the logs</li>
+              </ul>
+            </div>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+              <h4 className="font-medium text-yellow-800 mb-1">Usage Restriction</h4>
+              <p className="text-yellow-700">
+                The collected data may only be used for the purpose of improving agent functionality and performance. Any other use of this data is strictly prohibited.
+              </p>
+            </div>
+          </div>
+          
+          <div className="pt-4 border-t border-gray-200">
+            <p className="text-xs text-gray-500">
+              This notice explains the data privacy policies governing log file access and display within this analytics dashboard.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // File Content Popup Component
 export const FileContentPopup: React.FC<{
   filename: string;
