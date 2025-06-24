@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*.*.*'  # Triggers on version tags like v1.0.0
+  workflow_dispatch:  # Allows manual triggering from GitHub UI
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
 
 jobs:
   publish:
@@ -31,10 +37,14 @@ jobs:
       
       - name: Update package.json for publishing
         run: |
-          # The package.json is already configured for publishing
-          # Just ensure the version matches the tag
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
-          npm pkg set version="$TAG_VERSION"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual trigger - use the input version
+            npm pkg set version="${{ github.event.inputs.version }}"
+          else
+            # Tag trigger - extract version from tag
+            TAG_VERSION=${GITHUB_REF#refs/tags/v}
+            npm pkg set version="$TAG_VERSION"
+          fi
       
       - name: Publish to NPM
         run: npm publish --access public
@@ -46,12 +56,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref }}
+          release_name: ${{ github.event_name == 'workflow_dispatch' && format('Release v{0}', github.event.inputs.version) || format('Release {0}', github.ref) }}
           body: |
             ## What's Changed
             
-            Published @nearai/analytics-dashboard@${{ github.ref_name }} to NPM.
+            Published @nearai/analytics-dashboard@${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }} to NPM.
             
             ### Installation
             ```bash
