@@ -74,7 +74,7 @@ import { Dashboard } from '@nearai/analytics-dashboard';
 
 // Use with configuration
 <Dashboard config={{
-  views: ['timeseries', 'table', 'error_logs'], // Time Series, Table, and Error Logs views
+  views: ['timeseries', 'table', 'model_comparison', 'error_logs'],
   globalFilters: ['runner:not_in:local'], // Applied to all requests
   viewConfigs: {
     timeseries: {
@@ -94,6 +94,12 @@ import { Dashboard } from '@nearai/analytics-dashboard';
       metricSelection: 'CUSTOM',
       showParameters: ['prune_mode'], // Show only specific parameters
       refreshRate: 30 // Refresh every 30 seconds
+    },
+    model_comparison: {
+      view_type: 'table',
+      view_name: 'Compare Models',
+      metricSelection: 'COMPARE_MODELS',
+      refreshRate: undefined // No refreshing
     },
     logs_errors: {
       view_type: 'logs',
