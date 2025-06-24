@@ -23,30 +23,25 @@ class MetricsCache:
     def load_entries(
         self,
         metrics_path: Path,
-        include_log_files: bool = False,
         force_reload: bool = False,
     ) -> List[CanonicalMetricsEntry]:
         """Load entries from cache or disk.
 
         Args:
+        ----
             metrics_path: Path to metrics directory
-            include_log_files: Whether to include log files in the entries
             force_reload: Force reload from disk even if cache exists
 
         Returns:
+        -------
             List of canonical metrics entries
 
         """
         with self._lock:
             # Check if we need to load from disk
-            if (self._entries is None or
-                force_reload or
-                self._metrics_path != metrics_path):
-
+            if self._entries is None or force_reload or self._metrics_path != metrics_path:
                 logger.info(f"Loading metrics entries from disk: {metrics_path}")
-                self._entries = load_logs_list_from_disk(
-                    metrics_path, include_log_files=include_log_files
-                )
+                self._entries = load_logs_list_from_disk(metrics_path, include_log_files=True)
                 self._metrics_path = metrics_path
                 logger.info(f"Loaded {len(self._entries)} entries into cache")
             else:

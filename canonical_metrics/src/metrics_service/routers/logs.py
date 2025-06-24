@@ -4,8 +4,6 @@ import logging
 from typing import List
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.transform_utils import (
     GroupsRecommendationStrategy,
@@ -13,6 +11,8 @@ from metrics_core.transform_utils import (
     PruneMode,
     create_logs_list,
 )
+from pydantic import BaseModel, Field
+
 from metrics_service.cache import metrics_cache
 from metrics_service.config import settings
 
@@ -70,7 +70,7 @@ async def list_logs(request: ListLogsRequest):
         metrics_path = settings.get_metrics_path()
 
         # Load entries from cache (or disk if not cached)
-        entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries(metrics_path, include_log_files=True)
+        entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries(metrics_path)
 
         if not entries:
             raise HTTPException(status_code=404, detail="No metrics entries found")
@@ -101,90 +101,6 @@ async def list_logs(request: ListLogsRequest):
         raise HTTPException(status_code=404, detail=f"Metrics path not found: {str(e)}")  # noqa: B904
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating a logs list: {str(e)}")  # noqa: B904
-
-
-@router.post("/refresh", response_model=dict)
-async def refresh_cache():
-    """Refresh the metrics cache by reloading entries from disk.
-
-    This endpoint forces a reload of metrics entries from disk,
-    updating the in-memory cache with the latest data.
-
-    Returns:
-        Dict with cache refresh status and entry count
-
-    """
-    try:
-        # Check if metrics path is configured
-        if not settings.has_metrics_path():
-            raise HTTPException(
-                status_code=503,
-                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
-            )
-
-        # Get metrics path from settings
-        metrics_path = settings.get_metrics_path()
-
-        # Force reload from disk
-        entries = metrics_cache.load_entries(metrics_path, include_log_files=True, force_reload=True)
-
-        return {
-            "status": "success",
-            "message": "Cache refreshed successfully",
-            "entries_count": len(entries),
-            "metrics_path": str(metrics_path)
-        }
-
-    except ValueError as e:
-        if "METRICS_BASE_PATH is not set" in str(e):
-            raise HTTPException(
-                status_code=503,
-                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
-            ) from None
-        raise HTTPException(status_code=400, detail=str(e))  # noqa: B904
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=f"Metrics path not found: {str(e)}")  # noqa: B904
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error refreshing cache: {str(e)}")  # noqa: B904
-
-
-@router.get("/cache-status")
-async def get_cache_status():
-    """Get the current cache status.
-
-    Returns information about the cache state including whether it's populated
-    and how many entries are cached.
-
-    Returns:
-        Dict with cache status information
-
-    """
-    try:
-        if not settings.has_metrics_path():
-            return {
-                "cached": False,
-                "entries_count": 0,
-                "metrics_path": None,
-                "message": "Metrics path not configured"
-            }
-
-        metrics_path = settings.get_metrics_path()
-        is_cached = metrics_cache.is_cached(metrics_path)
-
-        return {
-            "cached": is_cached,
-            "entries_count": metrics_cache.cache_size,
-            "metrics_path": str(metrics_path),
-            "message": "Cache populated" if is_cached else "Cache empty"
-        }
-
-    except Exception as e:
-        return {
-            "cached": False,
-            "entries_count": 0,
-            "metrics_path": None,
-            "error": str(e)
-        }
 
 
 @router.get("/schema")
