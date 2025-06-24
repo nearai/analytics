@@ -4,7 +4,6 @@ import logging
 from typing import List
 
 from fastapi import APIRouter, HTTPException
-from metrics_core.local_files import load_logs_list_from_disk
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.transform_utils import (
     GroupsRecommendationStrategy,
@@ -14,6 +13,7 @@ from metrics_core.transform_utils import (
 )
 from pydantic import BaseModel, Field
 
+from metrics_service.cache import metrics_cache
 from metrics_service.config import settings
 
 router = APIRouter(prefix="/logs", tags=["logs"])
@@ -69,8 +69,8 @@ async def list_logs(request: ListLogsRequest):
         # Get metrics path from settings
         metrics_path = settings.get_metrics_path()
 
-        # Load entries from disk
-        entries: List[CanonicalMetricsEntry] = load_logs_list_from_disk(metrics_path, include_log_files=True)
+        # Load entries from cache (or disk if not cached)
+        entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries(metrics_path)
 
         if not entries:
             raise HTTPException(status_code=404, detail="No metrics entries found")
