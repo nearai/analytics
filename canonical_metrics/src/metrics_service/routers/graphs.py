@@ -63,6 +63,12 @@ async def create_time_series_graph(request: MovingAggregationRequest):
     """
     try:
         logger.info(f"Request received: {request}")
+        # Check if metrics path is configured
+        if not settings.has_metrics_path():
+            raise HTTPException(
+                status_code=503,
+                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
+            )
         # Get metrics path from settings
         metrics_path = settings.get_metrics_path()
 
@@ -89,6 +95,15 @@ async def create_time_series_graph(request: MovingAggregationRequest):
 
         return moving_aggregation.to_dict()
 
+    except HTTPException:
+        raise  # Re-raise HTTPException without wrapping
+    except ValueError as e:
+        if "METRICS_BASE_PATH is not set" in str(e):
+            raise HTTPException(
+                status_code=503,
+                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
+            ) from None
+        raise HTTPException(status_code=400, detail=str(e))  # noqa: B904
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=f"Metrics path not found: {str(e)}")  # noqa: B904
     except Exception as e:

@@ -316,7 +316,7 @@ The `column_tree` shows all available columns in a hierarchical structure:
 
 ### 2. Create Evaluation Table - POST /api/v1/table/evaluation
 
-This endpoint creates an evaluation table from your metrics data, showing individual entries rather than aggregated data. Unlike the aggregation endpoint, each row in the evaluation table represents a single metrics entry, making it useful for detailed analysis of individual runs.
+This endpoint returns an evaluation table from available evaluation data, showing individual entries rather than aggregated data.
 
 #### Basic Example
 
@@ -325,8 +325,7 @@ curl -X POST "http://localhost:8000/api/v1/table/evaluation" \
   -H "Content-Type: application/json" \
   -d '{
     "column_selections": [
-      "/metadata/time_end_utc",
-      "/metrics/accuracy/"
+      "/metrics/livebench/"
     ]
   }'
 ```
@@ -337,87 +336,14 @@ curl -X POST "http://localhost:8000/api/v1/table/evaluation" \
 curl -X POST "http://localhost:8000/api/v1/table/evaluation" \
   -H "Content-Type: application/json" \
   -d '{
-    "filters": ["runner:not_in:local"],
+    "filters": ["organization:not_in:OpenAI"],
     "column_selections": [
-      "/metadata/agent_name",
-      "/metadata/time_end_utc", 
-      "/metrics/accuracy/answer_correctness"
+      "/metrics/livebench/"
     ],
-    "sort_by_column": "accuracy/answer_correctness",
+    "sort_by_column": "livebench/average",
     "sort_order": "desc"
   }'
 ```
-
-#### Full Example with All Parameters
-
-```bash
-curl -X POST "http://localhost:8000/api/v1/table/evaluation" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "filters": ["runner:not_in:local", "user:in:alomonos.near"],
-    "column_selections": [
-      "/metadata/time_end_utc",
-      "/metadata/agent_name",
-      "/metrics/accuracy/"
-    ],
-    "sort_by_column": "accuracy/answer_correctness",
-    "sort_order": "desc",
-    "column_selections_to_add": ["/metrics/performance/latency/total_ms"],
-    "column_selections_to_remove": ["/metadata/debug_mode"]
-  }'
-```
-
-#### Response Structure
-
-The evaluation table response shows individual entries (rows) rather than aggregated data:
-
-```json
-{
-  "rows": [
-    [
-      {
-        "values": {},
-        "details": {}
-      },
-      {
-        "values": {"value": "time_end_utc"},
-        "details": {"name": "time_end_utc", "description": null}
-      },
-      {
-        "values": {"value": "agent_name"},
-        "details": {"name": "agent_name", "description": null}
-      }
-    ],
-    [
-      {
-        "values": {"agent_name": {"value": "my_agent", "category": "unique"}},
-        "details": {"agent_name": {"value": "my_agent", "category": "unique"}}
-      },
-      {
-        "values": {"value": "2024-01-01T12:00:00"},
-        "details": {"value": "2024-01-01T12:00:00", "name": "time_end_utc"}
-      },
-      {
-        "values": {"value": "my_agent"},
-        "details": {"value": "my_agent", "name": "agent_name"}
-      }
-    ]
-  ],
-  "column_tree": {...},
-  "columns": [...],
-  "filters": ["runner:not_in:local"],
-  "slices": [],
-  "slice_recommendations": [],
-  "sorted_by": null
-}
-```
-
-**Key Differences from Aggregation Table**
-
-- **Individual Entries**: Each data row represents a single metrics entry/run
-- **No Aggregation**: Values are shown as-is from the original data
-- **Detailed Analysis**: Better for examining specific runs and their exact values
-- **Simpler Parameters**: No slicing, pruning, or aggregation strategy options
 
 ### 3. List Logs - POST /api/v1/logs/list
 

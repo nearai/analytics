@@ -64,10 +64,6 @@ def start_service():
 
 def main():
     """Main entry point."""
-    # If no arguments provided, show help
-    if len(sys.argv) == 1:
-        sys.argv.append("--help")
-
     # Don't call start_service() if we're just parsing arguments
     if len(sys.argv) > 1 and sys.argv[1] in ["--help", "-h"]:
         # Just show help without checking environment
