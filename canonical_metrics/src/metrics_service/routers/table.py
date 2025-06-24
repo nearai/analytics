@@ -4,8 +4,10 @@ import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
 from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy
-from metrics_core.local_files import load_evaluation_entries, load_logs_list_from_disk
+from metrics_core.local_files import load_evaluation_entries
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.table import SortOrder, Table
 from metrics_core.transform_utils import (
@@ -16,8 +18,7 @@ from metrics_core.transform_utils import (
     create_evaluation_table,
     create_table,
 )
-from pydantic import BaseModel, Field
-
+from metrics_service.cache import metrics_cache
 from metrics_service.config import settings
 
 router = APIRouter(prefix="/table", tags=["table"])
@@ -117,8 +118,8 @@ async def create_metrics_table(request: TableCreationRequest):
         # Get metrics path from settings
         metrics_path = settings.get_metrics_path()
 
-        # Load entries from disk
-        entries: List[CanonicalMetricsEntry] = load_logs_list_from_disk(metrics_path)
+        # Load entries from cache (or disk if not cached)
+        entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries(metrics_path)
 
         if not entries:
             raise HTTPException(status_code=404, detail="No metrics entries found")
