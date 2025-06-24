@@ -162,7 +162,7 @@ async def create_metrics_table(request: TableCreationRequest):
             raise HTTPException(
                 status_code=503,
                 detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set."
-            )
+            ) from None
         raise HTTPException(status_code=400, detail=str(e))  # noqa: B904
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=f"Metrics path not found: {str(e)}")  # noqa: B904
@@ -236,7 +236,7 @@ async def create_evaluation_table_endpoint(request: EvaluationTableCreationReque
             raise HTTPException(
                 status_code=503,
                 detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set."
-            )
+            ) from None
         raise HTTPException(status_code=400, detail=str(e))  # noqa: B904
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=f"Metrics path not found: {str(e)}")  # noqa: B904

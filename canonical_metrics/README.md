@@ -155,12 +155,17 @@ metrics-service --metrics-path /Users/me/.nearai/tuned_logs
 ## Starting the Service
 
 ```bash
-# Run the service
+# Run the service with metrics data
 poetry run metrics-service --metrics-path /Users/me/.nearai/tuned_logs
+
+# Run without metrics path (only evaluation endpoint will work with external data)
+poetry run metrics-service
 
 # Or with additional options
 poetry run metrics-service --metrics-path /Users/me/.nearai/tuned_logs --port 8080 --reload
 ```
+
+**Note**: The `--metrics-path` argument is optional. When not provided, endpoints that require metrics data will return appropriate error messages.
 
 ### API Documentation
 
@@ -309,7 +314,112 @@ The `column_tree` shows all available columns in a hierarchical structure:
 - `children`: Nested columns
 - Use this to discover available metrics and fields
 
-### 2. List Logs - POST /api/v1/logs/list
+### 2. Create Evaluation Table - POST /api/v1/table/evaluation
+
+This endpoint creates an evaluation table from your metrics data, showing individual entries rather than aggregated data. Unlike the aggregation endpoint, each row in the evaluation table represents a single metrics entry, making it useful for detailed analysis of individual runs.
+
+#### Basic Example
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/table/evaluation" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "column_selections": [
+      "/metadata/time_end_utc",
+      "/metrics/accuracy/"
+    ]
+  }'
+```
+
+#### Example with Filters and Sorting
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/table/evaluation" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": ["runner:not_in:local"],
+    "column_selections": [
+      "/metadata/agent_name",
+      "/metadata/time_end_utc", 
+      "/metrics/accuracy/answer_correctness"
+    ],
+    "sort_by_column": "accuracy/answer_correctness",
+    "sort_order": "desc"
+  }'
+```
+
+#### Full Example with All Parameters
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/table/evaluation" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": ["runner:not_in:local", "user:in:alomonos.near"],
+    "column_selections": [
+      "/metadata/time_end_utc",
+      "/metadata/agent_name",
+      "/metrics/accuracy/"
+    ],
+    "sort_by_column": "accuracy/answer_correctness",
+    "sort_order": "desc",
+    "column_selections_to_add": ["/metrics/performance/latency/total_ms"],
+    "column_selections_to_remove": ["/metadata/debug_mode"]
+  }'
+```
+
+#### Response Structure
+
+The evaluation table response shows individual entries (rows) rather than aggregated data:
+
+```json
+{
+  "rows": [
+    [
+      {
+        "values": {},
+        "details": {}
+      },
+      {
+        "values": {"value": "time_end_utc"},
+        "details": {"name": "time_end_utc", "description": null}
+      },
+      {
+        "values": {"value": "agent_name"},
+        "details": {"name": "agent_name", "description": null}
+      }
+    ],
+    [
+      {
+        "values": {"agent_name": {"value": "my_agent", "category": "unique"}},
+        "details": {"agent_name": {"value": "my_agent", "category": "unique"}}
+      },
+      {
+        "values": {"value": "2024-01-01T12:00:00"},
+        "details": {"value": "2024-01-01T12:00:00", "name": "time_end_utc"}
+      },
+      {
+        "values": {"value": "my_agent"},
+        "details": {"value": "my_agent", "name": "agent_name"}
+      }
+    ]
+  ],
+  "column_tree": {...},
+  "columns": [...],
+  "filters": ["runner:not_in:local"],
+  "slices": [],
+  "slice_recommendations": [],
+  "sorted_by": null
+}
+```
+
+**Key Differences from Aggregation Table**
+
+- **Individual Entries**: Each data row represents a single metrics entry/run
+- **No Aggregation**: Values are shown as-is from the original data
+- **Detailed Analysis**: Better for examining specific runs and their exact values
+- **Simpler Parameters**: No slicing, pruning, or aggregation strategy options
+
+### 3. List Logs - POST /api/v1/logs/list
 
 The Logs API provides access to individual log entries with grouping and filtering capabilities. Unlike the Table API which focuses on aggregated metrics, the Logs API lets you examine individual runs and their associated log files. This endpoint processes metrics & log entries according to the provided parameters and returns formatted grouped logs in chronological order.
 
@@ -418,7 +528,7 @@ Example response structure:
 ]
 ```
 
-### 3. Get Important Metrics - POST /api/v1/metrics/important
+### 4. Get Important Metrics - POST /api/v1/metrics/important
 
 This endpoint returns important metrics that are available in the dataset after applying filters. It helps identify which key performance metrics have data available for analysis.
 
@@ -478,7 +588,7 @@ The endpoint checks for these predefined important metrics:
 
 Only metrics that have actual data present in the filtered dataset are returned.
 
-### 4. Create Time Series Graph - POST /api/v1/graphs/time-series
+### 5. Create Time Series Graph - POST /api/v1/graphs/time-series
 
 This endpoint creates time series data for graphing from your metrics data based on moving aggregation parameters. It processes metrics entries to generate time-based aggregated values suitable for visualization.
 
