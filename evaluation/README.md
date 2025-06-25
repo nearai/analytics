@@ -1,14 +1,20 @@
-# Evaluation Tools
+# Evaluation
 
-Tools for analyzing models, agent, and visualizing metrics.
+Tools for analyzing models, agents, and visualizing metrics.
 
-## Model Evaluations
+## Overview
 
-TODO
+This package provides evaluation-specific functionality:
 
-## Agent Evaluations
+- **Evaluation Table**: Structured view of agent performance metrics
+- **Data Loading**: Loading evaluation-specific data from various sources
+- **Analysis Tools**: Tools for comparing and analyzing evaluation results
 
-TODO
+## Installation
+
+```bash
+pip install -e .
+```
 
 ## Evaluation Table
 
@@ -27,3 +33,20 @@ The main component of the dashboard is the Evaluation Table:
 2. **Sorting**: Sort entities by any metric for easy comparison
 3. **Log Access**: Direct access to log files by clicking on metric values
 4. **Export**: Export evaluation results in various formats (CSV, JSON)
+
+## Usage
+
+```python
+from evaluation.data import load_evaluation_entries
+from evaluation.table import create_evaluation_table
+
+# Load evaluation data
+entries = load_evaluation_entries()
+
+# Create evaluation table
+table = create_evaluation_table(entries, params)
+```
+
+## Dependencies
+
+This package depends on `metrics_core` for shared utilities and data structures.
