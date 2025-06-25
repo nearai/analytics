@@ -132,7 +132,7 @@ import { Dashboard } from '@nearai/analytics-dashboard';
 
 Execute popular and user-owned benchmarks to generate performance metrics. Run audit evaluations on agents.
 
-### 6. Run Evaluation Dashboard
+### 6. [Run Evaluation Dashboard](https://github.com/nearai/analytics/tree/main/dashboard#6-compare-models)
 
 Visualize, analyze, and compare agent & model performances using the collected metrics.
 
