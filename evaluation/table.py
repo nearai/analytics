@@ -7,9 +7,9 @@ from metrics_core.conversions.base import BaseConversion, ChainConversion
 from metrics_core.conversions.categorize_metadata import CategorizeMetadataConversion
 from metrics_core.conversions.filter import FilterConversion
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry, MetadataFieldCategory
-from metrics_core.models.column_selection import create_column_tree, determine_column_unit
 from metrics_core.models.condition import parse_condition_list
 from metrics_core.models.table import SortOrder, Table, TableCell
+from metrics_core.transform_utils import create_column_tree, determine_column_unit
 
 
 @dataclass

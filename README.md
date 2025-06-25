@@ -5,9 +5,11 @@ A collection of tools for benchmarking, evaluating, and analyzing agent performa
 ## Repository Structure
 
 - [`/benchmarks`](./benchmarks/): Tools for running benchmarks on AI models and agents
-- [`/canonical_metrics`](./canonical_metrics/): Standard formats and tools for metrics collection, including:
-  - Metrics CLI for processing and transforming metrics
-  - Metrics Service API for querying and visualizing metrics data
+- [`/canonical_metrics`](./canonical_metrics/): **[Deprecated]** Legacy monolithic package - use individual packages below:
+  - [`/metrics_core`](./metrics_core/): Core utilities and shared code
+  - [`/evaluation`](./evaluation/): Evaluation tools and analysis
+  - [`/metrics_cli`](./metrics_cli/): Command-line interface
+  - [`/metrics_service`](./metrics_service/): Web service API
 - [`/dashboard`](./dashboard/): Analytics Dashboard
 - [`/evaluation`](./evaluation/): Tools for evaluating agent or model performance
 
@@ -22,14 +24,25 @@ A collection of tools for benchmarking, evaluating, and analyzing agent performa
 Transform, tune, aggregate, create csv table.
 
 ```bash
-# Installation
+# Installation (new package structure)
+cd metrics_core && pip install -e . && cd ..
+cd evaluation && pip install -e . && cd ..
+cd metrics_cli && pip install -e . && cd ..
+
+# Alternative: use legacy package
 cd canonical_metrics
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install poetry
 poetry install
 
-# Transform and aggregate metrics
+# Transform and aggregate metrics (new CLI)
+cd metrics_cli
+python -m metrics_cli.cli tune /path/to/logs /path/to/tuned_logs --rename --ms-to-s
+python -m metrics_cli.cli aggregate /path/to/tuned_logs /path/to/aggr_logs --filters "runner:not_in:local" --slices "agent_name"
+python -m metrics_cli.cli aggregation-table /Users/me/.nearai/tuned_logs /Users/me/.nearai/table --filters "runner:not_in:local" --absent-metrics-strategy=nullify
+
+# Legacy CLI (still works)
 metrics-cli tune /path/to/logs /path/to/tuned_logs --rename --ms-to-s
 metrics-cli aggregate /path/to/tuned_logs /path/to/aggr_logs --filters "runner:not_in:local" --slices "agent_name"
 metrics-cli aggregation-table /Users/me/.nearai/tuned_logs /Users/me/.nearai/table --filters "runner:not_in:local" --absent-metrics-strategy=nullify
