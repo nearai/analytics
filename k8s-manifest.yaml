@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: analytics-service
+  name: prod-analytics-service
   namespace: production
   labels:
-    app: analytics-service
+    app: prod-analytics-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: analytics-service
+      app: prod-analytics-service
   template:
     metadata:
       labels:
-        app: analytics-service
+        app: prod-analytics-service
     spec:
       containers:
-      - name: analytics-service
+      - name: prod-analytics-service
         image: 543900120763.dkr.ecr.us-west-2.amazonaws.com/prod-analytics-service:latest
         imagePullPolicy: Always
         ports:
@@ -27,7 +27,10 @@ spec:
         - name: PORT
           value: "8000"
         - name: LOG_LEVEL
-          value: "info"
+          valueFrom:
+            secretKeyRef:
+              name: prod-analytics-service-secrets
+              key: LOG_LEVEL
         resources:
           requests:
             cpu: 500m
@@ -56,11 +59,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: analytics-service
+  name: prod-analytics-service
   namespace: production
 spec:
   selector:
-    app: analytics-service
+    app: prod-analytics-service
   ports:
     - name: http
       protocol: TCP
@@ -70,7 +73,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: analytics-service-ingress
+  name: prod-analytics-service-ingress
   namespace: production
   annotations:
     kubernetes.io/ingress.class: alb
@@ -82,13 +85,13 @@ metadata:
     alb.ingress.kubernetes.io/target-type: ip
 spec:
   rules:
-  - host: analytics-service.devingtools.com
+  - host: prod-analytics-service.devingtools.com
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: analytics-service
+            name: prod-analytics-service
             port:
               number: 8000
