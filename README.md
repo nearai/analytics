@@ -136,6 +136,14 @@ Execute popular and user-owned benchmarks to generate performance metrics. Run a
 
 Visualize, analyze, and compare agent & model performances using the collected metrics.
 
+```
+cd dashboard
+npm install
+npm start
+```
+
+Will open a dashboard. Go to "Compare Models" view.
+
 ## Key Features
 
 - **🐳 Docker Support**: One-command deployment with automated LiveBench data scraping
