@@ -61,10 +61,10 @@ run_livebench_scraper
 
 # Start the metrics service
 echo "Starting metrics service..."
-cd /app/canonical_metrics
+cd /app/metrics_service
 
 # Set PYTHONPATH to include the src directory
-export PYTHONPATH="/app/canonical_metrics/src:$PYTHONPATH"
+export PYTHONPATH="/app/metrics_service/src:$PYTHONPATH"
 
 # Run the metrics service
 exec python -m metrics_service

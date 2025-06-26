@@ -270,7 +270,7 @@ interface ViewConfig {
 
 ## Available Parameters
 
-For a complete list of available parameters, see the [Parameters section in canonical_metrics/README](../canonical_metrics/README.md#parameters-reference).
+For a complete list of available parameters, see the [Parameters section in metrics_service/README](../metrics_service/README.md#parameters-reference).
 
 ## Auto-Refresh Feature
 
