@@ -759,6 +759,19 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
           
           {response && response.rows.length > 0 && (
             <>
+              {/* Table Header with Download Button */}
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={downloadCsv}
+                  className="inline-flex items-center px-2.5 py-1.5 bg-green-50 hover:bg-green-200 text-gray-700 text-xs rounded transition-colors"
+                  title="Download table as CSV"
+                >
+                  <Download size={12} className="mr-1" />
+                  Download CSV
+                </button>
+              </div>
+              
+              {/* Table Content */}
               <div className="bg-white rounded shadow overflow-auto custom-scrollbar">
                 <table className="min-w-full">
                   <thead>
@@ -850,19 +863,9 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
               </div>
 
               {/* Table Action Buttons */}
-              <div className="mt-2 flex justify-start gap-2">
-                {/* Download CSV Button */}
-                <button
-                  onClick={downloadCsv}
-                  className="inline-flex items-center px-2.5 py-1.5 bg-green-50 hover:bg-green-200 text-gray-700 text-xs rounded transition-colors"
-                  title="Download table as CSV"
-                >
-                  <Download size={12} className="mr-1" />
-                  Download CSV
-                </button>
-                
-                {/* Add Time Slice Button */}
-                {getTimeFilter() && (
+              {getTimeFilter() && (
+                <div className="mt-2 flex justify-start gap-2">
+                  {/* Add Time Slice Button */}
                   <button
                     onClick={handleAddTimeSlice}
                     className="border-b border-gray-300 inline-flex items-center px-2.5 py-1.5 bg-blue-50 hover:bg-blue-200 text-gray-700 text-xs rounded transition-colors"
@@ -870,8 +873,8 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
                   >
                     + Add Time Slice
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </>
           )}
         </div>
