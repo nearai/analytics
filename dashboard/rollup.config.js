@@ -1,61 +1,69 @@
-import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
-import typescript from '@rollup/plugin-typescript';
-import postcss from 'rollup-plugin-postcss';
-import { readFileSync } from 'fs';
-import tailwindcss from 'tailwindcss';
-import autoprefixer from 'autoprefixer';
-
-// Read package.json to get external dependencies
-const packageJson = JSON.parse(readFileSync('./package.json', 'utf8'));
-
-export default {
-  input: 'src/components/index.ts',
-  output: [
-    {
-      file: 'dist/index.js',
-      format: 'cjs',
-      sourcemap: true,
+{
+  "name": "@nearai/analytics-dashboard",
+  "version": "0.1.3",
+  "description": "A configurable React dashboard component for analytics with graphs, tables, and logs views",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.esm.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
     },
-    {
-      file: 'dist/index.esm.js',
-      format: 'esm',
-      sourcemap: true,
-    },
+    "./style.css": "./dist/index.css",
+    "./dist/index.css": "./dist/index.css"
+  },
+  "files": [
+    "dist"
   ],
-  external: [
-    // Don't bundle React, ReactDOM, or other peer dependencies
-    ...Object.keys(packageJson.peerDependencies || {}),
-    // Don't bundle regular dependencies either - they'll be installed separately
-    ...Object.keys(packageJson.dependencies || {}),
+  "keywords": [
+    "react",
+    "dashboard",
+    "analytics",
+    "performance",
+    "logs",
+    "web-component"
   ],
-  plugins: [
-    // Handle CSS imports
-    postcss({
-      extract: 'index.css', // Extract CSS to separate file
-      minimize: true,
-      plugins: [
-        tailwindcss,
-        autoprefixer,
-      ],
-    }),
-    
-    // Resolve node modules
-    resolve({
-      browser: true,
-      preferBuiltins: false,
-    }),
-    
-    // Convert CommonJS to ES modules
-    commonjs(),
-    
-    // Compile TypeScript
-    typescript({
-      tsconfig: './tsconfig.json',
-      declaration: true,
-      declarationDir: 'dist',
-      rootDir: 'src',
-      exclude: ['**/*.test.*', '**/*.stories.*'],
-    }),
-  ],
-};
+  "author": "NearAI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nearai/analytics.git",
+    "directory": "dashboard"
+  },
+  "homepage": "https://github.com/nearai/analytics/tree/main/dashboard",
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "lucide-react": "^0.321.0",
+    "recharts": "^2.15.3"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "test": "react-scripts test",
+    "build": "rollup -c",
+    "prepublishOnly": "npm run build",
+    "test-package": "node test-package.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.7",
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.47",
+    "@types/react-dom": "^18.2.18",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.33",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "^5.0.1",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^4.9.5",
+    "rollup": "^3.0.0",
+    "@rollup/plugin-typescript": "^11.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-commonjs": "^25.0.0",
+    "rollup-plugin-postcss": "^4.0.0"
+  }
+}
