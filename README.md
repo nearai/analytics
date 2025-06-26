@@ -5,13 +5,11 @@ A collection of tools for benchmarking, evaluating, and analyzing agent performa
 ## Repository Structure
 
 - [`/benchmarks`](./benchmarks/): Tools for running benchmarks on AI models and agents
-- [`/canonical_metrics`](./canonical_metrics/): **[Deprecated]** Legacy monolithic package - use individual packages below:
-  - [`/metrics_core`](./metrics_core/): Core utilities and shared code
-  - [`/evaluation`](./evaluation/): Evaluation tools and analysis
-  - [`/metrics_cli`](./metrics_cli/): Command-line interface
-  - [`/metrics_service`](./metrics_service/): Web service API
-- [`/dashboard`](./dashboard/): Analytics Dashboard
+- [`/metrics_core`](./metrics_core/): Core utilities and shared code
 - [`/evaluation`](./evaluation/): Tools for evaluating agent or model performance
+- [`/metrics_cli`](./metrics_cli/): Command-line interface
+- [`/metrics_service`](./metrics_service/): Web service API
+- [`/dashboard`](./dashboard/): Analytics Dashboard
 
 ## Primary Use Cases
 
@@ -19,36 +17,26 @@ A collection of tools for benchmarking, evaluating, and analyzing agent performa
 
 [How to collect logs from NEAR AI Hub](./integrations/nearai_registry/download_logs/)
 
-### 2. [Process Metrics](./canonical_metrics/README.md#run-metrics-cli)
+### 2. [Process Metrics](./metrics_cli/README.md)
 
 Transform, tune, aggregate, create csv table.
 
 ```bash
-# Installation (new package structure)
+# Installation
+python3.11 -m venv .venv
+source .venv/bin/activate
 cd metrics_core && pip install -e . && cd ..
 cd evaluation && pip install -e . && cd ..
 cd metrics_cli && pip install -e . && cd ..
+cd metrics_service && pip install -e . && cd ..
 
-# Alternative: use legacy package
-cd canonical_metrics
-python3.11 -m venv .venv
-source .venv/bin/activate
-pip install poetry
-poetry install
-
-# Transform and aggregate metrics (new CLI)
-cd metrics_cli
-python -m metrics_cli.cli tune /path/to/logs /path/to/tuned_logs --rename --ms-to-s
-python -m metrics_cli.cli aggregate /path/to/tuned_logs /path/to/aggr_logs --filters "runner:not_in:local" --slices "agent_name"
-python -m metrics_cli.cli aggregation-table /Users/me/.nearai/tuned_logs /Users/me/.nearai/table --filters "runner:not_in:local" --absent-metrics-strategy=nullify
-
-# Legacy CLI (still works)
+# Transform and aggregate metrics
 metrics-cli tune /path/to/logs /path/to/tuned_logs --rename --ms-to-s
 metrics-cli aggregate /path/to/tuned_logs /path/to/aggr_logs --filters "runner:not_in:local" --slices "agent_name"
 metrics-cli aggregation-table /Users/me/.nearai/tuned_logs /Users/me/.nearai/table --filters "runner:not_in:local" --absent-metrics-strategy=nullify
 ```
 
-### 3. [Query Metrics via API](./canonical_metrics/README.md#api-endpoints)
+### 3. [Query Metrics via API](./metrics_service/README.md)
 
 Run the metrics service to query and analyze metrics data:
 

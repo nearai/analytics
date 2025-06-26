@@ -174,6 +174,3 @@ def write_table_to_csv(table: Table, file_path: Path) -> None:
                     csv_row.append(format_cell_values(cell))
 
             writer.writerow(csv_row)
-
-
-

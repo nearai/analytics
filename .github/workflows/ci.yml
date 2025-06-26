@@ -27,8 +27,18 @@ jobs:
     
     - name: Install dependencies
       run: |
-        cd canonical_metrics
+        cd metrics_core
         poetry install
+        cd ..
+        cd evaluation
+        poetry install
+        cd ..
+        cd metrics_cli
+        poetry install
+        cd ..
+        cd metrics_service
+        poetry install
+        cd ..
         
     - name: Install Codespell
       run: pip install codespell
@@ -38,22 +48,29 @@ jobs:
       
     - name: check lock file for inconsistencies
       run: |
-        cd canonical_metrics
+        cd metrics_core
         poetry check --lock
+        cd ..
+        cd evaluation
+        poetry check --lock
+        cd ..
+        cd metrics_cli
+        poetry check --lock
+        cd ..
+        cd metrics_service
+        poetry check --lock
+        cd ..
       
     - name: Lint Check
       run: |
-        cd canonical_metrics
         ./scripts/lint_check.sh
         
     - name: Format Check
       run: |
-        cd canonical_metrics
         ./scripts/format_check.sh
         
     - name: Type Check
       run: |
-        cd canonical_metrics
         ./scripts/type_check.sh
 
   test-historic-performance:

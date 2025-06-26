@@ -1,48 +1,9 @@
 [tool.poetry]
-name = "canonical_metrics"
+name = "Analytics"
 version = "0.0.1"
-description = "NEAR AI analytics metrics utilities"
+description = "AI Agent Analytics"
 authors = ["Support <support@near.ai>"]
 readme = "README.md"
-packages = [
-    {include = "metrics_cli", from = "src"},
-    {include = "metrics_service", from = "src"}
-]
-
-[tool.poetry.dependencies]
-python = ">=3.10,<3.13"
-# CLI dependencies
-click = "^8.1.7"
-rich = "^13.7.0"
-# Service dependencies
-fastapi = "^0.109.0"
-uvicorn = {extras = ["standard"], version = "^0.27.0"}
-pydantic = "^2.5.0"
-pydantic-settings = "^2.1.0"
-python-multipart = "^0.0.6"
-# Shared dependencies
-python-dateutil = "^2.8.2"
-
-[tool.poetry.group.dev.dependencies]
-mypy = "^1.11.0"
-ruff = "^0.5.2"
-commitizen = "^3.29.0"
-
-[tool.poetry.scripts]
-metrics-cli = "metrics_cli.cli:main"
-metrics-service = "metrics_service.__main__:main"
-
-[tool.commitizen]
-name = "cz_conventional_commits"
-tag_format = "v$version"
-version_scheme = "semver2"
-version_provider = "poetry"
-update_changelog_on_bump = true
-major_version_zero = true
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 exclude = [
@@ -93,7 +54,6 @@ line-ending = "auto"
 strict = false
 disallow_untyped_calls = false
 disallow_untyped_decorators = false
-mypy_path = "src"
 exclude = [
     "venv",
     ".venv",
@@ -103,5 +63,6 @@ exclude = [
     ".mypy_cache",
     ".ruff_cache",
     "__pypackages__",
+    "__main__.py",
 ]
 explicit_package_bases = true

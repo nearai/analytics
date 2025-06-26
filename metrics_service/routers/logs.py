@@ -13,8 +13,8 @@ from metrics_core.transform_utils import (
 )
 from pydantic import BaseModel, Field
 
-from metrics_service.cache import metrics_cache
-from metrics_service.config import settings
+from metrics_service.utils.cache import metrics_cache
+from metrics_service.utils.config import settings
 
 router = APIRouter(prefix="/logs", tags=["logs"])
 

@@ -756,6 +756,3 @@ def create_moving_aggregation(
         min_value=min_value if min_value else 0.0,
         max_value=max_value if max_value else 0.0,
     )
-
-
-
