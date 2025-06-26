@@ -34,6 +34,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "test": "react-scripts test",
     "build": "rollup -c",
     "prepublishOnly": "npm run build"
   },
