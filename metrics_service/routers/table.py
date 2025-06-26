@@ -1,14 +1,17 @@
 """API endpoints for table operations."""
 
+import csv
+import io
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from evaluation.data import load_evaluation_entries
 from evaluation.table import EvaluationTableCreationParams, create_evaluation_table
 from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy
+from metrics_core.local_files import format_cell_values, format_row_name
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.table import SortOrder, Table
 from metrics_core.transform_utils import (
@@ -23,6 +26,28 @@ from metrics_service.utils.config import settings
 router = APIRouter(prefix="/table", tags=["table"])
 
 logger = logging.getLogger(__name__)
+
+
+def table_to_csv_string(table: Table) -> str:
+    """Convert table to CSV string."""
+    output = io.StringIO()
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+
+    # Process each row
+    for row in table.rows:
+        csv_row = []
+
+        for cell_idx, cell in enumerate(row):
+            if cell_idx == 0:
+                # Row name (first column)
+                csv_row.append(format_row_name(cell))
+            else:
+                # Data cells
+                csv_row.append(format_cell_values(cell))
+
+        writer.writerow(csv_row)
+
+    return output.getvalue()
 
 
 class TableCreationRequest(BaseModel):
@@ -213,6 +238,145 @@ async def create_evaluation_table_endpoint(request: EvaluationTableCreationReque
         )
 
         return table.to_dict()
+
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=f"Metrics path not found: {str(e)}")  # noqa: B904
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating evaluation table: {str(e)}")  # noqa: B904
+
+
+@router.post("/aggregation_csv")
+async def create_metrics_table_csv(request: TableCreationRequest):
+    """Create a CSV table from metrics data.
+
+    This endpoint processes metrics entries according to the provided parameters
+    and returns a CSV formatted table with aggregated data.
+
+    Args:
+    ----
+        request: Table creation parameters including filters, slices, and column selections
+
+    Returns:
+    -------
+        CSV content as text/csv response
+
+    """
+    try:
+        logger.info(f"CSV aggregation request received: {request}")
+        # Check if metrics path is configured
+        if not settings.has_metrics_path():
+            raise HTTPException(
+                status_code=503,
+                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
+            )
+
+        # Get metrics path from settings
+        metrics_path = settings.get_metrics_path()
+
+        # Load entries from cache (or disk if not cached)
+        entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries(metrics_path)
+
+        if not entries:
+            raise HTTPException(status_code=404, detail="No metrics entries found")
+
+        # Convert strings to enums
+        absent_strategy = AggregateAbsentMetricsStrategy(request.absent_metrics_strategy)
+        prune_mode = PruneMode(request.prune_mode)
+        slices_rec_strategy = GroupsRecommendationStrategy(request.slices_recommendation_strategy)
+
+        # Handle sort_by parameter
+        sort_by = None
+        if request.sort_by_column:
+            sort_order = SortOrder(request.sort_order)
+            sort_by = (request.sort_by_column, sort_order)
+
+        # Create TableCreationParams
+        params = TableCreationParams(
+            filters=request.filters,
+            slices=request.slices,
+            column_selections=request.column_selections,
+            sort_by=sort_by,
+            prune_mode=prune_mode,
+            absent_metrics_strategy=absent_strategy,
+            slices_recommendation_strategy=slices_rec_strategy,
+        )
+
+        # Create table
+        table: Table = create_table(
+            entries=entries,
+            params=params,
+            column_selections_to_add=request.column_selections_to_add,
+            column_selections_to_remove=request.column_selections_to_remove,
+        )
+
+        # Convert table to CSV string
+        csv_content = table_to_csv_string(table)
+
+        # Return CSV response with proper content type
+        return Response(content=csv_content, media_type="text/csv")
+
+    except HTTPException:
+        raise  # Re-raise HTTPException without wrapping
+    except ValueError as e:
+        if "METRICS_BASE_PATH is not set" in str(e):
+            raise HTTPException(
+                status_code=503,
+                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
+            ) from None
+        raise HTTPException(status_code=400, detail=str(e))  # noqa: B904
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=f"Metrics path not found: {str(e)}")  # noqa: B904
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating table: {str(e)}")  # noqa: B904
+
+
+@router.post("/evaluation_csv")
+async def create_evaluation_table_csv(request: EvaluationTableCreationRequest):
+    """Create a CSV evaluation table from metrics data.
+
+    This endpoint processes evaluation entries according to the provided parameters
+    and returns a CSV formatted table with evaluation data. Unlike the aggregation
+    endpoint, this creates a table where each row represents an individual entry
+    rather than aggregated data.
+
+    Args:
+    ----
+        request: Evaluation table creation parameters including filters and column selections
+
+    Returns:
+    -------
+        CSV content as text/csv response
+
+    """
+    try:
+        logger.info(f"CSV evaluation table request received: {request}")
+
+        # Handle sort_by parameter
+        sort_by = None
+        if request.sort_by_column:
+            sort_order = SortOrder(request.sort_order)
+            sort_by = (request.sort_by_column, sort_order)
+
+        # Create EvaluationTableCreationParams
+        params = EvaluationTableCreationParams(
+            filters=request.filters,
+            column_selections=request.column_selections,
+            sort_by=sort_by,
+        )
+
+        # Create evaluation table
+        table: Table = create_evaluation_table(
+            entries=load_evaluation_entries(),
+            params=params,
+            column_selections_to_add=request.column_selections_to_add,
+            column_selections_to_remove=request.column_selections_to_remove,
+        )
+
+        # Convert table to CSV string
+        csv_content = table_to_csv_string(table)
+
+        # Return CSV response with proper content type
+        return Response(content=csv_content, media_type="text/csv")
 
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=f"Metrics path not found: {str(e)}")  # noqa: B904
