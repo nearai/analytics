@@ -1,12 +1,12 @@
 {
   "name": "@nearai/analytics-dashboard",
-  "version": "0.1.1",
-  "description": "A configurable React dashboard component for analytics with table and logs views",
-  "main": "src/components/index.ts",
-  "types": "src/components/index.ts",
+  "version": "0.1.2",
+  "type": "module",
+  "description": "A configurable React dashboard component for analytics with graphs, tables, and logs views",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
-    "src/components",
-    "src/index.css"
+    "dist"
   ],
   "keywords": [
     "react",
@@ -34,9 +34,8 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "build": "rollup -c",
+    "prepublishOnly": "npm run build"
   },
   "eslintConfig": {
     "extends": [
@@ -66,6 +65,11 @@
     "react-dom": "^18.2.0",
     "react-scripts": "^5.0.1",
     "tailwindcss": "^3.4.1",
-    "typescript": "^4.9.5"
+    "typescript": "^4.9.5",
+    "rollup": "^3.0.0",
+    "@rollup/plugin-typescript": "^11.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-commonjs": "^25.0.0",
+    "rollup-plugin-postcss": "^4.0.0"
   }
 }
