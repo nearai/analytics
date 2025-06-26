@@ -145,9 +145,3 @@ docker compose exec metrics-service /app/scripts/daily-scrape.sh
 docker build -t metrics-service:dev .
 docker run -p 8000:8000 -e LOG_LEVEL=debug metrics-service:dev
 ```
-
-### Local Development
-
-For local development, see the individual README files:
-- [Canonical Metrics](canonical_metrics/README.md)
-- [LiveBench Scraper](integrations/livebench/scrape_livebench_scores/README.md)

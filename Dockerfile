@@ -43,7 +43,9 @@ RUN playwright install chromium || echo "Warning: Failed to install Playwright b
 RUN ls -la /root/.cache/ms-playwright/ || echo "Playwright cache directory not found"
 
 # Copy source code
-COPY canonical_metrics/ /app/canonical_metrics/
+COPY metrics_core/ /app/metrics_core/
+COPY evaluation/ /app/evaluation/
+COPY metrics_service/ /app/metrics_service/
 COPY integrations/livebench/scrape_livebench_scores/ /app/livebench/
 
 # Copy scripts

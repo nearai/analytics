@@ -1,4 +1,4 @@
-# Canonical metrics dependencies
+# Service metrics dependencies
 click>=8.1.7
 rich>=13.7.0
 fastapi>=0.109.0

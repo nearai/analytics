@@ -23,8 +23,7 @@ npm install
 
 1. Ensure the metrics service is running:
 ```bash
-# In the analytics/canonical_metrics directory
-poetry run metrics-service --metrics-path /path/to/your/tuned/metrics
+metrics-service --metrics-path /path/to/your/tuned/metrics
 ```
 
 2. Start the development server:
