@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical } from 'lucide-react';
+import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical, Download } from 'lucide-react';
 import { TableRequest, TableResponse, ColumnNode, Column, DashboardConfig } from './shared/types';
 import {
   CollapsibleSection,
@@ -358,6 +358,59 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
       }
     }
   }, [refreshTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // CSV download function
+  const downloadCsv = useCallback(async () => {
+    if (!response || !request) return;
+    
+    try {
+      // Merge global filters with request filters
+      const mergedFilters = mergeGlobalFilters(config?.globalFilters, request.filters);
+      const requestWithGlobalFilters = {
+        ...request,
+        filters: mergedFilters
+      };
+      
+      // Determine CSV API endpoint based on metricSelection
+      const isCompareModels = viewConfig?.metricSelection === 'COMPARE_MODELS';
+      const apiEndpoint = isCompareModels ? 'table/evaluation_csv' : 'table/aggregation_csv';
+      
+      const url = getApiUrl(config?.metrics_service_url, apiEndpoint);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestWithGlobalFilters)
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
+      // Get CSV content
+      const csvContent = await res.text();
+      
+      // Create and trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      
+      // Generate filename based on table type and timestamp
+      const tableType = isCompareModels ? 'evaluation' : 'aggregation';
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      link.download = `${tableType}-table-${timestamp}.csv`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+    } catch (err) {
+      console.error('Error downloading CSV:', err);
+      setError(err instanceof Error ? `CSV download failed: ${err.message}` : 'CSV download failed');
+    }
+  }, [request, response, config?.globalFilters, config?.metrics_service_url, viewConfig?.metricSelection]);
 
   // Helper function to find node by ID
   const findNodeById = (node: ColumnNode | undefined, targetId: string): ColumnNode | null => {
@@ -796,9 +849,20 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
                 </table>
               </div>
 
-              {/* Add Time Slice Button */}
-              {getTimeFilter() && (
-                <div className="mt-2 flex justify-start">
+              {/* Table Action Buttons */}
+              <div className="mt-2 flex justify-start gap-2">
+                {/* Download CSV Button */}
+                <button
+                  onClick={downloadCsv}
+                  className="inline-flex items-center px-2.5 py-1.5 bg-green-50 hover:bg-green-200 text-gray-700 text-xs rounded transition-colors"
+                  title="Download table as CSV"
+                >
+                  <Download size={12} className="mr-1" />
+                  Download CSV
+                </button>
+                
+                {/* Add Time Slice Button */}
+                {getTimeFilter() && (
                   <button
                     onClick={handleAddTimeSlice}
                     className="border-b border-gray-300 inline-flex items-center px-2.5 py-1.5 bg-blue-50 hover:bg-blue-200 text-gray-700 text-xs rounded transition-colors"
@@ -806,8 +870,8 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
                   >
                     + Add Time Slice
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </>
           )}
         </div>
