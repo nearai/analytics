@@ -1,173 +1,53 @@
-# Canonical Metrics
+# Metrics Service
 
-This directory contains tools and specifications for the standard metrics format used across NEAR AI analytics.
+FastAPI-based web service for analytics metrics.
 
-## Metrics Format
+## Overview
 
-The canonical metrics format consists of two primary components:
-1. `metrics.json` - Contains structured performance metrics and metadata
-2. Log files - Raw logs and additional data from agent runs
+This package provides a web service for:
 
-### metrics.json Structure
-
-The `metrics.json` file has two main sections:
-
-```json
-{
-  "metadata": {
-    // Information about the agent run
-  },
-  "metrics": {
-    // Performance metrics
-  }
-}
-```
-
-#### Metadata Section
-
-The `metadata` section contains all information about the logged entry. There are no required fields, but commonly included fields are:
-
-- **Time Information**
-  - `start_time_utc`: Start time in UTC
-  - `end_time_utc`: End time in UTC
-  - `start_time_local`: Start time in local timezone
-  - `end_time_local`: End time in local timezone
-
-- **Model Information**
-  - `model`: Name of the model used (e.g., "claude-3-opus-20240229")
-  - `model_provider`: Provider of the model (e.g., "anthropic", "openai")
-  - `model_temperature`: Temperature setting used for generation
-  - Additional model parameters as needed
-
-- **Execution Environment**
-  - `runner`: Information about the execution environment
-  - `framework`: Framework used (e.g., "langchain", "custom")
-
-- **User Information**
-  - `author`: Creator of the agent
-  - `user`: User who ran the agent
-
-- **Financial Information**
-  - `pricing`: Cost information (must be entered manually as it's not provided by APIs)
-
-- **Files**
-  - Array of files associated with this run, each containing:
-    - `filename`: Name of the log file
-    - `description`: Description of what the file contains
-
-Example:
-
-```json
-"metadata": {
-  "agent_name": "example_agent",
-  "agent_version": "0.0.1",
-  "author": "developer@near.ai",
-  "debug_mode": true,
-  "files": [
-    {
-      "description": "Raw agent output log",
-      "filename": "agent_log.txt"
-    },
-    {
-      "description": "Detailed timing information", 
-      "filename": "timing_data.json"
-    }
-  ],
-  "framework": "langchain",
-  "model": "claude-3-opus-20240229",
-  "model_provider": "anthropic",
-  "model_temperature": 0.7,
-  "runner": "nearai-hub",
-  "time_begin_utc": "2025-05-23T05:04:49.351140+00:00",
-  "time_begin_local": "2025-05-23T05:04:49.351145",
-  "time_end_utc": "2025-05-23T05:04:59.790817+00:00",
-  "time_end_local": "2025-05-23T05:04:59.790822",
-  "user": "developer@near.ai"
-}
-```
-
-#### Metrics Section
-
-The `metrics` section contains the actual performance metrics. Each metric:
-
-- Has a key in the format `category/subcategory/metric_name` (with arbitrary nesting depth)
-- Has a value
-- Has a description explaining what the metric measures
-
-Example:
-
-```json
-"metrics": {
-  "performance/latency/first_token_ms": {
-    "value": 235,
-    "description": "Time to first token in milliseconds"
-  },
-  "performance/latency/total_ms": {
-    "value": 1820,
-    "description": "Total response time in milliseconds"
-  },
-  "accuracy/answer_correctness": {
-    "value": 0.87,
-    "description": "Fraction of questions answered correctly"
-  },
-  "resources/tokens/prompt": {
-    "value": 1240,
-    "description": "Number of prompt tokens used"
-  },
-  "resources/tokens/completion": {
-    "value": 380,
-    "description": "Number of completion tokens generated"
-  }
-}
-```
+- **Performance Metrics**: Serving performance metrics data via REST API
+- **Evaluation Metrics**: Serving evaluation metrics and tables
+- **Table API**: Creating and serving aggregation and evaluation tables
+- **Graph API**: Providing graph data for visualization
+- **Log Access**: Serving log files and detailed metric information
 
 ## Installation
 
 ```bash
-python3.11 -m venv .venv
-. .venv/bin/activate
-pip install poetry
-poetry install
+pip install -e .
 ```
 
-## Run metrics-cli
+## Usage
 
 ```bash
-metrics-cli --help
-metrics-cli -v rename /Users/me/.nearai/logs  /Users/me/.nearai/clean_logs
-metrics-cli -v ms_to_s /Users/me/.nearai/clean_logs  /Users/me/.nearai/clean_logs
-metrics-cli round /Users/me/.nearai/clean_logs  /Users/me/.nearai/clean_logs
-metrics-cli tune /Users/me/.nearai/logs  /Users/me/.nearai/tuned_logs --rename --ms-to-s
-metrics-cli aggregate /Users/me/.nearai/tuned_logs /Users/me/.nearai/aggr_logs --filters "runner:not_in:local" --slices "agent_name;debug_mode" --absent-metrics-strategy=nullify --prune=all
-metrics-cli aggregation-table /Users/me/.nearai/tuned_logs /Users/me/.nearai/table --filters "runner:not_in:local" --absent-metrics-strategy=nullify
-metrics-cli evaluation-table /Users/me/.analytics/table
+# Run service for development with local performance metrics
+metrics-service --metrics-path /Users/me/.nearai/logs
+
+# Run for production (performance metrics from service URL, evaluation metrics from local storage)
+metrics-service
+
+# Run with auto-reload for development
+metrics-service --metrics-path ./data --reload
+
+# Run on a different port
+metrics-service --port 8080
+
+# Run with debug logging
+metrics-service --log-level debug
 ```
 
-## Run metrics-service
+## Configuration
 
-```bash
-metrics-service --help
-metrics-service --metrics-path /Users/me/.nearai/tuned_logs
-```
+The service can be configured via environment variables:
 
-# Table API Usage Examples
+- `METRICS_BASE_PATH`: Path to performance metrics data directory
+- `HOST`: Host to bind to (default: 127.0.0.1)
+- `PORT`: Port to bind to (default: 8000)
+- `RELOAD`: Enable auto-reload for development (default: false)
+- `LOG_LEVEL`: Logging level (default: info)
 
-## Starting the Service
-
-```bash
-# Run the service with metrics data
-poetry run metrics-service --metrics-path /Users/me/.nearai/tuned_logs
-
-# Run without metrics path (only evaluation endpoint will work with external data)
-poetry run metrics-service
-
-# Or with additional options
-poetry run metrics-service --metrics-path /Users/me/.nearai/tuned_logs --port 8080 --reload
-```
-
-**Note**: The `--metrics-path` argument is optional. When not provided, endpoints that require metrics data will return appropriate error messages.
-
-### API Documentation
+## API Documentation
 
 Once the service is running, visit:
 - Interactive API docs: http://localhost:8000/api/v1/docs

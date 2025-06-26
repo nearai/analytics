@@ -5,11 +5,11 @@ A collection of tools for benchmarking, evaluating, and analyzing agent performa
 ## Repository Structure
 
 - [`/benchmarks`](./benchmarks/): Tools for running benchmarks on AI models and agents
-- [`/canonical_metrics`](./canonical_metrics/): Standard formats and tools for metrics collection, including:
-  - Metrics CLI for processing and transforming metrics
-  - Metrics Service API for querying and visualizing metrics data
-- [`/dashboard`](./dashboard/): Analytics Dashboard
+- [`/metrics_core`](./metrics_core/): Core utilities and shared code
 - [`/evaluation`](./evaluation/): Tools for evaluating agent or model performance
+- [`/metrics_cli`](./metrics_cli/): Command-line interface
+- [`/metrics_service`](./metrics_service/): Web service API
+- [`/dashboard`](./dashboard/): Analytics Dashboard
 
 ## Primary Use Cases
 
@@ -17,17 +17,18 @@ A collection of tools for benchmarking, evaluating, and analyzing agent performa
 
 [How to collect logs from NEAR AI Hub](./integrations/nearai_registry/download_logs/)
 
-### 2. [Process Metrics](./canonical_metrics/README.md#run-metrics-cli)
+### 2. [Process Metrics](./metrics_cli/README.md)
 
 Transform, tune, aggregate, create csv table.
 
 ```bash
 # Installation
-cd canonical_metrics
 python3.11 -m venv .venv
 source .venv/bin/activate
-pip install poetry
-poetry install
+cd metrics_core && pip install -e . && cd ..
+cd evaluation && pip install -e . && cd ..
+cd metrics_cli && pip install -e . && cd ..
+cd metrics_service && pip install -e . && cd ..
 
 # Transform and aggregate metrics
 metrics-cli tune /path/to/logs /path/to/tuned_logs --rename --ms-to-s
@@ -35,7 +36,7 @@ metrics-cli aggregate /path/to/tuned_logs /path/to/aggr_logs --filters "runner:n
 metrics-cli aggregation-table /Users/me/.nearai/tuned_logs /Users/me/.nearai/table --filters "runner:not_in:local" --absent-metrics-strategy=nullify
 ```
 
-### 3. [Query Metrics via API](./canonical_metrics/README.md#api-endpoints)
+### 3. [Query Metrics via API](./metrics_service/README.md)
 
 Run the metrics service to query and analyze metrics data:
 

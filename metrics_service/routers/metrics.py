@@ -4,14 +4,14 @@ import logging
 from typing import Dict, List, Tuple
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
 from metrics_core.conversions.filter import FilterConversion
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.condition import Condition, parse_condition_list
 from metrics_core.transform_utils import extract_base_field_name
-from pydantic import BaseModel, Field
-
-from metrics_service.cache import metrics_cache
-from metrics_service.config import settings
+from metrics_service.utils.cache import metrics_cache
+from metrics_service.utils.config import settings
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 

@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "metrics_service"
+version = "0.0.1"
+description = "AI Agent Analytics Metrics Service"
+authors = ["Support <support@near.ai>"]
+readme = "README.md"
+packages = [
+    {include = "metrics_service", from = ".."}
+]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+# Service dependencies
+fastapi = "^0.109.0"
+uvicorn = {extras = ["standard"], version = "^0.27.0"}
+pydantic = "^2.5.0"
+pydantic-settings = "^2.1.0"
+python-multipart = "^0.0.6"
+# Package dependencies
+metrics_core = {path = "../metrics_core", develop = true}
+evaluation = {path = "../evaluation", develop = true}
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.11.0"
+ruff = "^0.5.2"
+
+[tool.poetry.scripts]
+metrics-service = "metrics_service.__main__:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

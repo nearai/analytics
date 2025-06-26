@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "evaluation"
+version = "0.0.1"
+description = "AI agents and models evaluation tools"
+authors = ["Support <support@near.ai>"]
+readme = "README.md"
+packages = [
+    {include = "evaluation", from = ".."}
+]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+metrics_core = {path = "../metrics_core", develop = true}
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.11.0"
+ruff = "^0.5.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

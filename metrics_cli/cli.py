@@ -3,6 +3,9 @@
 from pathlib import Path
 
 import click
+
+from evaluation.data import load_evaluation_entries
+from evaluation.table import EvaluationTableCreationParams, create_evaluation_table
 from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy
 from metrics_core.conversions.base import BaseConversion
 from metrics_core.conversions.determine_pruning import DeterminePruningConversion
@@ -10,7 +13,6 @@ from metrics_core.conversions.ms_to_s import MsToSConversion
 from metrics_core.conversions.rename import RenameConversion
 from metrics_core.conversions.round import RoundConversion
 from metrics_core.local_files import (
-    load_evaluation_entries,
     load_logs_list_from_disk,
     save_logs_list_to_disk,
     write_table_to_csv,
@@ -18,12 +20,10 @@ from metrics_core.local_files import (
 from metrics_core.models.condition import parse_conditions
 from metrics_core.transform_utils import (
     AggregationParams,
-    EvaluationTableCreationParams,
     MetricsTuneParams,
     PruneMode,
     TableCreationParams,
     create_aggregation,
-    create_evaluation_table,
     create_metrics_tuning,
     create_table,
 )

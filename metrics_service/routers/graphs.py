@@ -4,13 +4,13 @@ import logging
 from typing import List
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.moving_aggregation import MovingAggregation
 from metrics_core.transform_utils import MovingAggregationParams, create_moving_aggregation
-from pydantic import BaseModel, Field
-
-from metrics_service.cache import metrics_cache
-from metrics_service.config import settings
+from metrics_service.utils.cache import metrics_cache
+from metrics_service.utils.config import settings
 
 router = APIRouter(prefix="/graphs", tags=["graphs"])
 

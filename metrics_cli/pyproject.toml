@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "metrics_cli"
+version = "0.0.1"
+description = "AI agent analytics metrics CLI"
+authors = ["Support <support@near.ai>"]
+readme = "README.md"
+packages = [
+    {include = "metrics_cli", from = ".."}
+]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+# CLI dependencies
+click = "^8.1.7"
+rich = "^13.7.0"
+# Package dependencies
+metrics_core = {path = "../metrics_core", develop = true}
+evaluation = {path = "../evaluation", develop = true}
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.11.0"
+ruff = "^0.5.2"
+
+[tool.poetry.scripts]
+metrics-cli = "metrics_cli.cli:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
