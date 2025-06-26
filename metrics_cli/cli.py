@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import click
+
 from evaluation.data import load_evaluation_entries
 from evaluation.table import EvaluationTableCreationParams, create_evaluation_table
 from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy

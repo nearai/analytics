@@ -4,6 +4,8 @@ import logging
 from typing import List
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.transform_utils import (
     GroupsRecommendationStrategy,
@@ -11,8 +13,6 @@ from metrics_core.transform_utils import (
     PruneMode,
     create_logs_list,
 )
-from pydantic import BaseModel, Field
-
 from metrics_service.utils.cache import metrics_cache
 from metrics_service.utils.config import settings
 

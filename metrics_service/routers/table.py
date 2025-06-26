@@ -3,9 +3,11 @@
 import logging
 from typing import List, Optional
 
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
 from evaluation.data import load_evaluation_entries
 from evaluation.table import EvaluationTableCreationParams, create_evaluation_table
-from fastapi import APIRouter, HTTPException
 from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.table import SortOrder, Table
@@ -15,8 +17,6 @@ from metrics_core.transform_utils import (
     TableCreationParams,
     create_table,
 )
-from pydantic import BaseModel, Field
-
 from metrics_service.utils.cache import metrics_cache
 from metrics_service.utils.config import settings
 
