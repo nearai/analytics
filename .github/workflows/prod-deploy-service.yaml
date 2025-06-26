@@ -36,7 +36,7 @@ jobs:
 
     - name: Update kubeconfig for EKS
       run: |
-        aws eks --region us-west-2 update-kubeconfig --name prod-analytics-service
+        aws eks --region us-west-2 update-kubeconfig --name prod-agent-cloud
 
     - name: Deploy to EKS
       run: |
