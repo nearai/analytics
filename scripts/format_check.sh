@@ -5,6 +5,7 @@
 # Usage: ./scripts/format_check.sh
 
 set -e
+pip install ruff
 poetry run ruff format --check --diff metrics_core
 poetry run ruff format --check --diff evaluation
 poetry run ruff format --check --diff metrics_cli
