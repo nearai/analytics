@@ -27,39 +27,16 @@ jobs:
     
     - name: Install dependencies
       run: |
-        cd metrics_core
-        poetry install
-        cd ..
-        cd evaluation
-        poetry install
-        cd ..
-        cd metrics_cli
-        poetry install
-        cd ..
-        cd metrics_service
-        poetry install
-        cd ..
+        cd metrics_core && pip install -e . && cd ..
+        cd evaluation && pip install -e . && cd ..
+        cd metrics_cli && pip install -e . && cd ..
+        cd metrics_service && pip install -e . && cd ..
         
     - name: Install Codespell
       run: pip install codespell
       
     - name: Run Codespell
       run: codespell --config .codespellrc
-      
-    - name: check lock file for inconsistencies
-      run: |
-        cd metrics_core
-        poetry check --lock
-        cd ..
-        cd evaluation
-        poetry check --lock
-        cd ..
-        cd metrics_cli
-        poetry check --lock
-        cd ..
-        cd metrics_service
-        poetry check --lock
-        cd ..
       
     - name: Lint Check
       run: |
