@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 def table_to_csv_string(table: Table) -> str:
-    """Convert table to CSV string using the same formatting as CLI."""
+    """Convert table to CSV string."""
     output = io.StringIO()
     writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
 

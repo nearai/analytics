@@ -70,6 +70,8 @@ curl "http://localhost:8000/api/v1/graphs/schema"
 
 This endpoint creates an aggregation table from your metrics data based on the provided parameters.
 
+There is also an endpoint for getting the visible data of the table in csv format: `POST /api/v1/table/aggregation_csv`
+
 #### Basic Example
 
 ```bash
@@ -197,6 +199,8 @@ The `column_tree` shows all available columns in a hierarchical structure:
 ### 2. Create Evaluation Table - POST /api/v1/table/evaluation
 
 This endpoint returns an evaluation table from available evaluation data, showing individual entries rather than aggregated data.
+
+There is also an endpoint for getting the visible data of the table in csv format: `POST /api/v1/table/evaluation_csv`
 
 #### Basic Example
 
