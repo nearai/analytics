@@ -74,6 +74,30 @@ This application validates that:
 - The dashboard requires data from the metrics API to display meaningful content
 - This example focuses on model comparison but the dashboard supports many other configurations
 
+## Testing NPM Package Correctness
+
+To test the correctness of the published npm package, you can use this application by switching to the published version:
+
+### For Testing Published Package
+
+1. Update the dependency in `package.json`:
+```json
+"@nearai/analytics-dashboard": "^0.1.4"
+```
+
+2. Reinstall dependencies:
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```
+
+3. Test the build:
+```bash
+npm run build
+```
+
+**Note**: The current configuration uses the local file version for development. Once the updated dashboard package is published with proper exports, the test can use the published version.
+
 ## Local Development Testing
 
 For testing local changes to the dashboard package before publishing:
