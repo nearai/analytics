@@ -16,6 +16,18 @@ This installs the pre-built dashboard component that can be imported directly in
 import { Dashboard } from '@nearai/analytics-dashboard';
 ```
 
+## Example Implementation
+
+For a complete working example of how to integrate the dashboard into your application, see the [Analytics Dashboard Test Application](../dashboard-test-app/) which demonstrates:
+
+- Proper package installation and setup
+- TypeScript configuration
+- CSS import requirements  
+- Model comparison dashboard configuration
+- Build and development workflow
+
+This test application serves as both a validation of the published npm package and a practical reference for integration.
+
 ## Basic Import and Usage
 
 ```jsx
@@ -515,3 +527,42 @@ function DebugDashboard() {
   return <Dashboard config={config} />;
 }
 ```
+
+## Testing NPM Package Correctness
+
+To validate that the published `@nearai/analytics-dashboard` npm package is working correctly, you can use the [Analytics Dashboard Test Application](../dashboard-test-app/) included in this repository:
+
+### Running the Test
+
+1. Navigate to the test application:
+```bash
+cd dashboard-test-app
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Run the application:
+```bash
+npm run dev
+```
+
+4. Open your browser to the displayed URL (typically `http://localhost:5173`)
+
+### What the Test Validates
+
+The test application verifies:
+- ✅ Package can be installed correctly
+- ✅ TypeScript types are properly exported  
+- ✅ Dashboard component can be imported and used
+- ✅ CSS styles are included and functional
+- ✅ Model comparison configuration works as expected
+- ✅ Build process completes successfully
+
+### Expected Output
+
+You should see a page titled "Analytics Dashboard Test Application" with a dashboard displaying the model comparison view. The dashboard will show proper styling and attempt to connect to the metrics service at `http://localhost:8000`.
+
+**Note**: For the dashboard to display data, ensure your metrics service is running. Without it, the dashboard will show loading states or empty tables, which is expected behavior.

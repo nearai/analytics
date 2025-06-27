@@ -52,10 +52,9 @@ export default {
     commonjs(),
     
     typescript({
-      tsconfig: './tsconfig.json',
+      tsconfig: './tsconfig.build.json',
       declaration: true,
       declarationDir: 'dist',
-      rootDir: 'src',
       exclude: ['**/*.test.*', '**/*.stories.*'],
     }),
   ],
