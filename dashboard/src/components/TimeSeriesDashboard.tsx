@@ -23,7 +23,9 @@ import {
   parseTimePeriodToHours,
   getApiUrl,
   fetchImportantMetrics,
-  ImportantMetricsResponse
+  ImportantMetricsResponse,
+  useResizablePanel,
+  ResizeHandle
 } from './shared/SharedComponents';
 
 interface TimeSeriesDashboardProps {
@@ -852,7 +854,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
 
   const [request, setRequest] = useState<TimeSeriesRequest>(savedRequest || getDefaultRequest());
   const [filterInput, setFilterInput] = useState('');
-  const [panelWidth, setPanelWidth] = useState(256);
   const [columnTree, setColumnTree] = useState<ColumnNode | null>(null);
   const [graphs, setGraphs] = useState<GraphConfiguration[]>(request.graphs || []);
   const [showGraphConfig, setShowGraphConfig] = useState<{ graphId: string; lineId?: string } | null>(null);
@@ -863,6 +864,13 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
 
   // Store the last refresh trigger value to detect changes
   const lastRefreshTrigger = useRef(refreshTrigger || 0);
+  
+  // Use shared resizable panel functionality (with larger max width for time series)
+  const { panelWidth, controlPanelRef, handleMouseDown } = useResizablePanel({
+    initialWidth: 256,
+    minWidth: 200,
+    maxWidth: 600
+  });
 
   // Load initial graphs from important metrics if no graphs exist
   const loadInitialGraphs = useCallback(async () => {
@@ -1136,26 +1144,6 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     setRequest(newRequest);
   };
 
-  // Resize panel functionality
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = panelWidth;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = Math.max(200, Math.min(600, startWidth + (e.clientX - startX)));
-      setPanelWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
   // Add empty graph at specific index
   const addGraph = (index?: number) => {
     const newGraph: GraphConfiguration = {
@@ -1213,6 +1201,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     <div className="flex h-screen bg-gray-100">
       {/* Control Panel */}
       <div 
+        ref={controlPanelRef}
         className="bg-gray-800 shadow-lg overflow-y-auto p-3 text-white relative dark-scrollbar" 
         style={{ width: `${panelWidth}px` }}
       >
@@ -1277,12 +1266,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         />
         
         {/* Resize handle */}
-        <div
-          className="absolute right-0 top-0 w-1 h-full cursor-ew-resize bg-gray-700 hover:bg-gray-600 flex items-center justify-center"
-          onMouseDown={handleMouseDown}
-        >
-          <div className="w-0.5 h-8 bg-gray-500"></div>
-        </div>
+        <ResizeHandle onMouseDown={handleMouseDown} variant="bar" />
       </div>
 
       {/* Main Content */}
