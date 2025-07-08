@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronDown, ChevronRight, X, ChevronUp, GripVertical, Download } from 'lucide-react';
+import { ChevronDown, ChevronRight, X, ChevronUp, Download } from 'lucide-react';
 import { TableRequest, TableResponse, ColumnNode, Column, DashboardConfig } from './shared/types';
 import {
   CollapsibleSection,
@@ -11,7 +11,9 @@ import {
   getStyleClass,
   getTimeFilter as sharedGetTimeFilter,
   mergeGlobalFilters,
-  getApiUrl
+  getApiUrl,
+  useResizablePanel,
+  ResizeHandle
 } from './shared/SharedComponents';
 
 // Component-specific utility functions
@@ -250,32 +252,16 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   const [filterInput, setFilterInput] = useState('');
   const [sliceInput, setSliceInput] = useState('');
   const [isColumnTreeOpen, setIsColumnTreeOpen] = useState(true);
-  const [panelWidth, setPanelWidth] = useState(256); // 256px = 16rem
 
   // Store the last refresh trigger value to detect changes
   const lastRefreshTrigger = useRef(refreshTrigger || 0);
 
-  // Resize panel
-  const isResizing = useRef(false);
-  
-  const handleMouseDown = (e: React.MouseEvent) => {
-    isResizing.current = true;
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    e.preventDefault();
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isResizing.current) return;
-    const newWidth = Math.max(200, Math.min(400, e.clientX));
-    setPanelWidth(newWidth);
-  };
-
-  const handleMouseUp = () => {
-    isResizing.current = false;
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-  };
+  // Use shared resizable panel functionality
+  const { panelWidth, controlPanelRef, handleMouseDown } = useResizablePanel({
+    initialWidth: 256,
+    minWidth: 200,
+    maxWidth: 400
+  });
 
   // Update parent component when request changes
   useEffect(() => {
@@ -619,6 +605,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     <div className="flex h-screen bg-gray-100">
       {/* Control Panel */}
       <div 
+        ref={controlPanelRef}
         className="bg-[#273141] shadow-lg overflow-y-auto p-3 text-white relative dark-scrollbar" 
         style={{ width: `${panelWidth}px` }}
       >
@@ -727,12 +714,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         )}
         
         {/* Resize handle */}
-        <div
-          className="absolute right-0 top-0 w-1 h-full cursor-ew-resize bg-gray-700 hover:bg-gray-600 flex items-center justify-center"
-          onMouseDown={handleMouseDown}
-        >
-          <GripVertical size={14} className="text-gray-500" />
-        </div>
+        <ResizeHandle onMouseDown={handleMouseDown} />
       </div>
 
       {/* Main Window */}

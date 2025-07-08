@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, X, Info, Plus, BarChart3, Table, FileText } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronDown, ChevronUp, X, Info, Plus, BarChart3, Table, FileText, GripVertical } from 'lucide-react';
 import { DashboardConfig, MetricSelection } from './types';
 
 // Collapsible Section Component
@@ -545,6 +545,84 @@ export const getTimeFilters = (timeFilterRecommendations?: string[]) => {
       filter: `time_end_utc:range:(${isoString}):`
     };
   });
+};
+
+// Resizable Panel Hook
+interface ResizablePanelOptions {
+  initialWidth?: number;
+  minWidth?: number;
+  maxWidth?: number;
+}
+
+export const useResizablePanel = (options: ResizablePanelOptions = {}) => {
+  const {
+    initialWidth = 256,
+    minWidth = 200,
+    maxWidth = 400
+  } = options;
+  
+  const [panelWidth, setPanelWidth] = useState(initialWidth);
+  const isResizing = useRef(false);
+  const controlPanelRef = useRef<HTMLDivElement>(null);
+  
+  const handleMouseDown = (e: React.MouseEvent) => {
+    isResizing.current = true;
+    e.preventDefault();
+    
+    // Get the panel's position when starting to resize
+    const panelRect = controlPanelRef.current?.getBoundingClientRect();
+    if (!panelRect) return;
+    
+    const panelLeft = panelRect.left;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing.current) return;
+      // Calculate width based on mouse position relative to panel's left edge
+      const relativeX = e.clientX - panelLeft;
+      const newWidth = Math.max(minWidth, Math.min(maxWidth, relativeX));
+      setPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      isResizing.current = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+  
+  return {
+    panelWidth,
+    setPanelWidth,
+    controlPanelRef,
+    handleMouseDown
+  };
+};
+
+// Resize Handle Component
+interface ResizeHandleProps {
+  onMouseDown: (e: React.MouseEvent) => void;
+  variant?: 'grip' | 'bar';
+}
+
+export const ResizeHandle: React.FC<ResizeHandleProps> = ({ 
+  onMouseDown, 
+  variant = 'grip' 
+}) => {
+  return (
+    <div
+      className="absolute right-0 top-0 w-1 h-full cursor-ew-resize bg-gray-700 hover:bg-gray-600 flex items-center justify-center"
+      onMouseDown={onMouseDown}
+    >
+      {variant === 'grip' ? (
+        <GripVertical size={14} className="text-gray-500" />
+      ) : (
+        <div className="w-0.5 h-8 bg-gray-500"></div>
+      )}
+    </div>
+  );
 };
 
 // Filters Section Component
