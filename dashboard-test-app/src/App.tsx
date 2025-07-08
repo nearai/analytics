@@ -1,4 +1,5 @@
 import { Dashboard } from '@nearai/analytics-dashboard';
+import '@nearai/analytics-dashboard/style.css'
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
       <div style={{ marginTop: '20px', border: '1px solid #ccc', borderRadius: '8px', padding: '10px' }}>
         <Dashboard config={{
           views: ['model_comparison'],
+          metrics_service_url: 'http://localhost:8000/api/v1/',
           viewConfigs: {
             model_comparison: {
               view_type: 'table',
