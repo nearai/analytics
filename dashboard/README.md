@@ -99,7 +99,7 @@ The build files will be in the `build/` directory.
 ## Development
 
 The app is built with:
-- React 18
+- React 23
 - TypeScript
 - Tailwind CSS
 - Lucide React (for icons)

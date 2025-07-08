@@ -34,8 +34,8 @@
   },
   "homepage": "https://github.com/nearai/analytics/tree/main/dashboard",
   "peerDependencies": {
-    "react": ">=18.0.0",
-    "react-dom": ">=18.0.0"
+    "react": ">=23.0.0",
+    "react-dom": ">=23.0.0"
   },
   "dependencies": {
     "lucide-react": "^0.321.0",
