@@ -772,7 +772,7 @@ export const ViewNavigation: React.FC<ViewNavigationProps> = ({
             <button
               key={viewId}
               onClick={() => onNavigateToView(viewId)}
-              className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
+              className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
             >
               <IconComponent size={16} />
               {viewName}
