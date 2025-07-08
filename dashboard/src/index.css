@@ -47,3 +47,16 @@ code {
 .bg-gray-800::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
 }
+
+/* Light scrollbars for control panel */
+.bg-gray-50::-webkit-scrollbar-track {
+  background: #f9fafb;
+}
+
+.bg-gray-50::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+}
+
+.bg-gray-50::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

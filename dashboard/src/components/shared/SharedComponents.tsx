@@ -11,15 +11,15 @@ export const CollapsibleSection: React.FC<{
   const [isOpen, setIsOpen] = useState(defaultOpen);
   
   return (
-    <div className="mb-3 bg-gray-700 rounded-lg overflow-hidden">
+    <div className="mb-3 bg-gray-200 rounded-lg overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full p-2 hover:bg-gray-600 text-white"
+        className="flex items-center justify-between w-full p-2 hover:bg-gray-300 text-gray-800"
       >
         <span className="font-medium text-sm">{title}</span>
         {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
-      {isOpen && <div className="p-3 bg-gray-750">{children}</div>}
+      {isOpen && <div className="p-3 bg-gray-100">{children}</div>}
     </div>
   );
 };
