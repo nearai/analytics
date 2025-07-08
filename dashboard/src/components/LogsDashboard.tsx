@@ -567,7 +567,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     <div className="flex h-screen bg-gray-100">
       {/* Control Panel */}
       <div 
-        className="bg-gray-800 shadow-lg overflow-y-auto p-3 text-white relative dark-scrollbar" 
+        className="bg-[#273141] shadow-lg overflow-y-auto p-3 text-white relative dark-scrollbar" 
         style={{ width: `${panelWidth}px` }}
       >
         <h2 className="text-lg font-bold mb-3">Controls</h2>
