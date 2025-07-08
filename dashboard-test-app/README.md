@@ -54,12 +54,14 @@ To test the correctness of the published npm package, you can use this applicati
 2. Reinstall dependencies:
 ```bash
 rm -rf node_modules package-lock.json
+npm upgrade
 npm install
 ```
 
 3. Test the build:
 ```bash
 npm run build
+npm run dev
 ```
 
 **Note**: The current configuration uses the local file version for development. Once the updated dashboard package is published with proper exports, the test can use the published version.
