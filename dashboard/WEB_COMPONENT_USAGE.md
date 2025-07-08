@@ -14,6 +14,7 @@ This installs the pre-built dashboard component that can be imported directly in
 
 ```jsx
 import { Dashboard } from '@nearai/analytics-dashboard';
+import '@nearai/analytics-dashboard/style.css'
 ```
 
 ## Example Implementation
@@ -32,13 +33,25 @@ This test application serves as both a validation of the published npm package a
 
 ```jsx
 import { Dashboard } from '@nearai/analytics-dashboard';
+import '@nearai/analytics-dashboard/style.css'
 
-// Basic usage with default configuration
+// Basic example usage
 function App() {
   return (
     <div>
       <h1>My Application</h1>
-      <Dashboard />
+      <Dashboard config={{
+          views: ['model_comparison'],
+          metrics_service_url: 'http://localhost:8000/api/v1/',
+          viewConfigs: {
+            model_comparison: {
+              view_type: 'table',
+              view_name: 'Compare Models',
+              metricSelection: 'COMPARE_MODELS',
+              refreshRate: undefined
+            }
+          }
+        }} />
     </div>
   );
 }
