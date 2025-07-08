@@ -1213,10 +1213,10 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     <div className="flex h-screen bg-gray-100">
       {/* Control Panel */}
       <div 
-        className="bg-gray-50 shadow-lg overflow-y-auto p-3 text-gray-800 relative light-scrollbar" 
+        className="bg-gray-400 shadow-lg overflow-y-auto p-3 text-white relative light-scrollbar" 
         style={{ width: `${panelWidth}px` }}
       >
-        <h2 className="text-lg font-bold mb-3">Controls</h2>
+        <h2 className="text-lg font-bold mb-3 text-gray-700">Controls</h2>
         
         {/* Navigation to other views */}
         <ViewNavigation
@@ -1278,10 +1278,10 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
         
         {/* Resize handle */}
         <div
-          className="absolute right-0 top-0 w-1 h-full cursor-ew-resize bg-gray-700 hover:bg-gray-600 flex items-center justify-center"
+          className="absolute right-0 top-0 w-1 h-full cursor-ew-resize bg-gray-300 hover:bg-gray-400 flex items-center justify-center"
           onMouseDown={handleMouseDown}
         >
-          <div className="w-0.5 h-8 bg-gray-500"></div>
+          <div className="w-0.5 h-8 bg-gray-300"></div>
         </div>
       </div>
 

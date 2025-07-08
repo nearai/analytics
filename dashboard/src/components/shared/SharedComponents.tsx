@@ -11,15 +11,15 @@ export const CollapsibleSection: React.FC<{
   const [isOpen, setIsOpen] = useState(defaultOpen);
   
   return (
-    <div className="mb-3 bg-gray-200 rounded-lg overflow-hidden">
+    <div className="mb-3 bg-gray-500 rounded-lg overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full p-2 hover:bg-gray-300 text-gray-800"
+        className="flex items-center justify-between w-full p-2 hover:bg-gray-600 text-white"
       >
         <span className="font-medium text-sm">{title}</span>
         {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
-      {isOpen && <div className="p-3 bg-gray-100">{children}</div>}
+      {isOpen && <div className="p-3">{children}</div>}
     </div>
   );
 };
@@ -205,7 +205,7 @@ const parameterManagerThemes: Record<'blue' | 'green' | 'lightBlue', ParameterMa
     addButtonText: 'text-white',
     helpButtonText: 'text-blue-400',
     helpButtonHover: 'hover:text-blue-300',
-    helpContentBackground: 'bg-gray-600'
+    helpContentBackground: 'bg-gray-700'
   },
   green: {
     itemBackground: 'bg-green-900',
@@ -219,7 +219,7 @@ const parameterManagerThemes: Record<'blue' | 'green' | 'lightBlue', ParameterMa
     addButtonText: 'text-white',
     helpButtonText: 'text-blue-400',
     helpButtonHover: 'hover:text-blue-300',
-    helpContentBackground: 'bg-gray-600'
+    helpContentBackground: 'bg-gray-700'
   },
   lightBlue: {
     itemBackground: 'bg-blue-200',
@@ -694,7 +694,7 @@ export const ViewNavigation: React.FC<ViewNavigationProps> = ({
             <button
               key={viewId}
               onClick={() => onNavigateToView(viewId)}
-              className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-purple-900 text-white py-2 px-4 rounded-md transition-colors text-sm"
+              className="w-full flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-800 text-white py-2 px-4 rounded-md transition-colors text-sm"
             >
               <IconComponent size={16} />
               {viewName}
