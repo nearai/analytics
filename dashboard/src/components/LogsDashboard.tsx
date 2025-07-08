@@ -373,24 +373,34 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
   
   // Resize panel
   const isResizing = useRef(false);
+  const controlPanelRef = useRef<HTMLDivElement>(null);
   
   const handleMouseDown = (e: React.MouseEvent) => {
     isResizing.current = true;
+    e.preventDefault();
+    
+    // Get the panel's position when starting to resize
+    const panelRect = controlPanelRef.current?.getBoundingClientRect();
+    if (!panelRect) return;
+    
+    const panelLeft = panelRect.left;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing.current) return;
+      // Calculate width based on mouse position relative to panel's left edge
+      const relativeX = e.clientX - panelLeft;
+      const newWidth = Math.max(200, Math.min(400, relativeX));
+      setPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      isResizing.current = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-    e.preventDefault();
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isResizing.current) return;
-    const newWidth = Math.max(200, Math.min(400, e.clientX));
-    setPanelWidth(newWidth);
-  };
-
-  const handleMouseUp = () => {
-    isResizing.current = false;
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
   };
 
   // Update parent component when request changes
@@ -567,6 +577,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     <div className="flex h-screen bg-gray-100">
       {/* Control Panel */}
       <div 
+        ref={controlPanelRef}
         className="bg-gray-800 shadow-lg overflow-y-auto p-3 text-white relative dark-scrollbar" 
         style={{ width: `${panelWidth}px` }}
       >

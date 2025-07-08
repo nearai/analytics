@@ -863,6 +863,9 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
 
   // Store the last refresh trigger value to detect changes
   const lastRefreshTrigger = useRef(refreshTrigger || 0);
+  
+  // Ref for the control panel to handle resizing
+  const controlPanelRef = useRef<HTMLDivElement>(null);
 
   // Load initial graphs from important metrics if no graphs exist
   const loadInitialGraphs = useCallback(async () => {
@@ -1139,11 +1142,17 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   // Resize panel functionality
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = panelWidth;
+    
+    // Get the panel's position when starting to resize
+    const panelRect = controlPanelRef.current?.getBoundingClientRect();
+    if (!panelRect) return;
+    
+    const panelLeft = panelRect.left;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = Math.max(200, Math.min(600, startWidth + (e.clientX - startX)));
+      // Calculate width based on mouse position relative to panel's left edge
+      const relativeX = e.clientX - panelLeft;
+      const newWidth = Math.max(200, Math.min(600, relativeX));
       setPanelWidth(newWidth);
     };
 
@@ -1213,6 +1222,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
     <div className="flex h-screen bg-gray-100">
       {/* Control Panel */}
       <div 
+        ref={controlPanelRef}
         className="bg-gray-800 shadow-lg overflow-y-auto p-3 text-white relative dark-scrollbar" 
         style={{ width: `${panelWidth}px` }}
       >
