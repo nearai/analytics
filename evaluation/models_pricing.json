@@ -1,0 +1,189 @@
+{
+  "pricing_info": {
+    "description": "LLM model pricing in USD per 1 million tokens",
+    "last_updated": "2025-07-09"
+  },
+  "organizations": {
+    "Alibaba": {
+      "open_source": true
+    },
+    "Anthropic": {
+      "models": {
+        "claude-4-opus-20250514-thinking-32k": {
+          "input_tokens_cost": 15.00,
+          "input_tokens_cost_with_cache_enabled": 18.75,
+          "cached_input_tokens_cost": 1.50,
+          "output_tokens_cost": 75.00
+        },
+        "claude-4-sonnet-20250514-thinking-64k": {
+          "input_tokens_cost": 3.00,
+          "input_tokens_cost_with_cache_enabled": 3.75,
+          "cached_input_tokens_cost": 0.30,
+          "output_tokens_cost": 15.00
+        },
+        "claude-3-7-sonnet-20250219-thinking-64k": {
+          "input_tokens_cost": 3.00,
+          "input_tokens_cost_with_cache_enabled": 3.75,
+          "cached_input_tokens_cost": 0.30,
+          "output_tokens_cost": 15.00
+        },
+        "claude-4-opus-20250514-base": {
+          "input_tokens_cost": 15.00,
+          "input_tokens_cost_with_cache_enabled": 18.75,
+          "cached_input_tokens_cost": 1.50,
+          "output_tokens_cost": 75.00
+        },
+        "claude-4-sonnet-20250514-base": {
+          "input_tokens_cost": 3.00,
+          "input_tokens_cost_with_cache_enabled": 3.75,
+          "cached_input_tokens_cost": 0.30,
+          "output_tokens_cost": 15.00
+        },
+        "claude-3-7-sonnet-20250219-base": {
+          "input_tokens_cost": 3.00,
+          "input_tokens_cost_with_cache_enabled": 3.75,
+          "cached_input_tokens_cost": 0.30,
+          "output_tokens_cost": 15.00
+        },
+        "claude-3-5-sonnet-20241022": {
+          "input_tokens_cost": 3.00,
+          "input_tokens_cost_with_cache_enabled": 3.75,
+          "cached_input_tokens_cost": 0.30,
+          "output_tokens_cost": 15.00
+        },
+        "claude-3-5-haiku-20241022": {
+          "input_tokens_cost": 0.80,
+          "input_tokens_cost_with_cache_enabled": 1.00,
+          "cached_input_tokens_cost": 0.08,
+          "output_tokens_cost": 4.00
+        }
+      }
+    },
+    "Cohere": {
+      "open_source": true
+    },
+    "DeepSeek": {
+      "open_source": true
+    },
+    "Google": {
+      "models": {
+        "gemini-2.5-pro-preview-06-05-highthinking": {
+          "input_tokens_cost": 1.25,
+          "cached_input_tokens_cost": 0.31,
+          "output_tokens_cost": 10.00,
+          "notes": "Free Tier Available. Paid Tier Pricing for prompts ≤200k tokens. Higher cost for >200k tokens."
+        },
+        "gemini-2.5-pro-preview-06-05-default": {
+          "input_tokens_cost": 1.25,
+          "cached_input_tokens_cost": 0.31,
+          "output_tokens_cost": 10.00,
+          "notes": "Free Tier Available. Paid Tier Pricing for prompts ≤200k tokens. Higher cost for >200k tokens."
+        },
+        "gemini-2.5-flash-preview-05-20": {
+          "input_tokens_cost": 0.30,
+          "cached_input_tokens_cost": 0.075,
+          "output_tokens_cost": 2.50,
+          "notes": "Free Tier Available. Paid Tier Pricing."
+        },
+        "gemini-2.5-flash-lite-preview-06-17-highthinking": {
+          "input_tokens_cost": 0.10,
+          "cached_input_tokens_cost": 0.025,
+          "output_tokens_cost": 0.40,
+          "notes": "Free Tier Available. Paid Tier Pricing."
+        },
+        "gemini-2.0-flash-lite-001": {
+          "input_tokens_cost": 0.075,
+          "output_tokens_cost": 0.30,
+          "notes": "Free Tier Available. Paid Tier Pricing."
+        },
+        "gemma-3-27b-it": {
+          "open_source": true
+        },
+        "gemma-3-12b-it": {
+          "open_source": true
+        },
+        "gemma-3n-e4b-it": {
+          "open_source": true
+        },
+        "gemma-3-4b-it": {
+          "open_source": true
+        },
+        "gemma-3n-e2b-it": {
+          "open_source": true
+        }
+      }
+    },
+    "Meta": {
+      "open_source": true
+    },
+    "Microsoft": {
+      "open_source": true
+    },
+    "Mistral AI": {
+      "open_source": true
+    },
+    "OpenAI": {
+      "models": {
+        "o3-pro-2025-06-10-high": {
+          "input_tokens_cost": 20.00,
+          "output_tokens_cost": 80.00
+        },
+        "o3-2025-04-16-high": {
+          "input_tokens_cost": 2.00,
+          "cached_input_tokens_cost": 0.50,
+          "output_tokens_cost": 8.00
+        },
+        "o3-2025-04-16-medium": {
+          "input_tokens_cost": 2.00,
+          "cached_input_tokens_cost": 0.50,
+          "output_tokens_cost": 8.00
+        },
+        "o4-mini-2025-04-16-high": {
+          "input_tokens_cost": 1.10,
+          "cached_input_tokens_cost": 0.275,
+          "output_tokens_cost": 4.40
+        },
+        "o4-mini-2025-04-16-medium": {
+          "input_tokens_cost": 1.10,
+          "cached_input_tokens_cost": 0.275,
+          "output_tokens_cost": 4.40
+        },
+        "gpt-4.5-preview-2025-02-27": {
+          "input_tokens_cost": 75.00,
+          "cached_input_tokens_cost": 37.50,
+          "output_tokens_cost": 150.00
+        },
+        "gpt-4.1-2025-04-14": {
+          "input_tokens_cost": 2.00,
+          "cached_input_tokens_cost": 0.50,
+          "output_tokens_cost": 8.00
+        },
+        "chatgpt-4o-latest-2025-03-27": {
+          "input_tokens_cost": 5.00,
+          "output_tokens_cost": 15.00
+        },
+        "gpt-4.1-mini-2025-04-14": {
+          "input_tokens_cost": 0.4,
+          "cached_input_tokens_cost": 0.1,
+          "output_tokens_cost": 1.60
+        },
+        "gpt-4o-2024-11-20": {
+          "input_tokens_cost": 2.5,
+          "cached_input_tokens_cost": 1.25,
+          "output_tokens_cost": 10.00
+        },
+        "gpt-4.1-nano-2025-04-14": {
+          "input_tokens_cost": 0.10,
+          "cached_input_tokens_cost": 0.025,
+          "output_tokens_cost": 0.40
+        }
+      }
+    },
+    "Tencent": {
+      "open_source": true
+    },
+    "xAI": {
+      "open_source": true
+    }
+  }
+}
