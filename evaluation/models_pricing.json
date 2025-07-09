@@ -13,7 +13,7 @@
           "input_tokens_cost": 15.00,
           "input_tokens_cost_with_cache_enabled": 18.75,
           "cached_input_tokens_cost": 1.50,
-          "output_tokens_cost": 75.00,
+          "output_tokens_cost": 75.00
         },
         "claude-4-sonnet-20250514-thinking-64k": {
           "input_tokens_cost": 3.00,
