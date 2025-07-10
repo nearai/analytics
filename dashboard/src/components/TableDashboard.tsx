@@ -191,7 +191,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
       return {
         filters: [],
         slices: [],
-        column_selections: ['/metrics/livebench/average', '/metrics/livebench/categories/', '/metrics/livebench/subcategories/agentic_coding/python', '/metrics/livebench/subcategories/agentic_coding/typescript'],
+        column_selections: ['/metadata/price_output_tokens_1m', '/metrics/livebench/average', '/metrics/livebench/categories/', '/metrics/livebench/subcategories/agentic_coding/python', '/metrics/livebench/subcategories/agentic_coding/typescript'],
         sort_by_column: '/metrics/livebench/average'
       };
     }

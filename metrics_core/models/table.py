@@ -33,10 +33,13 @@ class TableCell:
         self.values = flatten_values(self.values)
         self.details = flatten_values(self.details)
 
-    def remove_subfields(self, subfields_to_remove: List[str]) -> None:
-        """Remove `subfields_to_remove` from `self.values` and `self.details`."""
-        remove_subfields(self.values, subfields_to_remove)
-        remove_subfields(self.details, subfields_to_remove)
+    def remove_subfields(self, subfields_to_remove: List[str], is_row_name: bool) -> None:
+        """Remove `subfields_to_remove` from inner data."""
+        if is_row_name:
+            remove_subfields(self.values, subfields_to_remove)
+            remove_subfields(self.details, subfields_to_remove)
+        else:
+            remove_subfields(self.to_dict(), subfields_to_remove)
 
 
 @dataclass
@@ -86,8 +89,8 @@ class Table:
     def remove_subfields(self, subfields_to_remove: List[str]) -> None:
         """Remove `subfields_to_remove` from `values` and `details` of each cell."""
         for row in self.rows:
-            for cell in row:
-                cell.remove_subfields(subfields_to_remove)
+            for i, cell in enumerate(row):
+                cell.remove_subfields(subfields_to_remove, i == 0)
 
     def get_table_values(self) -> List[List[Dict[str, Any]]]:
         """Return `values` of each cell. Includes headers and row names."""
