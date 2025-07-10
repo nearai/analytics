@@ -19,8 +19,8 @@ def _load_pricing_data() -> Dict[str, Any]:
 
 def _populate_pricing_fields(entry: CanonicalMetricsEntry, pricing_data: Dict[str, Any]) -> None:
     """Populate pricing fields in entry metadata based on organization and model_api_name."""
-    organization = entry.metadata.get("organization")
-    model_api_name = entry.metadata.get("model_api_name")
+    organization = entry.fetch_value("organization")
+    model_api_name = entry.fetch_value("model_api_name")
 
     if not organization or not model_api_name:
         return
@@ -31,28 +31,28 @@ def _populate_pricing_fields(entry: CanonicalMetricsEntry, pricing_data: Dict[st
     # Get last_updated from pricing_info
     last_updated = pricing_data.get("pricing_info", {}).get("last_updated")
 
-    # Check if organization is open source
-    org_open_source = org_data.get("open_source", False)
-
     # Get model-specific data
     models = org_data.get("models", {})
     model_data = models.get(model_api_name, {})
 
-    # Check if specific model is open source (overrides organization setting)
+    # Check if open source
+    org_open_source = org_data.get("open_source")
     model_open_source = model_data.get("open_source")
     is_open_source = model_open_source if model_open_source is not None else org_open_source
 
     # Populate open_source field
-    if org_open_source or model_open_source is not None:
+    if is_open_source is not None:
         entry.metadata["open_source"] = is_open_source
 
     # Populate price_input_tokens_1m
     input_cost = model_data.get("input_tokens_cost")
-    if input_cost is not None or is_open_source:
+    if input_cost is None and is_open_source:
+        input_cost = 0
+    if input_cost is not None:
         entry.metadata["price_input_tokens_1m"] = {
             "description": "LLM model pricing in USD per 1 million input tokens",
             "last_updated": last_updated,
-            "value": 0 if is_open_source else input_cost
+            "value": input_cost,
         }
 
     # Populate price_input_tokens_1m_with_cache
@@ -61,7 +61,7 @@ def _populate_pricing_fields(entry: CanonicalMetricsEntry, pricing_data: Dict[st
         entry.metadata["price_input_tokens_1m_with_cache"] = {
             "description": "LLM model pricing in USD per 1 million input tokens with cache enabled",
             "last_updated": last_updated,
-            "value": input_cost_with_cache
+            "value": input_cost_with_cache,
         }
 
     # Populate price_input_tokens_1m_cached
@@ -70,16 +70,18 @@ def _populate_pricing_fields(entry: CanonicalMetricsEntry, pricing_data: Dict[st
         entry.metadata["price_input_tokens_1m_cached"] = {
             "description": "LLM model pricing in USD per 1 million cached input tokens",
             "last_updated": last_updated,
-            "value": cached_input_cost
+            "value": cached_input_cost,
         }
 
     # Populate price_output_tokens_1m
     output_cost = model_data.get("output_tokens_cost")
-    if output_cost is not None or is_open_source:
+    if output_cost is None and is_open_source:
+        output_cost = 0
+    if output_cost is not None:
         entry.metadata["price_output_tokens_1m"] = {
             "description": "LLM model pricing in USD per 1 million output tokens",
             "last_updated": last_updated,
-            "value": 0 if is_open_source else output_cost
+            "value": output_cost,
         }
 
     # Populate price_notes
@@ -91,8 +93,6 @@ def _populate_pricing_fields(entry: CanonicalMetricsEntry, pricing_data: Dict[st
 def load_evaluation_entries() -> List[CanonicalMetricsEntry]:
     """Load available evaluation entries."""
     entries = load_logs_list_from_disk(Path(LIVEBENCH_LEADERBOARD_PATH).expanduser())
-    # Read `evaluation/models_pricing.json` file and populate available pricing fields in `entry.metadata`.
-    # Use "organization" and "model_api_name" fields in metadata as keys.
 
     try:
         pricing_data = _load_pricing_data()
