@@ -1,6 +1,6 @@
 {
   "name": "@nearai/analytics-dashboard",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "A configurable React dashboard component for analytics with graphs, tables, and logs views",
   "type": "module",
   "main": "./dist/index.cjs",
