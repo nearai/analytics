@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "lucide-react": "^0.321.0",
+    "postcss-prefixwrap": "^1.56.0",
     "recharts": "^2.15.3"
   },
   "scripts": {
@@ -65,6 +66,9 @@
     ]
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-typescript": "^11.0.0",
     "@tailwindcss/forms": "^0.5.7",
     "@types/node": "^20.11.0",
     "@types/react": "^18.2.47",
@@ -74,12 +78,9 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "^5.0.1",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^4.9.5",
     "rollup": "^3.0.0",
-    "@rollup/plugin-typescript": "^11.0.0",
-    "@rollup/plugin-node-resolve": "^15.0.0",
-    "@rollup/plugin-commonjs": "^25.0.0",
-    "rollup-plugin-postcss": "^4.0.0"
+    "rollup-plugin-postcss": "^4.0.0",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^4.9.5"
   }
 }
