@@ -197,7 +197,11 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
     }
   };
 
-  return renderCurrentView();
+  return (
+    <div className="nearai-analytics-dashboard">
+      {renderCurrentView()}
+    </div>
+  );
 };
 
 export default Dashboard;
