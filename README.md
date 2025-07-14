@@ -77,6 +77,7 @@ Run a web application for querying and visualizing analytics metrics data. Featu
 ```bash
 cd dashboard
 npm install
+npm run build-css
 npm start
 ```
 Will open a dashboard at `http://localhost:3000`
@@ -140,6 +141,7 @@ Visualize, analyze, and compare agent & model performances using the collected m
 ```
 cd dashboard
 npm install
+npm run build-css
 npm start
 ```
 

@@ -17,6 +17,7 @@ cd analytics/dashboard
 2. Install dependencies:
 ```bash
 npm install
+npm run build-css
 ```
 
 ## Running the Application
