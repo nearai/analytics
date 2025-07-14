@@ -1,4 +1,3 @@
-/* Remove global @tailwind base - this causes global styling issues */
 @tailwind components;
 @tailwind utilities;
 
