@@ -11,8 +11,7 @@
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs",
       "types": "./dist/index.d.ts"
-    },
-    "./style.css": "./dist/index.css"
+    }
   },
   "files": [
     "dist"
@@ -39,12 +38,14 @@
   },
   "dependencies": {
     "lucide-react": "^0.321.0",
+    "postcss-prefixwrap": "^1.56.0",
     "recharts": "^2.15.3"
   },
   "scripts": {
     "start": "react-scripts start",
     "test": "react-scripts test",
-    "build": "rollup -c",
+    "build-css": "node scripts/build-css.js",
+    "build": "npm run build-css && rollup -c && node scripts/post-build.js",
     "prepublishOnly": "npm run build"
   },
   "eslintConfig": {
@@ -65,6 +66,9 @@
     ]
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-typescript": "^11.0.0",
     "@tailwindcss/forms": "^0.5.7",
     "@types/node": "^20.11.0",
     "@types/react": "^18.2.47",
@@ -74,12 +78,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "^5.0.1",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^4.9.5",
     "rollup": "^3.0.0",
-    "@rollup/plugin-typescript": "^11.0.0",
-    "@rollup/plugin-node-resolve": "^15.0.0",
-    "@rollup/plugin-commonjs": "^25.0.0",
-    "rollup-plugin-postcss": "^4.0.0"
+    "tailwindcss": "^3.4.1",
+    "typescript": "^4.9.5"
   }
 }

@@ -1,6 +1,3 @@
-// Import CSS
-import '../index.css';
-
 // Export all components for easy importing
 export { default as Dashboard } from './Dashboard';
 export { default as TableDashboard } from './TableDashboard';
