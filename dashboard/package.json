@@ -11,8 +11,7 @@
       "import": "./dist/index.esm.js",
       "require": "./dist/index.cjs",
       "types": "./dist/index.d.ts"
-    },
-    "./style.css": "./dist/index.css"
+    }
   },
   "files": [
     "dist"
@@ -45,7 +44,8 @@
   "scripts": {
     "start": "react-scripts start",
     "test": "react-scripts test",
-    "build": "rollup -c",
+    "build-css": "node scripts/build-css.js",
+    "build": "npm run build-css && rollup -c && node scripts/post-build.js",
     "prepublishOnly": "npm run build"
   },
   "eslintConfig": {

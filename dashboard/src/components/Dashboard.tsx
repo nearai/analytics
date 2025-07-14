@@ -3,6 +3,7 @@ import TimeSeriesDashboard from './TimeSeriesDashboard';
 import TableDashboard from './TableDashboard';
 import LogsDashboard from './LogsDashboard';
 import { DashboardConfig, ViewConfig, TimeSeriesRequest, TableRequest, LogsRequest } from './shared/types';
+import { DASHBOARD_CSS } from '../dashboard-styles';
 
 interface DashboardProps {
   config?: DashboardConfig;
@@ -198,9 +199,12 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
   };
 
   return (
-    <div className="nearai-analytics-dashboard">
-      {renderCurrentView()}
-    </div>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: DASHBOARD_CSS }} />
+      <div className="nearai-dashboard">
+        {renderCurrentView()}
+      </div>
+    </>
   );
 };
 

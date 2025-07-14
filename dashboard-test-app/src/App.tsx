@@ -1,5 +1,4 @@
 import { Dashboard } from '@nearai/analytics-dashboard';
-import '@nearai/analytics-dashboard/style.css'
 
 function App() {
   return (
