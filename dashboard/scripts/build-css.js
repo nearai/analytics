@@ -19,7 +19,7 @@ const css = `
 postcss([
   tailwindcss(),
   autoprefixer(),
-  prefixwrap('.nearai-dashboard')
+  prefixwrap('.analytics-dashboard')
 ])
   .process(css, { from: undefined })
   .then(result => {

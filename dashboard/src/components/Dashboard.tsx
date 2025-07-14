@@ -201,7 +201,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: DASHBOARD_CSS }} />
-      <div className="nearai-dashboard">
+      <div className="analytics-dashboard">
         {renderCurrentView()}
       </div>
     </>
