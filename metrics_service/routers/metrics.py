@@ -107,17 +107,9 @@ async def get_important_metrics(request: ImportantMetricsRequest):
     """
     try:
         logger.info(f"Request received: {request}")
-        # Check if metrics path is configured
-        if not settings.has_metrics_path():
-            raise HTTPException(
-                status_code=503,
-                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
-            )
-        # Get metrics path from settings
-        metrics_path = settings.get_metrics_path()
-
-        # Load entries from cache (or disk if not cached)
-        entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries(metrics_path)
+        
+        # Load entries from cache based on current configuration
+        entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries_from_config()
 
         if not entries:
             raise HTTPException(status_code=404, detail="No metrics entries found")
@@ -139,10 +131,10 @@ async def get_important_metrics(request: ImportantMetricsRequest):
     except HTTPException:
         raise  # Re-raise HTTPException without wrapping
     except ValueError as e:
-        if "METRICS_BASE_PATH is not set" in str(e):
+        if "METRICS_BASE_PATH is not set" in str(e) or "Agent hosting" in str(e):
             raise HTTPException(
                 status_code=503,
-                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
+                detail="Data source not configured. Set either METRICS_BASE_PATH or both AGENT_HOSTING_URL and AGENT_HOSTING_API_KEY.",
             ) from None
         raise HTTPException(status_code=400, detail=str(e))  # noqa: B904
     except FileNotFoundError as e:
