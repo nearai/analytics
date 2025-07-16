@@ -35,7 +35,7 @@ def _process_env_vars_list(env_vars: List[Dict[str, Any]]) -> Dict[str, Any]:
     return env_vars_dict
 
 
-def _process_env_vars(header: str, env_vars: Dict[str, any], verbose: bool) -> Dict[str, Any]:
+def _process_env_vars(header: str, env_vars: Dict[str, Any], verbose: bool) -> Dict[str, Any]:
     if isinstance(env_vars, list):
         env_vars = _process_env_vars_list(env_vars)
     lines: List[str] = []
