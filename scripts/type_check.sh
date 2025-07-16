@@ -6,7 +6,7 @@
 
 set -e
 pip install mypy
-poetry run mypy --config pyproject.toml metrics_core
-poetry run mypy --config pyproject.toml evaluation
-poetry run mypy --config pyproject.toml metrics_cli
-poetry run mypy --config pyproject.toml metrics_service
+poetry run mypy --config pyproject.toml metrics_core --install-types
+poetry run mypy --config pyproject.toml evaluation --install-types
+poetry run mypy --config pyproject.toml metrics_cli --install-types
+poetry run mypy --config pyproject.toml metrics_service --install-types
