@@ -5,6 +5,11 @@ description = "AI Agent Analytics"
 authors = ["Support <support@near.ai>"]
 readme = "README.md"
 
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.11.0"
+ruff = "^0.5.2"
+types-requests = "^2.31.0"
+
 [tool.ruff]
 exclude = [
     ".git",

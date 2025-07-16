@@ -11,10 +11,12 @@ packages = [
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
 python-dateutil = "^2.8.2"
+requests = "^2.31.0"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.11.0"
 ruff = "^0.5.2"
+types-requests = "^2.31.0"
 
 [build-system]
 requires = ["poetry-core"]

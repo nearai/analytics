@@ -6,6 +6,10 @@ import click
 
 from evaluation.data import load_evaluation_entries
 from evaluation.table import EvaluationTableCreationParams, create_evaluation_table
+from metrics_core.agent_hosting_analytics import (
+    fetch_agent_hosting_analytics_data,
+    process_agent_hosting_analytics_data,
+)
 from metrics_core.conversions.aggregate import AggregateAbsentMetricsStrategy
 from metrics_core.conversions.base import BaseConversion
 from metrics_core.conversions.determine_pruning import DeterminePruningConversion
@@ -255,6 +259,32 @@ def evaluation_table(ctx, to_path: Path, filters: str):
     except Exception as e:
         print(f"Failed to write CSV: {e}")
         return
+
+
+@cli.command(name="fetch-agent-hosting-analytics")
+@click.argument("agent_hosting_url", type=str)
+@click.argument("api_key", type=str)
+@click.argument("to_path", type=click.Path(path_type=Path))
+@click.pass_context
+def fetch_agent_hosting_analytics(ctx, agent_hosting_url: str, api_key: str, to_path: Path):
+    """Fetch analytics data from the API and transform it into analytics entries."""
+    verbose = ctx.obj.get("verbose", False)
+    print("Fetching analytics data...")
+
+    # Fetch data from API
+    raw_data = fetch_agent_hosting_analytics_data(agent_hosting_url, api_key, verbose)
+
+    if verbose:
+        print("Raw data contains:")
+        print(f"  - {len(raw_data.get('agent_developer_entries', []))} agent developer entries")
+        print(f"  - {len(raw_data.get('user_entries', []))} user entries")
+
+    # Transform data
+    print("Processing raw analytics entries...")
+    analytics = process_agent_hosting_analytics_data(raw_data, verbose)
+
+    print(f"Created {len(analytics.entries)} analytics entries")
+    save_logs_list_to_disk(to_path, to_path, analytics.entries)
 
 
 def main():
