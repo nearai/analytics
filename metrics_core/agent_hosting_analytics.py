@@ -25,7 +25,7 @@ def fetch_agent_hosting_analytics_data(agent_hosting_url: str, api_key: str, ver
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error fetching data: {e}")
-        sys.exit(1)
+        raise FetchDataError(f"Failed to fetch data from {url}: {e}")
 
 
 def _process_env_vars_list(env_vars: List[Dict[str, Any]]) -> Dict[str, Any]:
