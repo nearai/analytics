@@ -26,15 +26,23 @@ def start_service():
     reload = os.getenv("RELOAD", "false").lower() == "true"
     log_level = os.getenv("LOG_LEVEL", "info").lower()
 
-    # Get metrics path and validate
+    # Get configuration and validate
     metrics_path = os.getenv("METRICS_BASE_PATH")
+    agent_hosting_url = os.getenv("AGENT_HOSTING_URL")
+    agent_hosting_api_key = os.getenv("AGENT_HOSTING_API_KEY")
 
     print("Starting Metrics Service...")
     print(f"Host: {host}:{port}")
+    
+    # Show data source configuration
     if metrics_path:
         print(f"Performance metrics path: {metrics_path}")
+    elif agent_hosting_url:
+        print(f"Agent hosting URL: {agent_hosting_url}")
+        print("Performance metrics: Fetched from agent hosting service")
     else:
         print("Performance metrics path: Not configured (will be fetched from service URL when available)")
+    
     print("Evaluation metrics: Stored locally in ~/.analytics/")
     print(f"Reload: {reload}")
     print(f"Log level: {log_level}")
@@ -50,6 +58,9 @@ def start_service():
             # List some stats about the metrics directory
             metrics_files = list(Path(metrics_path).rglob("*.json"))
             print(f"\nFound {len(metrics_files)} JSON files in performance metrics directory")
+    elif agent_hosting_url:
+        print(f"\nAgent hosting service configured.")
+        print("Performance metrics will be fetched from the agent hosting API.")
     else:
         print("\nNote: Performance metrics path not configured.")
         print("Performance metrics will be fetched from service URL when configured.")
@@ -77,6 +88,17 @@ def main():
     # Parse arguments and start service
     args = parse_arguments()
 
+    # Validate mutually exclusive arguments
+    if args.metrics_path and args.agent_hosting_url:
+        print("ERROR: --metrics-path and --agent_hosting_url cannot be provided together.")
+        print("Choose either local metrics path OR agent hosting service, not both.")
+        sys.exit(1)
+
+    # Validate agent hosting arguments
+    if args.agent_hosting_url and not args.agent_hosting_api_key:
+        print("ERROR: --agent_hosting_api_key is required when --agent_hosting_url is provided.")
+        sys.exit(1)
+
     # Validate metrics path exists if provided (but don't fail)
     metrics_path = None
     if args.metrics_path:
@@ -93,6 +115,10 @@ def main():
     os.environ["PORT"] = str(args.port)
     if metrics_path:
         os.environ["METRICS_BASE_PATH"] = str(metrics_path)
+    if args.agent_hosting_url:
+        os.environ["AGENT_HOSTING_URL"] = args.agent_hosting_url
+    if args.agent_hosting_api_key:
+        os.environ["AGENT_HOSTING_API_KEY"] = args.agent_hosting_api_key
     os.environ["RELOAD"] = "true" if args.reload else "false"
     os.environ["LOG_LEVEL"] = args.log_level
 
@@ -115,6 +141,9 @@ Examples:
   # Run for production (performance metrics from service URL, evaluation metrics from local storage)
   poetry run metrics-service
 
+  # Run with agent hosting analytics
+  poetry run metrics-service --agent_hosting_url https://api.example.com --agent_hosting_api_key your_api_key
+
   # Run with auto-reload for development
   poetry run metrics-service --metrics-path ./data --reload
 
@@ -132,6 +161,22 @@ Examples:
         required=False,
         default=os.getenv("METRICS_BASE_PATH"),
         help="Path to performance metrics data directory (optional, used for development only, or METRICS_BASE_PATH env var)",  # noqa: E501
+        type=str,
+    )
+
+    # Agent hosting arguments
+    parser.add_argument(
+        "--agent_hosting_url",
+        required=False,
+        default=os.getenv("AGENT_HOSTING_URL"),
+        help="Agent hosting service URL (mutually exclusive with --metrics-path, or AGENT_HOSTING_URL env var)",
+        type=str,
+    )
+    parser.add_argument(
+        "--agent_hosting_api_key",
+        required=False,
+        default=os.getenv("AGENT_HOSTING_API_KEY"),
+        help="Agent hosting service API key (required when --agent_hosting_url is provided, or AGENT_HOSTING_API_KEY env var)",
         type=str,
     )
 
