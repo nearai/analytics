@@ -24,8 +24,7 @@ def fetch_agent_hosting_analytics_data(agent_hosting_url: str, api_key: str, ver
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching data: {e}")
-        raise FetchDataError(f"Failed to fetch data from {url}: {e}")
+        raise e
 
 
 def _process_env_vars_list(env_vars: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -161,7 +160,7 @@ def process_agent_hosting_analytics_data(
         builds = dev_entry["builds"]
 
         # Create lookup for builds by agent_id
-        builds_by_agent = {}
+        builds_by_agent: Dict[str, Any] = {}
         for build in builds:
             agent_id = build["agent_id"]
             if agent_id not in builds_by_agent:
