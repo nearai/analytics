@@ -157,7 +157,11 @@ def create_aggregation(params: AggregationParams) -> BaseConversion:
     conversions.append(AggregateConversion(params.slices, absent_metrics_strategy=params.absent_metrics_strategy))
 
     # Sort again by new timestamp - should be done in api, but meaningless when dealing with local files
-    conversions.append(SortByTimestampConversion(sort_field_name="time_end_utc/max_value", fallback_field_name="instance_updated_at/max_value"))
+    conversions.append(
+        SortByTimestampConversion(
+            sort_field_name="time_end_utc/max_value", fallback_field_name="instance_updated_at/max_value"
+        )
+    )
 
     # Apply pruning based on mode
     if params.prune_mode == PruneMode.ALL:
