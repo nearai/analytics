@@ -67,4 +67,12 @@ cd /app/metrics_service
 export PYTHONPATH="/app/metrics_service/src:$PYTHONPATH"
 
 # Run the metrics service
-exec python -m metrics_service
+# Build command with agent hosting arguments if environment variables are set
+METRICS_CMD="python -m metrics_service"
+
+if [ -n "$AGENT_HOSTING_URL" ] && [ -n "$AGENT_HOSTING_API_KEY" ]; then
+    echo "Using agent hosting configuration: $AGENT_HOSTING_URL"
+    METRICS_CMD="$METRICS_CMD --agent_hosting_url $AGENT_HOSTING_URL --agent_hosting_api_key $AGENT_HOSTING_API_KEY"
+fi
+
+exec $METRICS_CMD
