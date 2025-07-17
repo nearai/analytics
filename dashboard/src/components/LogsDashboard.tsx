@@ -55,8 +55,8 @@ const formatEntryName = (entry: LogEntry | LogGroup['aggr_entry'], isAggregated:
       );
   } else {
     // For individual entries, show time_end_utc and time_end_local
-    const utc = entry.metadata.time_end_utc;
-    const local = entry.metadata.time_end_local;
+    const utc = entry.metadata.time_end_utc || entry.metadata.instance_updated_at;
+    const local = entry.metadata.time_end_local || entry.metadata.instance_updated_at_local;
     
     if (utc || local) {
       const parts: string[] = [];
