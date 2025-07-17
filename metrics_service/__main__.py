@@ -29,11 +29,10 @@ def start_service():
     # Get configuration and validate
     metrics_path = os.getenv("METRICS_BASE_PATH")
     agent_hosting_url = os.getenv("AGENT_HOSTING_URL")
-    agent_hosting_api_key = os.getenv("AGENT_HOSTING_API_KEY")
 
     print("Starting Metrics Service...")
     print(f"Host: {host}:{port}")
-    
+
     # Show data source configuration
     if metrics_path:
         print(f"Performance metrics path: {metrics_path}")
@@ -41,8 +40,8 @@ def start_service():
         print(f"Agent hosting URL: {agent_hosting_url}")
         print("Performance metrics: Fetched from agent hosting service")
     else:
-        print("Performance metrics path: Not configured (will be fetched from service URL when available)")
-    
+        print("Performance metrics: Not configured")
+
     print("Evaluation metrics: Stored locally in ~/.analytics/")
     print(f"Reload: {reload}")
     print(f"Log level: {log_level}")
@@ -59,7 +58,7 @@ def start_service():
             metrics_files = list(Path(metrics_path).rglob("*.json"))
             print(f"\nFound {len(metrics_files)} JSON files in performance metrics directory")
     elif agent_hosting_url:
-        print(f"\nAgent hosting service configured.")
+        print("Agent hosting service configured.")
         print("Performance metrics will be fetched from the agent hosting API.")
     else:
         print("\nNote: Performance metrics path not configured.")

@@ -5,7 +5,10 @@ from pathlib import Path
 from threading import Lock
 from typing import List, Optional
 
-from metrics_core.agent_hosting_analytics import fetch_agent_hosting_analytics_data, process_agent_hosting_analytics_data
+from metrics_core.agent_hosting_analytics import (
+    fetch_agent_hosting_analytics_data,
+    process_agent_hosting_analytics_data,
+)
 from metrics_core.local_files import load_logs_list_from_disk
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 
@@ -75,17 +78,17 @@ class MetricsCache:
         """
         with self._lock:
             current_config = (agent_hosting_url, agent_hosting_api_key)
-            
+
             # Check if we need to load from agent hosting service
             if self._entries is None or force_reload or self._agent_hosting_config != current_config:
                 logger.info(f"Loading metrics entries from agent hosting service: {agent_hosting_url}")
-                
+
                 # Fetch data from agent hosting service
                 raw_data = fetch_agent_hosting_analytics_data(agent_hosting_url, agent_hosting_api_key, verbose)
-                
+
                 # Process the data to get analytics entries
                 agent_hosting_analytics = process_agent_hosting_analytics_data(raw_data, verbose)
-                
+
                 self._entries = agent_hosting_analytics.entries
                 self._agent_hosting_config = current_config
                 self._metrics_path = None  # Clear metrics path when loading from agent hosting
@@ -111,7 +114,10 @@ class MetricsCache:
     def is_agent_hosting_cached(self, agent_hosting_url: str, agent_hosting_api_key: str) -> bool:
         """Check if entries for the given agent hosting config are cached."""
         with self._lock:
-            return self._entries is not None and self._agent_hosting_config == (agent_hosting_url, agent_hosting_api_key)
+            return self._entries is not None and self._agent_hosting_config == (
+                agent_hosting_url,
+                agent_hosting_api_key,
+            )
 
     @property
     def cache_size(self) -> int:
@@ -119,9 +125,11 @@ class MetricsCache:
         with self._lock:
             return len(self._entries) if self._entries else 0
 
-    def load_entries_from_config(self, force_reload: bool = False, verbose: bool = False) -> List[CanonicalMetricsEntry]:
+    def load_entries_from_config(
+        self, force_reload: bool = False, verbose: bool = False
+    ) -> List[CanonicalMetricsEntry]:
         """Load entries based on current configuration (settings).
-        
+
         This method automatically determines whether to load from local files or agent hosting
         based on the current settings configuration.
 
@@ -139,9 +147,10 @@ class MetricsCache:
             HTTPException: If no data source is configured
 
         """
-        from metrics_service.utils.config import settings
         from fastapi import HTTPException
-        
+
+        from metrics_service.utils.config import settings
+
         if settings.has_agent_hosting():
             agent_hosting_url, agent_hosting_api_key = settings.get_agent_hosting_config()
             return self.load_entries_from_agent_hosting(agent_hosting_url, agent_hosting_api_key, force_reload, verbose)
