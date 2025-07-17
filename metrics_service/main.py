@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import graphs, logs, metrics, table
+from .routers import agent_hosting, graphs, logs, metrics, table
 from .utils.config import settings
 
 # Configure logging
@@ -36,6 +36,7 @@ def create_app() -> FastAPI:
     app.include_router(logs.router, prefix=settings.api_prefix)
     app.include_router(metrics.router, prefix=settings.api_prefix)
     app.include_router(graphs.router, prefix=settings.api_prefix)
+    app.include_router(agent_hosting.router, prefix=settings.api_prefix)
 
     @app.on_event("startup")
     async def startup_event():

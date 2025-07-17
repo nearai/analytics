@@ -150,6 +150,8 @@ def process_agent_hosting_analytics_data(
 ) -> AgentHostingAnalytics:
     """Transform the raw agent hosting analytics data into structured analytics model."""
     entries = []
+    all_agents = []
+    all_instances = []
 
     data = agent_hosting_analytics_data
 
@@ -158,6 +160,12 @@ def process_agent_hosting_analytics_data(
         organization = dev_entry["organization"]
         agents = dev_entry["agents"]
         builds = dev_entry["builds"]
+
+        # Collect agents with organization info
+        for agent in agents:
+            agent_with_org = agent.copy()
+            agent_with_org["owner_organization"] = organization["name"]
+            all_agents.append(agent_with_org)
 
         # Create lookup for builds by agent_id
         builds_by_agent: Dict[str, Any] = {}
@@ -188,6 +196,14 @@ def process_agent_hosting_analytics_data(
                     )
                     entries.append(entry)
 
+    # Collect all instances with user_id info
+    for user_entry in data.get("user_entries", []):
+        user_id = user_entry["user_id"]
+        for instance in user_entry.get("instances", []):
+            instance_with_user = instance.copy()
+            instance_with_user["user_id"] = user_id
+            all_instances.append(instance_with_user)
+
     # Show logs if verbose
     if verbose:
         print("\n--- LOGS ---")
@@ -202,7 +218,7 @@ def process_agent_hosting_analytics_data(
 
     entries = SortByTimestampConversion(sort_field_name="instance_updated_at").convert(entries)
 
-    return AgentHostingAnalytics(entries=entries)
+    return AgentHostingAnalytics(entries=entries, agents=all_agents, instances=all_instances)
 
 
 def _find_instances_for_build(data: Dict[str, Any], build_id: str) -> List[tuple]:
