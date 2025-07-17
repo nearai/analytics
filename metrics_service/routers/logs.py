@@ -14,7 +14,6 @@ from metrics_core.transform_utils import (
     create_logs_list,
 )
 from metrics_service.utils.cache import metrics_cache
-from metrics_service.utils.config import settings
 
 router = APIRouter(prefix="/logs", tags=["logs"])
 
@@ -60,7 +59,7 @@ async def list_logs(request: ListLogsRequest):
     """
     try:
         logger.info(f"Request received: {request}")
-        
+
         # Load entries from cache based on current configuration
         entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries_from_config()
 

@@ -160,7 +160,7 @@ class MetricsCache:
         else:
             raise HTTPException(
                 status_code=503,
-                detail="No data source configured. Set either METRICS_BASE_PATH or both AGENT_HOSTING_URL and AGENT_HOSTING_API_KEY.",
+                detail="No data source configured. Set either METRICS_BASE_PATH or both AGENT_HOSTING_URL and AGENT_HOSTING_API_KEY.",  # noqa: E501
             )
 
 

@@ -175,7 +175,7 @@ Examples:
         "--agent_hosting_api_key",
         required=False,
         default=os.getenv("AGENT_HOSTING_API_KEY"),
-        help="Agent hosting service API key (required when --agent_hosting_url is provided, or AGENT_HOSTING_API_KEY env var)",
+        help="Agent hosting service API key (required when --agent_hosting_url is provided, or AGENT_HOSTING_API_KEY env var)",  # noqa: E501
         type=str,
     )
 

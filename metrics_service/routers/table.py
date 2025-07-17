@@ -21,7 +21,6 @@ from metrics_core.transform_utils import (
     create_table,
 )
 from metrics_service.utils.cache import metrics_cache
-from metrics_service.utils.config import settings
 
 router = APIRouter(prefix="/table", tags=["table"])
 
@@ -132,7 +131,7 @@ async def create_metrics_table(request: TableCreationRequest):
     """
     try:
         logger.info(f"Request received: {request}")
-        
+
         # Load entries from cache based on current configuration
         entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries_from_config()
 
@@ -254,7 +253,7 @@ async def create_metrics_table_csv(request: TableCreationRequest):
     """
     try:
         logger.info(f"CSV aggregation request received: {request}")
-        
+
         # Load entries from cache based on current configuration
         entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries_from_config()
 

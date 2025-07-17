@@ -10,7 +10,6 @@ from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.moving_aggregation import MovingAggregation
 from metrics_core.transform_utils import MovingAggregationParams, create_moving_aggregation
 from metrics_service.utils.cache import metrics_cache
-from metrics_service.utils.config import settings
 
 router = APIRouter(prefix="/graphs", tags=["graphs"])
 
@@ -63,7 +62,7 @@ async def create_time_series_graph(request: MovingAggregationRequest):
     """
     try:
         logger.info(f"Request received: {request}")
-        
+
         # Load entries from cache based on current configuration
         entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries_from_config()
 

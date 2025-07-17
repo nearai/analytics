@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # Data configuration
     metrics_base_path: Optional[Path] = None  # Will be set via environment variable
-    
+
     # Agent hosting configuration
     agent_hosting_url: Optional[str] = None
     agent_hosting_api_key: Optional[str] = None
@@ -52,7 +52,7 @@ class Settings(BaseSettings):
         """Get agent hosting URL and API key, ensuring they're set."""
         if not self.has_agent_hosting():
             raise ValueError("Agent hosting URL and API key are not both set")
-        return self.agent_hosting_url, self.agent_hosting_api_key
+        return str(self.agent_hosting_url), str(self.agent_hosting_api_key)
 
 
 settings = Settings()
