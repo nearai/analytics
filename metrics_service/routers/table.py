@@ -21,7 +21,6 @@ from metrics_core.transform_utils import (
     create_table,
 )
 from metrics_service.utils.cache import metrics_cache
-from metrics_service.utils.config import settings
 
 router = APIRouter(prefix="/table", tags=["table"])
 
@@ -132,18 +131,9 @@ async def create_metrics_table(request: TableCreationRequest):
     """
     try:
         logger.info(f"Request received: {request}")
-        # Check if metrics path is configured
-        if not settings.has_metrics_path():
-            raise HTTPException(
-                status_code=503,
-                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
-            )
 
-        # Get metrics path from settings
-        metrics_path = settings.get_metrics_path()
-
-        # Load entries from cache (or disk if not cached)
-        entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries(metrics_path)
+        # Load entries from cache based on current configuration
+        entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries_from_config()
 
         if not entries:
             raise HTTPException(status_code=404, detail="No metrics entries found")
@@ -263,18 +253,9 @@ async def create_metrics_table_csv(request: TableCreationRequest):
     """
     try:
         logger.info(f"CSV aggregation request received: {request}")
-        # Check if metrics path is configured
-        if not settings.has_metrics_path():
-            raise HTTPException(
-                status_code=503,
-                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
-            )
 
-        # Get metrics path from settings
-        metrics_path = settings.get_metrics_path()
-
-        # Load entries from cache (or disk if not cached)
-        entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries(metrics_path)
+        # Load entries from cache based on current configuration
+        entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries_from_config()
 
         if not entries:
             raise HTTPException(status_code=404, detail="No metrics entries found")

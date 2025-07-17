@@ -48,6 +48,10 @@ def create_app() -> FastAPI:
             if not settings.metrics_base_path.exists():
                 logger.warning(f"Performance metrics path does not exist: {settings.metrics_base_path}")
                 logger.warning("Performance metrics endpoints will return errors until path is available.")
+        elif settings.has_agent_hosting():
+            agent_hosting_url, _ = settings.get_agent_hosting_config()
+            logger.info(f"Agent hosting URL configured: {agent_hosting_url}")
+            logger.info("Performance metrics will be fetched from agent hosting service.")
         else:
             logger.info("No performance metrics path configured.")
             logger.info("Performance metrics will be fetched from service URL when configured.")

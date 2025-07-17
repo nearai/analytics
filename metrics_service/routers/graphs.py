@@ -10,7 +10,6 @@ from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
 from metrics_core.models.moving_aggregation import MovingAggregation
 from metrics_core.transform_utils import MovingAggregationParams, create_moving_aggregation
 from metrics_service.utils.cache import metrics_cache
-from metrics_service.utils.config import settings
 
 router = APIRouter(prefix="/graphs", tags=["graphs"])
 
@@ -63,17 +62,9 @@ async def create_time_series_graph(request: MovingAggregationRequest):
     """
     try:
         logger.info(f"Request received: {request}")
-        # Check if metrics path is configured
-        if not settings.has_metrics_path():
-            raise HTTPException(
-                status_code=503,
-                detail="Metrics path not configured. This endpoint requires METRICS_BASE_PATH to be set.",
-            )
-        # Get metrics path from settings
-        metrics_path = settings.get_metrics_path()
 
-        # Load entries from cache (or disk if not cached)
-        entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries(metrics_path)
+        # Load entries from cache based on current configuration
+        entries: List[CanonicalMetricsEntry] = metrics_cache.load_entries_from_config()
 
         if not entries:
             raise HTTPException(status_code=404, detail="No metrics entries found")
