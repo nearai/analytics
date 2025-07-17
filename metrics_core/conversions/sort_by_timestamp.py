@@ -9,7 +9,7 @@ class SortByTimestampConversion(BaseConversion):  # noqa: F821
 
     def __init__(self, sort_field_name: str = "time_end_utc", fallback_field_name: str = "instance_updated_at"):  # noqa: D107
         super().__init__()
-        self.description = f"Sort by {sort_field_name}"
+        self.description = f"Sort by {sort_field_name}, falling back to {fallback_field_name} if unavailable"
         self.sort_field_name = sort_field_name
         self.fallback_field_name = fallback_field_name
 
