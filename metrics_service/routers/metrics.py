@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 # Important metrics mapping: display_name -> (additional_filters, field_name)
 IMPORTANT_METRICS: Dict[str, Tuple[List[str], str]] = {
     "Agent Invocations": ([], "time_end_utc/n_samples"),
+    "Instances": ([], "instance_updated_at/n_samples"),
     "Successful Invocations": (["errors/summary/error_count_all:range::0"], "time_end_utc/n_samples"),
     "Failed Invocations": (["errors/summary/error_count_all:range:1:"], "time_end_utc/n_samples"),
     "Avg Agent Latency": ([], "performance/latency/init_and_env_run_s_all"),

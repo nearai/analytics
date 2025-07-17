@@ -822,6 +822,7 @@ export const fetchImportantMetrics = async (
 
     case 'PERFORMANCE':
       const performanceMetrics = [
+        'Instances',
         'Agent Invocations',
         'Successful Invocations', 
         'Failed Invocations',
