@@ -178,7 +178,20 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     slices_recommendation_strategy: 'concise',
     filters: [],
     slices: [],
-    column_selections: ['/metadata/time_end_utc/max_value', '/metadata/time_end_utc/n_samples', '/metrics/errors/summary/error_count_all', '/metrics/api_calls/inference_client_completions/count', '/metrics/api_calls/inference_client_completions/count_fail', '/metrics/api_calls/inference_client_completions/errors/count_all', '/metrics/api_calls/inference_client_completions/latency_s_all', '/metrics/api_calls/inference_client_completions/latency_s_avg', '/metrics/api_calls/inference_client_completions/latency_s_max', '/metrics/performance/latency/init_and_env_run_s_all']
+    column_selections: [
+      '/metadata/time_end_utc/max_value',
+      '/metadata/instance_updated_at/max_value',
+      '/metadata/time_end_utc/n_samples',
+      '/metadata/instance_updated_at/n_samples',
+      '/metrics/errors/summary/error_count_all',
+      '/metrics/api_calls/inference_client_completions/count',
+      '/metrics/api_calls/inference_client_completions/count_fail',
+      '/metrics/api_calls/inference_client_completions/errors/count_all',
+      '/metrics/api_calls/inference_client_completions/latency_s_all',
+      '/metrics/api_calls/inference_client_completions/latency_s_avg',
+      '/metrics/api_calls/inference_client_completions/latency_s_max',
+      '/metrics/performance/latency/init_and_env_run_s_all'
+    ]
   };
   
   // Apply default parameters from view config including time_filter

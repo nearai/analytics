@@ -157,7 +157,11 @@ def create_aggregation(params: AggregationParams) -> BaseConversion:
     conversions.append(AggregateConversion(params.slices, absent_metrics_strategy=params.absent_metrics_strategy))
 
     # Sort again by new timestamp - should be done in api, but meaningless when dealing with local files
-    conversions.append(SortByTimestampConversion(sort_field_name="time_end_utc/max_value"))
+    conversions.append(
+        SortByTimestampConversion(
+            sort_field_name="time_end_utc/max_value", fallback_field_name="instance_updated_at/max_value"
+        )
+    )
 
     # Apply pruning based on mode
     if params.prune_mode == PruneMode.ALL:
@@ -551,6 +555,9 @@ def create_logs_list(
         timestamp = entry.aggr_entry.fetch_value("time_end_utc/max_value")
         if timestamp:
             return timestamp
+        timestamp = entry.aggr_entry.fetch_value("instance_updated_at/max_value")
+        if timestamp:
+            return timestamp
         return ""  # Put entries without timestamps at the end (empty string sorts before valid timestamps)
 
     grouped_entries = sorted(grouped_entries, key=get_sort_key, reverse=True)
@@ -655,6 +662,8 @@ def create_moving_aggregation(
 
     def fetch_time(entry: CanonicalMetricsEntry) -> int:
         time_str = entry.fetch_value("time_end_utc")
+        if not time_str:
+            time_str = entry.fetch_value("instance_updated_at")
         assert isinstance(time_str, str)
         return time_str_to_ms(time_str)
 
