@@ -12,6 +12,7 @@ import {
   formatTimestamp,
   getStyleClass,
   getTimeFilter as sharedGetTimeFilter,
+  getDynamicTimeFilter,
   isTimestampLike,
   mergeGlobalFilters,
   getApiUrl,
@@ -460,13 +461,44 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
   // Initial load with error filters integration
   useEffect(() => {
     const loadInitialData = async () => {
-      const initialRequest = savedRequest || request;
+      let initialRequest = savedRequest || request;
+      
+      // If there's a time_filter in config, create dynamic time filter
+      const configDefaults = viewConfig?.defaultParameters || {};
+      if (configDefaults.time_filter && !savedRequest) {
+        // Check if we need to add a dynamic time filter
+        const hasTimeFilter = initialRequest.filters?.some(f => 
+          f.startsWith('time_end_utc:') || f.startsWith('instance_updated_at:')
+        );
+        
+        if (!hasTimeFilter) {
+          try {
+            const dynamicTimeFilter = await getDynamicTimeFilter(
+              String(configDefaults.time_filter),
+              config?.metrics_service_url,
+              config?.globalFilters
+            );
+            initialRequest = {
+              ...initialRequest,
+              filters: [...(initialRequest.filters || []), dynamicTimeFilter]
+            };
+          } catch (error) {
+            console.warn('Failed to create dynamic time filter, using default:', error);
+            // Fallback to static time filter  
+            const timeFilter = sharedGetTimeFilter(String(configDefaults.time_filter));
+            initialRequest = {
+              ...initialRequest,
+              filters: [...(initialRequest.filters || []), timeFilter]
+            };
+          }
+        }
+      }
       
       // Fetch and merge error filters if needed
       const requestWithErrorFilters = await fetchAndMergeErrorFilters(initialRequest);
       
-      // Update state if error filters were added
-      if (requestWithErrorFilters !== initialRequest) {
+      // Update state if error filters were added or time filter was added
+      if (requestWithErrorFilters !== (savedRequest || request)) {
         setRequest(requestWithErrorFilters);
       }
       
@@ -509,7 +541,10 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
   };
 
   const handleTimeFilter = (filter: string) => {
-    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:'));
+    // Remove existing filters for any time field
+    const newFilters = (request.filters || []).filter(f => 
+      !f.startsWith('time_end_utc:') && !f.startsWith('instance_updated_at:')
+    );
     const newRequest = {
       ...request,
       filters: [...newFilters, filter]
@@ -619,6 +654,8 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
           onTimeFilter={handleTimeFilter}
           timeFilterRecommendations={config?.viewConfigs?.logs?.timeFilterRecommendations}
           showTimeFilters={true}
+          config={config}
+          useDynamicTimeFilters={true}
         />
 
         {/* Groups */}

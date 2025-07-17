@@ -10,6 +10,7 @@ import {
   formatTimestamp,
   getStyleClass,
   getTimeFilter as sharedGetTimeFilter,
+  getDynamicTimeFilter,
   mergeGlobalFilters,
   getApiUrl,
   useResizablePanel,
@@ -340,11 +341,41 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
 
   // Initial load. Use saved request if present.
   useEffect(() => {
-    if (savedRequest) {
-      fetchTable(savedRequest);
-    } else {
-      fetchTable(request);
-    }
+    const loadInitialData = async () => {
+      if (savedRequest) {
+        fetchTable(savedRequest);
+      } else {
+        let initialRequest = request;
+        
+        // If there's a time_filter in config but no existing filters, create dynamic time filter
+        const configDefaults = viewConfig?.defaultParameters || {};
+        if (configDefaults.time_filter && (!initialRequest.filters || initialRequest.filters.length === 0)) {
+          try {
+            const dynamicTimeFilter = await getDynamicTimeFilter(
+              String(configDefaults.time_filter),
+              config?.metrics_service_url,
+              config?.globalFilters
+            );
+            initialRequest = {
+              ...initialRequest,
+              filters: [dynamicTimeFilter]
+            };
+          } catch (error) {
+            console.warn('Failed to create dynamic time filter, using default:', error);
+            // Fallback to static time filter
+            const timeFilter = sharedGetTimeFilter(String(configDefaults.time_filter));
+            initialRequest = {
+              ...initialRequest,
+              filters: [timeFilter]
+            };
+          }
+        }
+        
+        fetchTable(initialRequest);
+      }
+    };
+
+    loadInitialData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle refresh trigger changes
@@ -469,7 +500,14 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   };
 
   const handleTimeFilter = (filter: string) => {
-    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:'));
+    // Extract the time field from the filter (e.g., "time_end_utc" or "instance_updated_at")
+    const timeField = filter.split(':')[0];
+    
+    // Remove existing filters for this time field and any other time fields
+    const newFilters = (request.filters || []).filter(f => 
+      !f.startsWith('time_end_utc:') && !f.startsWith('instance_updated_at:')
+    );
+    
     const newRequest = {
       ...request,
       filters: [...newFilters, filter]
@@ -527,10 +565,10 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     fetchTable(newRequest);
   };
 
-  // Helper function to detect if there's exactly one lower bound time filter
+  // Helper function to detect if there's exactly one time filter (for any time field)
   const getTimeFilter = (): string | null => {
     const timeFilters = (request.filters || []).filter(f => 
-      /^time_end_utc:range:\([^)]+\):/.test(f)
+      /^(time_end_utc|instance_updated_at):range:\([^)]+\):/.test(f)
     );
     // Only show button if there's exactly one time filter to avoid confusion
     return timeFilters.length === 1 ? timeFilters[0] : null;
@@ -539,13 +577,13 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   // Helper function to parse timestamp from time filter
   const parseTimeFilter = (filter: string): Date | null => {
     // Handle both formats:
-    // 1. "time_end_utc:range:(<timestamp>):"
-    // 2. "time_end_utc:range:(<timestamp>):(<upper_bound>)"
-    const match = filter.match(/time_end_utc:range:\(([^)]+)\):/);
-    if (match && match[1]) {
+    // 1. "(time_field):range:(<timestamp>):"
+    // 2. "(time_field):range:(<timestamp>):(<upper_bound>)"
+    const match = filter.match(/(time_end_utc|instance_updated_at):range:\(([^)]+)\):/);
+    if (match && match[2]) {
       try {
         // Explicitly treat as UTC by adding 'Z' suffix if not present
-        const timestamp = match[1].endsWith('Z') ? match[1] : match[1] + 'Z';
+        const timestamp = match[2].endsWith('Z') ? match[2] : match[2] + 'Z';
         return new Date(timestamp);
       } catch {
         return null;
@@ -556,15 +594,17 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
 
   // Helper function to find min timestamp from existing time slices
   const getMinSliceTimestamp = (): Date => {
-    const timeSlices = (request.slices || []).filter(s => s.startsWith('time_end_utc:range:('));
+    const timeSlices = (request.slices || []).filter(s => 
+      s.match(/(time_end_utc|instance_updated_at):range:\([^)]+\):/)
+    );
     let minTimestamp: Date | null = null;
 
     for (const slice of timeSlices) {
-      const match = slice.match(/time_end_utc:range:\(([^)]+)\):/);
-      if (match && match[1]) {
+      const match = slice.match(/(time_end_utc|instance_updated_at):range:\(([^)]+)\):/);
+      if (match && match[2]) {
         try {
           // Explicitly treat as UTC by adding 'Z' suffix if not present
-          const match_utc = match[1].endsWith('Z') ? match[1] : match[1] + 'Z';
+          const match_utc = match[2].endsWith('Z') ? match[2] : match[2] + 'Z';
           const timestamp = new Date(match_utc);
           if (!minTimestamp || timestamp < minTimestamp) {
             minTimestamp = timestamp;
@@ -589,9 +629,13 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     const minSliceTimestamp = getMinSliceTimestamp();
     const timeStep = minSliceTimestamp.getTime() - filterTimestamp.getTime();
 
-    // Remove the time filter from filters
+    // Extract time field from the existing filter
+    const timeFieldMatch = timeFilter.match(/(time_end_utc|instance_updated_at):/);
+    const timeField = timeFieldMatch ? timeFieldMatch[1] : 'time_end_utc';
+
+    // Remove the time filter from filters (for any time field)
     const newFilters = (request.filters || []).filter(f => 
-      !(/^time_end_utc:range:\([^)]+\):/.test(f))
+      !(/^(time_end_utc|instance_updated_at):range:\([^)]+\):/.test(f))
     );
 
     // Create new time filter with adjusted timestamp
@@ -600,7 +644,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   
     // Replace the first timestamp in the timeFilter with the adjusted timestamp
     const adjustedFilter = timeFilter.replace(
-      /^(time_end_utc:range:)\([^)]+\)/,
+      /^((time_end_utc|instance_updated_at):range:)\([^)]+\)/,
       `$1(${adjustedTimestampStr})`
     );
 
@@ -700,6 +744,8 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
           onTimeFilter={handleTimeFilter}
           timeFilterRecommendations={config?.viewConfigs?.table?.timeFilterRecommendations}
           showTimeFilters={shouldShowTimeFiltersSection()}
+          config={config}
+          useDynamicTimeFilters={true}
         />
 
         {/* Slices */}

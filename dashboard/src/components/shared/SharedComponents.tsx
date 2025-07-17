@@ -514,6 +514,59 @@ export const getTimeFilter = (filter_label: string) => {
   }
 }
 
+// Function to determine the correct time field based on important metrics
+export const determineTimeField = async (
+  metrics_service_url: string | undefined,
+  globalFilters?: string[]
+): Promise<string> => {
+  try {
+    const importantMetrics = await fetchImportantMetrics(
+      metrics_service_url,
+      'CUSTOM',
+      globalFilters
+    );
+    
+    // Priority logic:
+    // 1. If "Agent Invocations" is available, use "time_end_utc"
+    if (importantMetrics['Agent Invocations']) {
+      return 'time_end_utc';
+    }
+    
+    // 2. If "Instances" is available, use "instance_updated_at"
+    if (importantMetrics['Instances']) {
+      return 'instance_updated_at';
+    }
+    
+    // 3. Otherwise, fallback to "time_end_utc"
+    return 'time_end_utc';
+  } catch (error) {
+    console.warn('Failed to determine time field from important metrics:', error);
+    // Fallback to default
+    return 'time_end_utc';
+  }
+};
+
+// Dynamic version of getTimeFilter that uses the determined time field
+export const getDynamicTimeFilter = async (
+  filter_label: string,
+  metrics_service_url: string | undefined,
+  globalFilters?: string[]
+): Promise<string> => {
+  const now = new Date();
+  const hours = parseTimePeriodToHours(filter_label);
+  if (hours !== null) {
+    const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000);
+    const isoString = cutoff.toISOString().replace(/\.\d{3}Z$/, '');
+    
+    // Determine the correct time field
+    const timeField = await determineTimeField(metrics_service_url, globalFilters);
+    
+    return `${timeField}:range:(${isoString}):`
+  } else {
+    return ''
+  }
+}
+
 // Generate time filter suggestions
 export const getTimeFilters = (timeFilterRecommendations?: string[]) => {
   // If config provides custom recommendations, convert them to filters
@@ -543,6 +596,46 @@ export const getTimeFilters = (timeFilterRecommendations?: string[]) => {
     return {
       label,
       filter: `time_end_utc:range:(${isoString}):`
+    };
+  });
+};
+
+// Dynamic version of getTimeFilters that can use different time fields
+export const getDynamicTimeFilters = async (
+  timeFilterRecommendations?: string[],
+  metrics_service_url?: string,
+  globalFilters?: string[]
+) => {
+  // Determine the correct time field
+  const timeField = await determineTimeField(metrics_service_url, globalFilters);
+
+  // If config provides custom recommendations, convert them to filters
+  if (timeFilterRecommendations) {
+    return Promise.all(timeFilterRecommendations.map(async recommendation => {
+      return {
+        label: recommendation,
+        filter: await getDynamicTimeFilter(recommendation, metrics_service_url, globalFilters)
+      }
+    }));
+  }
+
+  const now = new Date();
+  
+  // Default recommendations
+  const formats = [
+    { label: 'last hour', hours: 1 },
+    { label: 'last day', hours: 24 },
+    { label: 'last week', hours: 168 },
+    { label: 'last month', hours: 24 * 30 },
+    { label: 'last year', hours: 24 * 365 }
+  ];
+  
+  return formats.map(({ label, hours }) => {
+    const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000);
+    const isoString = cutoff.toISOString().replace(/\.\d{3}Z$/, '');
+    return {
+      label,
+      filter: `${timeField}:range:(${isoString}):`
     };
   });
 };
@@ -635,6 +728,9 @@ interface FiltersSectionProps {
   onTimeFilter?: (filter: string) => void;
   timeFilterRecommendations?: string[];
   showTimeFilters?: boolean;
+  // New props for dynamic time filter support
+  config?: DashboardConfig;
+  useDynamicTimeFilters?: boolean;
 }
 
 // Filter Help Content Component
@@ -671,11 +767,42 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({
   onRemoveFilter,
   onTimeFilter,
   timeFilterRecommendations,
-  showTimeFilters = true
+  showTimeFilters = true,
+  config,
+  useDynamicTimeFilters = false
 }) => {
+  const [dynamicTimeFilters, setDynamicTimeFilters] = useState<Array<{label: string, filter: string}>>([]);
+  const [loadingTimeFilters, setLoadingTimeFilters] = useState(false);
+
+  // Load dynamic time filters if needed
+  useEffect(() => {
+    const loadDynamicFilters = async () => {
+      if (useDynamicTimeFilters && showTimeFilters && onTimeFilter) {
+        setLoadingTimeFilters(true);
+        try {
+          const filters = await getDynamicTimeFilters(
+            timeFilterRecommendations,
+            config?.metrics_service_url,
+            config?.globalFilters
+          );
+          setDynamicTimeFilters(filters);
+        } catch (error) {
+          console.warn('Failed to load dynamic time filters, falling back to static:', error);
+          // Fallback to static time filters
+          setDynamicTimeFilters(getTimeFilters(timeFilterRecommendations));
+        } finally {
+          setLoadingTimeFilters(false);
+        }
+      }
+    };
+
+    loadDynamicFilters();
+  }, [useDynamicTimeFilters, showTimeFilters, timeFilterRecommendations, config?.metrics_service_url, config?.globalFilters, onTimeFilter]);
+
   if (showTimeFilters && timeFilterRecommendations) {
     showTimeFilters = timeFilterRecommendations.length > 0
   }
+  
   return (
     <CollapsibleSection title="Filters">
       <ParameterManager
@@ -694,17 +821,21 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({
       {showTimeFilters && onTimeFilter && (
         <div className="mt-2">
           <label className="block text-xs font-medium mb-1">Time Filters</label>
-          <div className="flex flex-wrap gap-1">
-            {getTimeFilters(timeFilterRecommendations).map(({ label, filter }) => (
-              <button
-                key={label}
-                onClick={() => onTimeFilter(filter)}
-                className="inline-flex items-center px-2 py-1 bg-blue-950 hover:bg-blue-800 rounded-full text-xs"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {loadingTimeFilters ? (
+            <div className="text-xs text-gray-500">Loading...</div>
+          ) : (
+            <div className="flex flex-wrap gap-1">
+              {(useDynamicTimeFilters ? dynamicTimeFilters : getTimeFilters(timeFilterRecommendations)).map(({ label, filter }) => (
+                <button
+                  key={label}
+                  onClick={() => onTimeFilter(filter)}
+                  className="inline-flex items-center px-2 py-1 bg-blue-950 hover:bg-blue-800 rounded-full text-xs"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </CollapsibleSection>

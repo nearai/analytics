@@ -19,6 +19,7 @@ import {
   FiltersSection,
   ViewNavigation,
   getTimeFilter, 
+  getDynamicTimeFilter,
   mergeGlobalFilters, 
   parseTimePeriodToHours,
   getApiUrl,
@@ -853,6 +854,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   };
 
   const [request, setRequest] = useState<TimeSeriesRequest>(savedRequest || getDefaultRequest());
+  const [initialRequestLoaded, setInitialRequestLoaded] = useState(!!savedRequest);
   const [filterInput, setFilterInput] = useState('');
   const [columnTree, setColumnTree] = useState<ColumnNode | null>(null);
   const [graphs, setGraphs] = useState<GraphConfiguration[]>(request.graphs || []);
@@ -908,6 +910,35 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
       onRequestChange(request);
     }
   }, [request]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle initial dynamic time filter setup
+  useEffect(() => {
+    const setupInitialRequest = async () => {
+      if (!initialRequestLoaded) {
+        const defaultParams = viewConfig?.defaultParameters || {};
+        if (defaultParams.time_filter) {
+          try {
+            const dynamicTimeFilter = await getDynamicTimeFilter(
+              String(defaultParams.time_filter),
+              config?.metrics_service_url,
+              config?.globalFilters
+            );
+            setRequest(prev => ({
+              ...prev,
+              filters: [dynamicTimeFilter],
+              time_granulation: defaultParams.time_granulation || '1 day'
+            }));
+          } catch (error) {
+            console.warn('Failed to create dynamic time filter, using default:', error);
+            // Already using default from getDefaultRequest
+          }
+        }
+        setInitialRequestLoaded(true);
+      }
+    };
+
+    setupInitialRequest();
+  }, [initialRequestLoaded, viewConfig?.defaultParameters, config?.metrics_service_url, config?.globalFilters]);
 
   // Fetch column tree for metric selection
   const fetchColumnTree = useCallback(async () => {
@@ -1115,7 +1146,10 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
 
   // Handle time filter change with auto granulation
   const handleTimeFilterChange = (filter: string) => {
-    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:'));
+    // Remove existing filters for any time field
+    const newFilters = (request.filters || []).filter(f => 
+      !f.startsWith('time_end_utc:') && !f.startsWith('instance_updated_at:')
+    );
     const newRequest = { 
       ...request, 
       filters: [...newFilters, filter],
@@ -1263,6 +1297,8 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           onTimeFilter={handleTimeFilterChange}
           timeFilterRecommendations={config?.viewConfigs?.timeseries?.timeFilterRecommendations}
           showTimeFilters={true}
+          config={config}
+          useDynamicTimeFilters={true}
         />
         
         {/* Resize handle */}
