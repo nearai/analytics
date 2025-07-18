@@ -508,7 +508,7 @@ export const determineTimeField = async (
   metricSelection: MetricSelection
 ): Promise<string> => {
   try {
-    if (metricSelection == 'COMPARE_MODELS') {
+    if (metricSelection === 'COMPARE_MODELS') {
       return 'time_end_utc'
     }
 
