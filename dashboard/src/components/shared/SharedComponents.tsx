@@ -502,26 +502,61 @@ export const parseTimePeriodToHours = (period: string): number | null => {
   return null;
 };
 
-export const getTimeFilter = (filter_label: string) => {
+// Function to determine the correct time field based on important metrics
+export const determineTimeField = async (
+  metrics_service_url: string | undefined,
+  metricSelection: MetricSelection
+): Promise<string> => {
+  try {
+    if (metricSelection == 'COMPARE_MODELS') {
+      return 'time_end_utc'
+    }
+
+    const importantMetrics = await fetchImportantMetrics(
+      metrics_service_url,
+      'CUSTOM'
+    );
+
+    // Priority logic:
+    // 1. If "Agent Invocations" is available, use "time_end_utc"
+    if (importantMetrics['Agent Invocations']) {
+      return 'time_end_utc';
+    }
+
+    // 2. If "Instances" is available, use "instance_updated_at"
+    if (importantMetrics['Instances']) {
+      return 'instance_updated_at';
+    }
+
+    // 3. Otherwise, fallback to "time_end_utc"
+    return 'time_end_utc';
+  } catch (error) {
+    console.warn('Failed to determine time field from important metrics:', error);
+    // Fallback to default
+    return 'time_end_utc';
+  }
+};
+
+export const getTimeFilter = (time_field: string, filter_label: string) => {
   const now = new Date();
   const hours = parseTimePeriodToHours(filter_label);
   if (hours !== null) {
     const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000);
     const isoString = cutoff.toISOString().replace(/\.\d{3}Z$/, '');
-    return `time_end_utc:range:(${isoString}):`
+    return `${time_field}:range:(${isoString}):`
   } else {
     return ''
   }
 }
 
 // Generate time filter suggestions
-export const getTimeFilters = (timeFilterRecommendations?: string[]) => {
+export const getTimeFilters = (time_field: string, timeFilterRecommendations?: string[]) => {
   // If config provides custom recommendations, convert them to filters
   if (timeFilterRecommendations) {
     return timeFilterRecommendations.map(recommendation => {
       return {
         label: recommendation,
-        filter: getTimeFilter(recommendation)
+        filter: getTimeFilter(time_field, recommendation)
       }
     });
   }
@@ -542,7 +577,7 @@ export const getTimeFilters = (timeFilterRecommendations?: string[]) => {
     const isoString = cutoff.toISOString().replace(/\.\d{3}Z$/, '');
     return {
       label,
-      filter: `time_end_utc:range:(${isoString}):`
+      filter: `${time_field}:range:(${isoString}):`
     };
   });
 };
@@ -634,6 +669,7 @@ interface FiltersSectionProps {
   onRemoveFilter: (filter: string) => void;
   onTimeFilter?: (filter: string) => void;
   timeFilterRecommendations?: string[];
+  timeField: string;
   showTimeFilters?: boolean;
 }
 
@@ -671,6 +707,7 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({
   onRemoveFilter,
   onTimeFilter,
   timeFilterRecommendations,
+  timeField,
   showTimeFilters = true
 }) => {
   if (showTimeFilters && timeFilterRecommendations) {
@@ -695,7 +732,7 @@ export const FiltersSection: React.FC<FiltersSectionProps> = ({
         <div className="mt-2">
           <label className="block text-xs font-medium mb-1">Time Filters</label>
           <div className="flex flex-wrap gap-1">
-            {getTimeFilters(timeFilterRecommendations).map(({ label, filter }) => (
+            {getTimeFilters(timeField, timeFilterRecommendations).map(({ label, filter }) => (
               <button
                 key={label}
                 onClick={() => onTimeFilter(filter)}

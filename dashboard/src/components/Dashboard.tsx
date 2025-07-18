@@ -4,6 +4,7 @@ import TableDashboard from './TableDashboard';
 import LogsDashboard from './LogsDashboard';
 import { DashboardConfig, ViewConfig, TimeSeriesRequest, TableRequest, LogsRequest } from './shared/types';
 import { DASHBOARD_CSS } from '../dashboard-styles';
+import { determineTimeField } from './shared/SharedComponents';
 
 interface DashboardProps {
   config?: DashboardConfig;
@@ -81,11 +82,57 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
 
   // Refresh triggers - incrementing these will cause child components to refresh
   const [refreshTriggers, setRefreshTriggers] = useState<Record<string, number>>({});
-  
+
+  // Enhanced finalConfig with auto-determined time fields
+  const [enhancedConfig, setEnhancedConfig] = useState<DashboardConfig>(finalConfig);
+
+  // Effect to determine time fields for view configs that don't have them
+  useEffect(() => {
+    const updateTimeFields = async () => {
+      const updatedViewConfigs = { ...finalConfig.viewConfigs };
+      let hasUpdates = false;
+
+      // Check each view config and determine time_field if not provided
+      for (const [viewId, viewConfig] of Object.entries(updatedViewConfigs || {})) {
+        if (!viewConfig.time_field) {
+          try {
+            const timeField = await determineTimeField(
+              finalConfig.metrics_service_url,
+              viewConfig.metricSelection
+            );
+            updatedViewConfigs[viewId] = {
+              ...viewConfig,
+              time_field: timeField
+            };
+            hasUpdates = true;
+          } catch (error) {
+            console.warn(`Failed to determine time field for view ${viewId}:`, error);
+            // Fallback to default
+            updatedViewConfigs[viewId] = {
+              ...viewConfig,
+              time_field: 'time_end_utc'
+            };
+            hasUpdates = true;
+          }
+        }
+      }
+
+      // Update enhanced config if we made any changes
+      if (hasUpdates) {
+        setEnhancedConfig({
+          ...finalConfig,
+          viewConfigs: updatedViewConfigs
+        });
+      }
+    };
+
+    updateTimeFields();
+  }, [finalConfig]);
+
   // Helper function to get view config by view ID
   const getViewConfig = useCallback((viewId: string): ViewConfig | undefined => {
-    return finalConfig.viewConfigs?.[viewId];
-  }, [finalConfig.viewConfigs]);
+    return enhancedConfig.viewConfigs?.[viewId];
+  }, [enhancedConfig.viewConfigs]);
   
   // Helper function to trigger refresh for a specific view
   const triggerRefresh = (viewId: string) => {
@@ -94,7 +141,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
       [viewId]: (prev[viewId] || 0) + 1
     }));
   };
-  
+
   // Setup refresh intervals
   useEffect(() => {
     const intervals: NodeJS.Timeout[] = [];
@@ -118,7 +165,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
     return () => {
       intervals.forEach(interval => clearInterval(interval));
     };
-  }, [finalConfig.viewConfigs, currentView, viewRequests, availableViews, getViewConfig]);
+  }, [enhancedConfig.viewConfigs, currentView, viewRequests, availableViews, getViewConfig]);
 
   // Navigation handlers
   const handleNavigateToView = (viewId: string) => {
@@ -130,14 +177,14 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
   // Render the appropriate view
   const renderCurrentView = () => {
     const viewToRender = availableViews.includes(currentView) ? currentView : availableViews[0];
-    const viewConfig = getViewConfig(viewToRender);
+    var viewConfig = getViewConfig(viewToRender);
     
     if (!viewConfig) {
       return <div>Error: View configuration not found for {viewToRender}</div>;
     }
     
     const commonProps = {
-      config: finalConfig,
+      config: enhancedConfig,
       viewId: viewToRender,
       viewConfig: viewConfig,
       onNavigateToView: handleNavigateToView,

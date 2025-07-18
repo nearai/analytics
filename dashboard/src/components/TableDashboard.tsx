@@ -213,7 +213,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
     
     // Add time filter if specified in config
     if (configDefaults.time_filter) {
-      const timeFilter = sharedGetTimeFilter(String(configDefaults.time_filter));
+      const timeFilter = sharedGetTimeFilter(viewConfig?.time_field || 'time_end_utc', String(configDefaults.time_filter));
       defaultFilters.push(timeFilter);
     }
     
@@ -469,7 +469,7 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   };
 
   const handleTimeFilter = (filter: string) => {
-    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:'));
+    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:') && !f.startsWith('instance_updated_at:'));
     const newRequest = {
       ...request,
       filters: [...newFilters, filter]
@@ -528,20 +528,20 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   };
 
   // Helper function to detect if there's exactly one lower bound time filter
-  const getTimeFilter = (): string | null => {
+  const getTimeFilter = (time_field: string): string | null => {
     const timeFilters = (request.filters || []).filter(f => 
-      /^time_end_utc:range:\([^)]+\):/.test(f)
+      new RegExp(`^${time_field}:range:\\([^)]+\\):`).test(f)
     );
     // Only show button if there's exactly one time filter to avoid confusion
     return timeFilters.length === 1 ? timeFilters[0] : null;
   };
 
   // Helper function to parse timestamp from time filter
-  const parseTimeFilter = (filter: string): Date | null => {
+  const parseTimeFilter = (time_field: string, filter: string): Date | null => {
     // Handle both formats:
-    // 1. "time_end_utc:range:(<timestamp>):"
-    // 2. "time_end_utc:range:(<timestamp>):(<upper_bound>)"
-    const match = filter.match(/time_end_utc:range:\(([^)]+)\):/);
+    // 1. "time_field:range:(<timestamp>):"
+    // 2. "time_field:range:(<timestamp>):(<upper_bound>)"
+    const match = filter.match(new RegExp(`${time_field}:range:\\(([^)]+)\\):`));
     if (match && match[1]) {
       try {
         // Explicitly treat as UTC by adding 'Z' suffix if not present
@@ -555,12 +555,11 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
   };
 
   // Helper function to find min timestamp from existing time slices
-  const getMinSliceTimestamp = (): Date => {
-    const timeSlices = (request.slices || []).filter(s => s.startsWith('time_end_utc:range:('));
+  const getMinSliceTimestamp = (time_field: string): Date => {
+    const timeSlices = (request.slices || []).filter(s => s.startsWith(`${time_field}:range:(`));
     let minTimestamp: Date | null = null;
-
     for (const slice of timeSlices) {
-      const match = slice.match(/time_end_utc:range:\(([^)]+)\):/);
+      const match = slice.match(new RegExp(`${time_field}:range:\\(([^)]+)\\):`));
       if (match && match[1]) {
         try {
           // Explicitly treat as UTC by adding 'Z' suffix if not present
@@ -574,43 +573,41 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
         }
       }
     }
-
     return minTimestamp || new Date(); // Return current time if no valid slices found
   };
 
   // Handle adding another time slice row
-  const handleAddTimeSlice = () => {
-    const timeFilter = getTimeFilter();
+  const handleAddTimeSlice = (time_field: string) => {
+    const timeFilter = getTimeFilter(time_field);
     if (!timeFilter) return;
-
-    const filterTimestamp = parseTimeFilter(timeFilter);
+    
+    const filterTimestamp = parseTimeFilter(time_field, timeFilter);
     if (!filterTimestamp) return;
-
-    const minSliceTimestamp = getMinSliceTimestamp();
+    
+    const minSliceTimestamp = getMinSliceTimestamp(time_field);
     const timeStep = minSliceTimestamp.getTime() - filterTimestamp.getTime();
-
+    
     // Remove the time filter from filters
     const newFilters = (request.filters || []).filter(f => 
-      !(/^time_end_utc:range:\([^)]+\):/.test(f))
+      !(new RegExp(`^${time_field}:range:\\([^)]+\\):`).test(f))
     );
-
+    
     // Create new time filter with adjusted timestamp
     const adjustedTimestamp = new Date(filterTimestamp.getTime() - timeStep);
     const adjustedTimestampStr = adjustedTimestamp.toISOString().replace(/\.\d{3}Z$/, '');
   
     // Replace the first timestamp in the timeFilter with the adjusted timestamp
     const adjustedFilter = timeFilter.replace(
-      /^(time_end_utc:range:)\([^)]+\)/,
+      new RegExp(`^(${time_field}:range:)\\([^)]+\\)`),
       `$1(${adjustedTimestampStr})`
     );
-
+    
     // Add the original filter as a slice and the adjusted filter as a new filter
     const newRequest = {
       ...request,
       filters: [...newFilters, adjustedFilter],
       slices: [...(request.slices || []), timeFilter]
     };
-
     fetchTable(newRequest);
   };
 
@@ -698,7 +695,8 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
           onAddFilter={handleAddFilter}
           onRemoveFilter={handleRemoveFilter}
           onTimeFilter={handleTimeFilter}
-          timeFilterRecommendations={config?.viewConfigs?.table?.timeFilterRecommendations}
+          timeFilterRecommendations={viewConfig?.timeFilterRecommendations}
+          timeField={viewConfig?.time_field || 'time_end_utc'}
           showTimeFilters={shouldShowTimeFiltersSection()}
         />
 
@@ -858,11 +856,11 @@ const TableDashboard: React.FC<TableDashboardProps> = ({
               </div>
 
               {/* Table Action Buttons */}
-              {getTimeFilter() && (
+              {getTimeFilter(viewConfig?.time_field || 'time_end_utc') && (
                 <div className="mt-2 flex justify-start gap-2">
                   {/* Add Time Slice Button */}
                   <button
-                    onClick={handleAddTimeSlice}
+                    onClick={() => handleAddTimeSlice(viewConfig?.time_field || 'time_end_utc')}
                     className="border-b border-gray-300 inline-flex items-center px-2.5 py-1.5 bg-blue-50 hover:bg-blue-200 text-gray-700 text-xs rounded transition-colors"
                     title="Add another time slice row"
                   >

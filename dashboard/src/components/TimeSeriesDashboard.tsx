@@ -844,7 +844,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   // Default request based on view config
   const getDefaultRequest = (): TimeSeriesRequest => {
     const defaultParams = viewConfig?.defaultParameters || {};
-    const defaultTimeFilter = getTimeFilter(defaultParams.time_filter || '1 month');
+    const defaultTimeFilter = getTimeFilter(viewConfig?.time_field || 'time_end_utc', defaultParams.time_filter || '1 month');
     return {
       filters: [defaultTimeFilter],
       time_granulation: defaultParams.time_granulation || '1 day',
@@ -1115,7 +1115,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
 
   // Handle time filter change with auto granulation
   const handleTimeFilterChange = (filter: string) => {
-    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:'));
+    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:') && !f.startsWith('instance_updated_at:'));
     const newRequest = { 
       ...request, 
       filters: [...newFilters, filter],
@@ -1261,7 +1261,8 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           onAddFilter={handleAddFilter}
           onRemoveFilter={handleRemoveFilter}
           onTimeFilter={handleTimeFilterChange}
-          timeFilterRecommendations={config?.viewConfigs?.timeseries?.timeFilterRecommendations}
+          timeFilterRecommendations={viewConfig?.timeFilterRecommendations}
+          timeField={viewConfig?.time_field || 'time_end_utc'}
           showTimeFilters={true}
         />
         
