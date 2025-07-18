@@ -194,7 +194,6 @@ def process_agent_hosting_analytics_data(
 
     # Collect all instances
     for user_entry in data.get("user_entries", []):
-        user_id = user_entry["user_id"]
         instances = user_entry.get("instances", [])
         all_instances.extend(instances)
 
