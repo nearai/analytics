@@ -177,7 +177,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
   // Render the appropriate view
   const renderCurrentView = () => {
     const viewToRender = availableViews.includes(currentView) ? currentView : availableViews[0];
-    var viewConfig = getViewConfig(viewToRender);
+    const viewConfig = getViewConfig(viewToRender);
     
     if (!viewConfig) {
       return <div>Error: View configuration not found for {viewToRender}</div>;
