@@ -11,6 +11,7 @@ from metrics_core.agent_hosting_analytics import (
 )
 from metrics_core.local_files import load_logs_list_from_disk
 from metrics_core.models.canonical_metrics_entry import CanonicalMetricsEntry
+from metrics_core.service_models.agent_hosting_models import AgentHostingAnalytics
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class MetricsCache:
     def __init__(self):
         """Initialize the metrics cache."""
         self._entries: Optional[List[CanonicalMetricsEntry]] = None
+        self._agent_hosting_analytics: Optional[AgentHostingAnalytics] = None
         self._lock = Lock()
         self._metrics_path: Optional[Path] = None
         self._agent_hosting_config: Optional[tuple[str, str]] = None
@@ -47,6 +49,7 @@ class MetricsCache:
             if self._entries is None or force_reload or self._metrics_path != metrics_path:
                 logger.info(f"Loading metrics entries from disk: {metrics_path}")
                 self._entries = load_logs_list_from_disk(metrics_path, include_log_files=True)
+                self._agent_hosting_analytics = None  # Clear agent hosting analytics when loading from disk
                 self._metrics_path = metrics_path
                 self._agent_hosting_config = None  # Clear agent hosting config when loading from disk
                 logger.info(f"Loaded {len(self._entries)} entries into cache")
@@ -90,6 +93,7 @@ class MetricsCache:
                 agent_hosting_analytics = process_agent_hosting_analytics_data(raw_data, verbose)
 
                 self._entries = agent_hosting_analytics.entries
+                self._agent_hosting_analytics = agent_hosting_analytics
                 self._agent_hosting_config = current_config
                 self._metrics_path = None  # Clear metrics path when loading from agent hosting
                 logger.info(f"Loaded {len(self._entries)} entries from agent hosting service into cache")
@@ -102,6 +106,7 @@ class MetricsCache:
         """Clear the cache, forcing next load to read from disk."""
         with self._lock:
             self._entries = None
+            self._agent_hosting_analytics = None
             self._metrics_path = None
             self._agent_hosting_config = None
             logger.info("Cache cleared")
@@ -162,6 +167,32 @@ class MetricsCache:
                 status_code=503,
                 detail="No data source configured. Set either METRICS_BASE_PATH or both AGENT_HOSTING_URL and AGENT_HOSTING_API_KEY.",  # noqa: E501
             )
+
+    def get_agent_hosting_analytics(
+        self, force_reload: bool = False, verbose: bool = False
+    ) -> Optional[AgentHostingAnalytics]:
+        """Get agent hosting analytics data.
+
+        Args:
+        ----
+            force_reload: Force reload even if cache exists
+            verbose: Enable verbose logging for agent hosting
+
+        Returns:
+        -------
+            AgentHostingAnalytics object if agent hosting is configured, None otherwise
+
+        """
+        from metrics_service.utils.config import settings
+
+        if not settings.has_agent_hosting():
+            return None
+
+        # Load entries to ensure agent hosting analytics is cached
+        self.load_entries_from_config(force_reload, verbose)
+
+        with self._lock:
+            return self._agent_hosting_analytics
 
 
 # Global cache instance

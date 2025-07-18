@@ -6,7 +6,7 @@
 
 set -e
 pip install ruff
-poetry run ruff check metrics_service
+poetry run ruff check metrics_core
 poetry run ruff check evaluation
 poetry run ruff check metrics_cli
 poetry run ruff check metrics_service

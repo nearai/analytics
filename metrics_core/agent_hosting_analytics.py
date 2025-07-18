@@ -1,6 +1,5 @@
 """Utilities to process agent hosting analytics data."""
 
-import sys
 from typing import Any, Dict, List
 
 import requests
@@ -103,7 +102,8 @@ def _create_analytics_entry(
     """Create a single analytics entry from the provided data."""
     # Extract metadata
     metadata = {
-        "owner_organization": organization["name"],
+        "owner_org_id": organization["id"],
+        "owner_org_name": organization["name"],
         "agent_id": agent["id"],
         "agent_name": agent["name"],
         "agent_description": agent["description"],
@@ -150,6 +150,8 @@ def process_agent_hosting_analytics_data(
 ) -> AgentHostingAnalytics:
     """Transform the raw agent hosting analytics data into structured analytics model."""
     entries = []
+    all_agents: List[Dict[str, Any]] = []
+    all_instances: List[Dict[str, Any]] = []
 
     data = agent_hosting_analytics_data
 
@@ -158,6 +160,8 @@ def process_agent_hosting_analytics_data(
         organization = dev_entry["organization"]
         agents = dev_entry["agents"]
         builds = dev_entry["builds"]
+
+        all_agents.extend(agents)
 
         # Create lookup for builds by agent_id
         builds_by_agent: Dict[str, Any] = {}
@@ -188,6 +192,11 @@ def process_agent_hosting_analytics_data(
                     )
                     entries.append(entry)
 
+    # Collect all instances
+    for user_entry in data.get("user_entries", []):
+        instances = user_entry.get("instances", [])
+        all_instances.extend(instances)
+
     # Show logs if verbose
     if verbose:
         print("\n--- LOGS ---")
@@ -202,7 +211,13 @@ def process_agent_hosting_analytics_data(
 
     entries = SortByTimestampConversion(sort_field_name="instance_updated_at").convert(entries)
 
-    return AgentHostingAnalytics(entries=entries)
+    def get_sort_key(entry: Dict[str, Any]):
+        return entry["updated_at"]
+
+    all_agents = sorted(all_agents, key=get_sort_key, reverse=True)
+    all_instances = sorted(all_instances, key=get_sort_key, reverse=True)
+
+    return AgentHostingAnalytics(entries=entries, agents=all_agents, instances=all_instances)
 
 
 def _find_instances_for_build(data: Dict[str, Any], build_id: str) -> List[tuple]:
