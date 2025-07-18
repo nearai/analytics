@@ -18,31 +18,31 @@ class DefaultFilterRequest(BaseModel):
     """Request model for default filter."""
 
     user_id: Optional[str] = Field(None, description="User ID for filtering")
-    owner_organization: Optional[str] = Field(None, description="Owner organization for filtering")
+    owner_org_id: Optional[str] = Field(None, description="Owner organization for filtering")
 
     class Config:
         """Pydantic config."""
 
-        json_schema_extra = {"example": {"user_id": "user123", "owner_organization": "my-org"}}
+        json_schema_extra = {"example": {"user_id": "user123", "owner_org_id": "my-org"}}
 
 
 class AgentsRequest(BaseModel):
     """Request model for agents."""
 
     user_id: Optional[str] = Field(None, description="User ID (ignored for now)")
-    owner_organization: Optional[str] = Field(None, description="Owner organization for filtering")
+    owner_org_id: Optional[str] = Field(None, description="Owner organization for filtering")
 
     class Config:
         """Pydantic config."""
 
-        json_schema_extra = {"example": {"owner_organization": "my-org"}}
+        json_schema_extra = {"example": {"owner_org_id": "my-org"}}
 
 
 class InstancesRequest(BaseModel):
     """Request model for instances."""
 
     user_id: Optional[str] = Field(None, description="User ID for filtering")
-    owner_organization: Optional[str] = Field(None, description="Owner organization (ignored for now)")
+    owner_org_id: Optional[str] = Field(None, description="Owner organization (ignored for now)")
 
     class Config:
         """Pydantic config."""
@@ -52,12 +52,12 @@ class InstancesRequest(BaseModel):
 
 @router.post("/default_filter", response_model=Dict[str, Any])
 async def get_default_filter(request: DefaultFilterRequest):
-    """Get global filter based on user_id and owner_organization.
+    """Get global filter based on user_id or owner_org_id.
 
     Logic:
     - Empty arguments -> empty filter
-    - If owner_organization is present, and filtering entries by owner_organization is non-empty,
-      return owner_organization filter
+    - If owner_org_id is present, and filtering entries by owner_org_id is non-empty,
+      return owner_org_id filter
     - Otherwise, return user_id filter
     """
     try:
@@ -72,18 +72,18 @@ async def get_default_filter(request: DefaultFilterRequest):
             )
 
         # Empty arguments -> empty filter
-        if not request.user_id and not request.owner_organization:
+        if not request.user_id and not request.owner_org_id:
             return {}
 
-        # If owner_organization is present, check if filtering by it would return non-empty results
-        if request.owner_organization:
+        # If owner_org_id is present, check if filtering by it would return non-empty results
+        if request.owner_org_id:
             filtered_entries = [
                 entry
                 for entry in agent_hosting_analytics.entries
-                if entry.metadata.get("owner_organization") == request.owner_organization
+                if entry.metadata.get("owner_org_id") == request.owner_org_id
             ]
             if filtered_entries:
-                condition = in_condition("owner_organization", [request.owner_organization])
+                condition = in_condition("owner_org_id", [request.owner_org_id])
                 return {"filter": str(condition)}
 
         # Otherwise, return user_id filter (if provided)
@@ -102,11 +102,11 @@ async def get_default_filter(request: DefaultFilterRequest):
 
 @router.post("/agents", response_model=List[Dict[str, Any]])
 async def get_agents(request: AgentsRequest):
-    """Get agents, optionally filtered by owner_organization.
+    """Get agents, optionally filtered by owner_org_id.
 
     Logic:
-    - Empty owner_organization -> all agents
-    - Otherwise all agents filtered by owner_organization
+    - Empty owner_org_id -> all agents
+    - Otherwise all agents filtered by owner_org_id
     """
     try:
         logger.info(f"Agents request received: {request}")
@@ -121,9 +121,9 @@ async def get_agents(request: AgentsRequest):
 
         agents = agent_hosting_analytics.agents
 
-        # Apply owner_organization filter if provided
-        if request.owner_organization:
-            agents = [agent for agent in agents if agent.get("owner_organization") == request.owner_organization]
+        # Apply owner_org_id filter if provided
+        if request.owner_org_id:
+            agents = [agent for agent in agents if agent.get("organization_id") == request.owner_org_id]
 
         return agents
 
@@ -171,24 +171,24 @@ async def get_schema():
     """Get the schema information for agent-hosting endpoints."""
     return {
         "default_filter": {
-            "description": "Get global filter based on user_id and owner_organization",
+            "description": "Get global filter based on user_id and owner_org_id",
             "logic": [
                 "Empty arguments -> empty filter",
-                "If owner_organization present and has entries -> return owner_organization filter",
+                "If owner_org_id present and has entries -> return owner_org_id filter",
                 "Otherwise -> return user_id filter",
             ],
             "parameters": {
                 "user_id": "Optional user ID for filtering",
-                "owner_organization": "Optional organization name for filtering",
+                "owner_org_id": "Optional organization name for filtering",
             },
             "response": "Filter object that can be passed to Dashboard component",
         },
         "agents": {
-            "description": "Get agents, optionally filtered by owner_organization",
-            "logic": ["Empty owner_organization -> all agents", "Otherwise -> agents filtered by owner_organization"],
+            "description": "Get agents, optionally filtered by owner_org_id",
+            "logic": ["Empty owner_org_id -> all agents", "Otherwise -> agents filtered by owner_org_id"],
             "parameters": {
                 "user_id": "Optional user ID (ignored for now)",
-                "owner_organization": "Optional organization name for filtering agents",
+                "owner_org_id": "Optional organization name for filtering agents",
             },
             "response": "List of agent objects",
         },
@@ -197,7 +197,7 @@ async def get_schema():
             "logic": ["Empty user_id -> all instances", "Otherwise -> instances filtered by user_id"],
             "parameters": {
                 "user_id": "Optional user ID for filtering instances",
-                "owner_organization": "Optional organization name (ignored for now)",
+                "owner_org_id": "Optional organization name (ignored for now)",
             },
             "response": "List of instance objects",
         },

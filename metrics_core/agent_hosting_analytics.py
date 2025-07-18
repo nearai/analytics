@@ -1,6 +1,5 @@
 """Utilities to process agent hosting analytics data."""
 
-import sys
 from typing import Any, Dict, List
 
 import requests
@@ -103,7 +102,8 @@ def _create_analytics_entry(
     """Create a single analytics entry from the provided data."""
     # Extract metadata
     metadata = {
-        "owner_organization": organization["name"],
+        "owner_org_id": organization["id"],
+        "owner_org_name": organization["name"],
         "agent_id": agent["id"],
         "agent_name": agent["name"],
         "agent_description": agent["description"],
@@ -161,11 +161,7 @@ def process_agent_hosting_analytics_data(
         agents = dev_entry["agents"]
         builds = dev_entry["builds"]
 
-        # Collect agents with organization info
-        for agent in agents:
-            agent_with_org = agent.copy()
-            agent_with_org["owner_organization"] = organization["name"]
-            all_agents.append(agent_with_org)
+        all_agents.extend(agents)
 
         # Create lookup for builds by agent_id
         builds_by_agent: Dict[str, Any] = {}
