@@ -34,9 +34,14 @@ jobs:
       with:
         version: 'latest'
 
-    - name: Update kubeconfig for EKS
+    - name: Create/Update Kubernetes Secret
       run: |
-        aws eks --region us-west-2 update-kubeconfig --name prod-agent-cloud
+        kubectl create secret generic prod-analytics-service-secrets \
+          --from-literal=LOG_LEVEL="${{ secrets.LOG_LEVEL }}" \
+          --from-literal=AGENT_HOSTING_URL="${{ secrets.AGENT_HOSTING_URL }}" \
+          --from-literal=AGENT_HOSTING_API_KEY="${{ secrets.AGENT_HOSTING_API_KEY }}" \
+          --namespace=production \
+          --dry-run=client -o yaml | kubectl apply -f -
 
     - name: Deploy to EKS
       run: |
