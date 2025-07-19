@@ -34,6 +34,10 @@ jobs:
       with:
         version: 'latest'
 
+    - name: Update kubeconfig for EKS
+      run: |
+        aws eks --region us-west-2 update-kubeconfig --name prod-agent-cloud
+
     - name: Create/Update Kubernetes Secret
       run: |
         kubectl create secret generic prod-analytics-service-secrets \
