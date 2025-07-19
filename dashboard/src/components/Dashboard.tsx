@@ -65,7 +65,10 @@ const DEFAULT_CONFIG: DashboardConfig = {
 };
 
 const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
-  const finalConfig = { ...DEFAULT_CONFIG, ...config };
+  // Memoize finalConfig to prevent unnecessary re-renders
+  const finalConfig = useMemo(() => {
+    return { ...DEFAULT_CONFIG, ...config };
+  }, [config]);
   
   // Determine available views
   const availableViews = useMemo(() => {
@@ -85,6 +88,7 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
 
   // Enhanced finalConfig with auto-determined time fields
   const [enhancedConfig, setEnhancedConfig] = useState<DashboardConfig>(finalConfig);
+  const [timeFieldsLoaded, setTimeFieldsLoaded] = useState<boolean>(false);
 
   // Effect to determine time fields for view configs that don't have them
   useEffect(() => {
@@ -124,10 +128,23 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
           viewConfigs: updatedViewConfigs
         });
       }
+      
+      // Mark time fields as loaded
+      setTimeFieldsLoaded(true);
     };
 
-    updateTimeFields();
-  }, [finalConfig]);
+    // Check if all view configs already have time fields
+    const allViewsHaveTimeField = Object.values(finalConfig.viewConfigs || {})
+      .every(viewConfig => viewConfig.time_field);
+
+    if (allViewsHaveTimeField) {
+      // No async work needed, mark as loaded immediately
+      setTimeFieldsLoaded(true);
+    } else {
+      // Need to determine time fields
+      updateTimeFields();
+    }
+  }, [finalConfig.metrics_service_url, finalConfig.viewConfigs]);
 
   // Helper function to get view config by view ID
   const getViewConfig = useCallback((viewId: string): ViewConfig | undefined => {
@@ -176,6 +193,15 @@ const Dashboard: React.FC<DashboardProps> = ({ config = DEFAULT_CONFIG }) => {
 
   // Render the appropriate view
   const renderCurrentView = () => {
+    // Don't render views until time fields are loaded
+    if (!timeFieldsLoaded) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading dashboard configuration...</div>
+        </div>
+      );
+    }
+
     const viewToRender = availableViews.includes(currentView) ? currentView : availableViews[0];
     const viewConfig = getViewConfig(viewToRender);
     
