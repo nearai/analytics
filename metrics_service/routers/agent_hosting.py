@@ -156,7 +156,9 @@ async def get_instances(request: InstancesRequest):
 
         # Apply user_id filter if provided
         if request.user_id:
-            instances = [instance for instance in instances if instance.get("instance").get("user_id") == request.user_id]
+            instances = [
+                instance for instance in instances if instance.get("instance", {}).get("user_id") == request.user_id
+            ]
 
         return instances
 
