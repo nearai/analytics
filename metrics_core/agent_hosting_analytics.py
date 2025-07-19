@@ -34,6 +34,8 @@ def _process_env_vars_list(env_vars: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def _process_env_vars(header: str, env_vars: Dict[str, Any], verbose: bool) -> Dict[str, Any]:
+    if not env_vars:
+        return {}
     if isinstance(env_vars, list):
         env_vars = _process_env_vars_list(env_vars)
     lines: List[str] = []
@@ -158,8 +160,8 @@ def process_agent_hosting_analytics_data(
     # Process agent_developer_entries
     for dev_entry in data.get("agent_developer_entries", []):
         organization = dev_entry["organization"]
-        agents = dev_entry["agents"]
-        builds = dev_entry["builds"]
+        agents = dev_entry.get("agents", [])
+        builds = dev_entry.get("builds", [])
 
         all_agents.extend(agents)
 

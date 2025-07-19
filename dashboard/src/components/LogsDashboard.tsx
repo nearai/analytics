@@ -330,7 +330,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
     
     // Add time filter if specified in config
     if (configDefaults.time_filter) {
-      const timeFilter = sharedGetTimeFilter(String(configDefaults.time_filter));
+      const timeFilter = sharedGetTimeFilter(viewConfig?.time_field || 'time_end_utc', String(configDefaults.time_filter));
       defaultFilters.push(timeFilter);
     }
     
@@ -509,7 +509,7 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
   };
 
   const handleTimeFilter = (filter: string) => {
-    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:'));
+    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:') && !f.startsWith('instance_updated_at:'));
     const newRequest = {
       ...request,
       filters: [...newFilters, filter]
@@ -617,7 +617,8 @@ const LogsDashboard: React.FC<LogsDashboardProps> = ({
           onAddFilter={handleAddFilter}
           onRemoveFilter={handleRemoveFilter}
           onTimeFilter={handleTimeFilter}
-          timeFilterRecommendations={config?.viewConfigs?.logs?.timeFilterRecommendations}
+          timeFilterRecommendations={viewConfig?.timeFilterRecommendations}
+          timeField={viewConfig?.time_field || 'time_end_utc'}
           showTimeFilters={true}
         />
 

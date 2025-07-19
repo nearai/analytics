@@ -172,6 +172,8 @@ export interface ViewConfig {
   timeFilterRecommendations?: string[];
   // Refresh rate in seconds (for web component usage)
   refreshRate?: number;
+  // Time field name
+  time_field?: string;
 }
 
 export interface DashboardConfig {

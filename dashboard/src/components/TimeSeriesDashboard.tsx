@@ -328,6 +328,31 @@ const createInitialGraphsFromImportantMetrics = async (
     });
   }
 
+  // 1. Instances - Single line, slice by agent_name if < 14 agents
+  if (importantMetrics['Instances']) {
+    const [filters, fieldName] = importantMetrics['Instances'];
+
+    // Check agent count
+    const agentCount = await getSliceValueCount(fieldName, 'agent_name', config, requestFilters);
+    const shouldSlice = agentCount > 0 && agentCount < 14;
+
+    graphs.push({
+      id: `graph-${Date.now()}-instances`,
+      name: 'Instances',
+      lineConfigurations: [
+        {
+          id: `line-${Date.now()}-instances`,
+          metricName: fieldName,
+          filters: filters,
+          slice: shouldSlice ? 'agent_name' : undefined,
+          displayName: shouldSlice ? 'instances' : 'Instances',
+          color: shouldSlice ? {} : getLineColor(fieldName, '', filters),
+          userSetColor: shouldSlice ? {} : true
+        }
+      ]
+    });
+  }
+
   // 2. Successful/Failed Invocations - Two lines
   if (importantMetrics['Successful Invocations'] && importantMetrics['Failed Invocations']) {
     const [successFilters, successField] = importantMetrics['Successful Invocations'];
@@ -844,7 +869,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
   // Default request based on view config
   const getDefaultRequest = (): TimeSeriesRequest => {
     const defaultParams = viewConfig?.defaultParameters || {};
-    const defaultTimeFilter = getTimeFilter(defaultParams.time_filter || '1 month');
+    const defaultTimeFilter = getTimeFilter(viewConfig?.time_field || 'time_end_utc', defaultParams.time_filter || '1 month');
     return {
       filters: [defaultTimeFilter],
       time_granulation: defaultParams.time_granulation || '1 day',
@@ -1115,7 +1140,7 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
 
   // Handle time filter change with auto granulation
   const handleTimeFilterChange = (filter: string) => {
-    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:'));
+    const newFilters = (request.filters || []).filter(f => !f.startsWith('time_end_utc:') && !f.startsWith('instance_updated_at:'));
     const newRequest = { 
       ...request, 
       filters: [...newFilters, filter],
@@ -1261,7 +1286,8 @@ const TimeSeriesDashboard: React.FC<TimeSeriesDashboardProps> = ({
           onAddFilter={handleAddFilter}
           onRemoveFilter={handleRemoveFilter}
           onTimeFilter={handleTimeFilterChange}
-          timeFilterRecommendations={config?.viewConfigs?.timeseries?.timeFilterRecommendations}
+          timeFilterRecommendations={viewConfig?.timeFilterRecommendations}
+          timeField={viewConfig?.time_field || 'time_end_utc'}
           showTimeFilters={true}
         />
         
