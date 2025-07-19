@@ -193,11 +193,7 @@ def process_agent_hosting_analytics_data(
                         organization, agent, build, instance, user_id, data_from_build_env_vars, verbose
                     )
                     entries.append(entry)
-
-    # Collect all instances
-    for user_entry in data.get("user_entries", []):
-        instances = user_entry.get("instances", [])
-        all_instances.extend(instances)
+                    all_instances.append({"instance": instance, "build": build, "agent": agent})
 
     # Show logs if verbose
     if verbose:
@@ -213,11 +209,15 @@ def process_agent_hosting_analytics_data(
 
     entries = SortByTimestampConversion(sort_field_name="instance_updated_at").convert(entries)
 
-    def get_sort_key(entry: Dict[str, Any]):
+    def get_agent_sort_key(entry: Dict[str, Any]):
         return entry["updated_at"]
 
-    all_agents = sorted(all_agents, key=get_sort_key, reverse=True)
-    all_instances = sorted(all_instances, key=get_sort_key, reverse=True)
+    all_agents = sorted(all_agents, key=get_agent_sort_key, reverse=True)
+
+    def get_instance_sort_key(entry: Dict[str, Any]):
+        return entry["instance"]["updated_at"]
+
+    all_instances = sorted(all_instances, key=get_instance_sort_key, reverse=True)
 
     return AgentHostingAnalytics(entries=entries, agents=all_agents, instances=all_instances)
 
