@@ -32,7 +32,7 @@ class MetricsCache:
         self._agent_hosting_config: Optional[tuple[str, str]] = None
         self._agent_hosting_last_loaded: Optional[float] = None
 
-    def load_entries(
+    def load_entries_from_disk(
         self,
         metrics_path: Path,
         force_reload: bool = False,
@@ -186,7 +186,7 @@ class MetricsCache:
             )
         elif settings.has_metrics_path():
             metrics_path = settings.get_metrics_path()
-            return self.load_entries(metrics_path, force_reload)
+            return self.load_entries_from_disk(metrics_path, force_reload)
         else:
             raise HTTPException(
                 status_code=503,
