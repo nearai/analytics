@@ -29,7 +29,7 @@ def fetch_agent_hosting_analytics_data(agent_hosting_url: str, api_key: str, ver
 def _process_env_vars_list(env_vars: List[Dict[str, Any]]) -> Dict[str, Any]:
     env_vars_dict: Dict[str, Any] = {}
     for var in env_vars:
-        env_vars_dict[var["key"]] = var["value"]
+        env_vars_dict[var["key"]] = var.get("value", "")
     return env_vars_dict
 
 
